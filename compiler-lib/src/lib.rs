@@ -16,11 +16,15 @@ pub mod scope;
 
 pub struct CompilationOptions {
     pub optimize: bool,
+    pub dump_builder: bool,
 }
 
 impl Default for CompilationOptions {
     fn default() -> Self {
-        Self { optimize: true }
+        Self {
+            optimize: true,
+            dump_builder: false,
+        }
     }
 }
 

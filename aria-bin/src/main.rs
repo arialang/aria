@@ -23,6 +23,9 @@ struct Args {
     /// Should the AST be dumped after parsing
     #[arg(long("dump-ast"))]
     dump_ast: bool,
+    /// Dump the compiler's intermediate representation
+    #[arg(long("dump-ir"))]
+    dump_ir: bool,
     /// Should the module be dumped after compilation
     #[arg(long("dump-module"))]
     dump_mod: bool,

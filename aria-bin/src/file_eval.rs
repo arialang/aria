@@ -22,6 +22,7 @@ impl From<&Args> for CompilationOptions {
     fn from(value: &Args) -> Self {
         CompilationOptions {
             optimize: !value.disable_optimizer,
+            dump_builder: value.dump_ir,
         }
     }
 }

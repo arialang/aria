@@ -31,8 +31,8 @@ impl BasicBlockEntry {
 }
 
 pub struct BasicBlock {
-    name: String,
-    id: usize,
+    pub(crate) name: String,
+    pub(crate) id: usize,
     writer: RefCell<Vec<BasicBlockEntry>>,
 }
 
@@ -359,6 +359,18 @@ impl BasicBlock {
     }
 }
 
+impl std::fmt::Display for BasicBlock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let br = self.writer.borrow();
+        writeln!(f, "BasicBlock {}:", self.name)?;
+        for src_op in br.as_slice() {
+            writeln!(f, "  {}", src_op.op)?;
+        }
+
+        Ok(())
+    }
+}
+
 pub struct FunctionBuilder {
     blocks: Vec<Rc<BasicBlock>>,
     names: HashSet<String>,
@@ -534,8 +546,14 @@ impl FunctionBuilder {
         cv: &ConstantValues,
         options: &CompilationOptions,
     ) -> Result<Vec<u8>, crate::do_compile::CompilationErrorReason> {
+        if options.dump_builder {
+            println!("(unopt) Intermediate Representation Dump:\n{}", self);
+        }
         if options.optimize {
             self.run_optimize_passes(cv);
+            if options.dump_builder {
+                println!("(opt) Intermediate Representation Dump:\n{}", self);
+            }
         }
 
         let mut dest = BytecodeWriter::default();
@@ -558,5 +576,15 @@ impl FunctionBuilder {
         }
 
         &self.line_table
+    }
+}
+
+impl std::fmt::Display for FunctionBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for blk in &self.blocks {
+            writeln!(f, "{}", blk)?;
+        }
+
+        Ok(())
     }
 }
