@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::{collections::HashSet, rc::Rc};
+use std::collections::HashSet;
 
 use crate::{
     CompilationOptions,
@@ -10,9 +10,9 @@ use crate::{
 };
 
 pub struct FunctionBuilder {
-    blocks: Vec<Rc<BasicBlock>>,
+    blocks: Vec<BasicBlock>,
     names: HashSet<String>,
-    current: Rc<BasicBlock>,
+    current: BasicBlock,
     bb_id: usize,
     line_table: LineTable,
 }
@@ -22,20 +22,20 @@ impl Default for FunctionBuilder {
         let mut this = Self {
             blocks: Vec::new(),
             names: HashSet::new(),
-            current: Rc::new(BasicBlock::new("entry", 0)),
+            current: BasicBlock::new("entry", 0),
             bb_id: 1,
             line_table: Default::default(),
         };
         this.blocks.push(this.current.clone());
-        this.names.insert(this.current.name.clone());
+        this.names.insert(this.current.name().to_owned());
         this
     }
 }
 
 impl FunctionBuilder {
-    pub fn try_get_block(&self, name: &str) -> Option<Rc<BasicBlock>> {
+    pub fn try_get_block(&self, name: &str) -> Option<BasicBlock> {
         for blk in &self.blocks {
-            if blk.name == name {
+            if blk.name() == name {
                 return Some(blk.clone());
             }
         }
@@ -43,7 +43,7 @@ impl FunctionBuilder {
         None
     }
 
-    pub fn get_block(&self, name: &str) -> Rc<BasicBlock> {
+    pub fn get_block(&self, name: &str) -> BasicBlock {
         self.try_get_block(name).expect("block is missing")
     }
 
@@ -56,22 +56,22 @@ impl FunctionBuilder {
         name
     }
 
-    fn make_new_block(&mut self, name: &str) -> Rc<BasicBlock> {
+    fn make_new_block(&mut self, name: &str) -> BasicBlock {
         assert!(!self.names.contains(name));
 
-        let blk = Rc::new(BasicBlock::new(name, self.bb_id));
+        let blk = BasicBlock::new(name, self.bb_id);
         self.bb_id += 1;
         blk
     }
 
-    pub fn insert_block_after(&mut self, name: &str, target: &Rc<BasicBlock>) -> Rc<BasicBlock> {
+    pub fn insert_block_after(&mut self, name: &str, target: &BasicBlock) -> BasicBlock {
         let name = self.uniq_name(name);
         let blk = self.make_new_block(&name);
         let mut inserted = false;
 
         for i in 0..self.blocks.len() {
             let blk_i = &self.blocks[i];
-            if blk_i.id == target.id {
+            if blk_i.id() == target.id() {
                 if i + 1 >= self.blocks.len() {
                     self.blocks.push(blk.clone());
                 } else {
@@ -90,7 +90,7 @@ impl FunctionBuilder {
         blk
     }
 
-    pub fn append_block_at_end(&mut self, name: &str) -> Rc<BasicBlock> {
+    pub fn append_block_at_end(&mut self, name: &str) -> BasicBlock {
         let name = self.uniq_name(name);
         let blk = self.make_new_block(&name);
 
@@ -99,18 +99,18 @@ impl FunctionBuilder {
         blk
     }
 
-    pub fn set_current_block(&mut self, blk: Rc<BasicBlock>) {
+    pub fn set_current_block(&mut self, blk: BasicBlock) {
         self.current = blk;
     }
 
-    pub fn get_current_block(&self) -> Rc<BasicBlock> {
+    pub fn get_current_block(&self) -> BasicBlock {
         self.current.clone()
     }
 
-    pub fn offset_of_block(&self, blk: &Rc<BasicBlock>) -> Option<u16> {
+    pub fn offset_of_block(&self, blk: &BasicBlock) -> Option<u16> {
         let mut count = 0;
         for next in &self.blocks {
-            if Rc::ptr_eq(next, blk) {
+            if next == blk {
                 return Some((count + 1) as u16);
             } else {
                 count += next.byte_size();
@@ -123,16 +123,16 @@ impl FunctionBuilder {
         let mut orphans = HashSet::<usize>::default();
 
         for blk in &self.blocks {
-            if blk.id != 0 {
-                orphans.insert(blk.id);
+            if blk.id() != 0 {
+                orphans.insert(blk.id());
             }
         }
 
         for blk in &self.blocks {
-            let br = blk.writer.borrow();
+            let br = blk.imp.writer.borrow();
             for src_op in br.as_slice() {
                 if let Some(dst) = src_op.op.is_jump_instruction() {
-                    orphans.remove(&dst.id);
+                    orphans.remove(&dst.id());
                 }
             }
         }
@@ -142,7 +142,7 @@ impl FunctionBuilder {
 
     fn remove_block_with_id(&mut self, id: usize) -> bool {
         for i in 0..self.blocks.len() {
-            if self.blocks[i].id == id {
+            if self.blocks[i].id() == id {
                 self.blocks.remove(i);
                 return true;
             }

@@ -1,6 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::rc::Rc;
-
 use enum_as_inner::EnumAsInner;
 use haxby_opcodes::{Opcode as VmOpcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 
@@ -50,13 +48,13 @@ pub enum CompilerOpcode {
     GreaterThanEqual,
     LessThan,
     LessThanEqual,
-    JumpTrue(Rc<BasicBlock>),
-    JumpFalse(Rc<BasicBlock>),
-    Jump(Rc<BasicBlock>),
-    JumpIfArgSupplied(u8, Rc<BasicBlock>),
+    JumpTrue(BasicBlock),
+    JumpFalse(BasicBlock),
+    Jump(BasicBlock),
+    JumpIfArgSupplied(u8, BasicBlock),
     Call(u8),
     Return,
-    TryEnter(Rc<BasicBlock>),
+    TryEnter(BasicBlock),
     TryExit,
     Throw,
     BuildList(u32),
@@ -231,7 +229,7 @@ impl CompilerOpcode {
         }
     }
 
-    pub fn is_jump_instruction(&self) -> Option<Rc<BasicBlock>> {
+    pub fn is_jump_instruction(&self) -> Option<BasicBlock> {
         match self {
             Self::TryEnter(dst)
             | Self::JumpIfArgSupplied(_, dst)
@@ -381,15 +379,15 @@ impl std::fmt::Display for CompilerOpcode {
             GreaterThanEqual => write!(f, "GreaterThanEqual"),
             LessThan => write!(f, "LessThan"),
             LessThanEqual => write!(f, "LessThanEqual"),
-            JumpTrue(dst) => write!(f, "JumpTrue({})", dst.as_ref().name),
-            JumpFalse(dst) => write!(f, "JumpFalse({})", dst.as_ref().name),
-            Jump(dst) => write!(f, "Jump({})", dst.as_ref().name),
+            JumpTrue(dst) => write!(f, "JumpTrue({})", dst.name()),
+            JumpFalse(dst) => write!(f, "JumpFalse({})", dst.name()),
+            Jump(dst) => write!(f, "Jump({})", dst.name()),
             JumpIfArgSupplied(arg, dst) => {
-                write!(f, "JumpIfArgSupplied({}, {})", arg, dst.as_ref().name)
+                write!(f, "JumpIfArgSupplied({}, {})", arg, dst.name())
             }
             Call(n) => write!(f, "Call({})", n),
             Return => write!(f, "Return"),
-            TryEnter(dst) => write!(f, "TryEnter({})", dst.as_ref().name),
+            TryEnter(dst) => write!(f, "TryEnter({})", dst.name()),
             TryExit => write!(f, "TryExit"),
             Throw => write!(f, "Throw"),
             BuildList(v) => write!(f, "BuildList({})", v),

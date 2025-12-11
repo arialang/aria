@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::{collections::HashSet, fmt::Display, path::PathBuf, rc::Rc};
+use std::{collections::HashSet, fmt::Display, path::PathBuf};
 
 use aria_parser::ast::{
     ArgumentDecl, ArgumentList, AssertStatement, CodeBlock, DeclarationId, ElsePiece, EnumCaseDecl,
@@ -112,8 +112,8 @@ pub type CompilationResult<T = (), E = CompilationError> = Result<T, E>;
 
 #[derive(Default)]
 struct ControlFlowTargets {
-    break_dest: Option<Rc<BasicBlock>>,
-    continue_dest: Option<Rc<BasicBlock>>,
+    break_dest: Option<BasicBlock>,
+    continue_dest: Option<BasicBlock>,
 }
 
 struct CompileParams<'a> {

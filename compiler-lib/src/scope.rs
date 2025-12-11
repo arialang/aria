@@ -91,7 +91,7 @@ impl ModuleRootScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         let symbol_idx = match consts.insert(crate::constant_value::ConstantValue::String(
@@ -116,7 +116,7 @@ impl ModuleRootScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -143,7 +143,7 @@ impl ModuleRootScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -168,7 +168,7 @@ impl ModuleRootScope {
     fn resolve_uplevel_symbol(
         &self,
         _: &str,
-        _: Rc<BasicBlock>,
+        _: BasicBlock,
         _: SourcePointer,
         _: bool,
     ) -> ScopeResult<Option<UplevelSymbolResolution>> {
@@ -193,7 +193,7 @@ impl ModuleChildScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         let symbol_idx = match consts.insert(crate::constant_value::ConstantValue::String(
@@ -218,7 +218,7 @@ impl ModuleChildScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -233,7 +233,7 @@ impl ModuleChildScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -247,7 +247,7 @@ impl ModuleChildScope {
     fn resolve_uplevel_symbol(
         &self,
         _: &str,
-        _: Rc<BasicBlock>,
+        _: BasicBlock,
         _: SourcePointer,
         _: bool,
     ) -> ScopeResult<Option<UplevelSymbolResolution>> {
@@ -270,7 +270,7 @@ pub struct FunctionRootScope {
     symbols: RefCell<HashMap<String, u8>>,
     index_provider: RefCell<IndexProviderImpl<u8>>,
     parent: CompilationScope,
-    lexical_parent: Option<(CompilationScope, Rc<BasicBlock>)>,
+    lexical_parent: Option<(CompilationScope, BasicBlock)>,
     pub(crate) uplevels: RefCell<Vec<UplevelInfo>>,
 }
 
@@ -285,7 +285,7 @@ impl FunctionRootScope {
         }
     }
 
-    fn closure(lexical_parent: (CompilationScope, Rc<BasicBlock>)) -> Self {
+    fn closure(lexical_parent: (CompilationScope, BasicBlock)) -> Self {
         Self {
             symbols: Default::default(),
             index_provider: Default::default(),
@@ -303,7 +303,7 @@ impl FunctionRootScope {
         &self,
         name: &str,
         _: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         let next_idx = self.index_provider.borrow_mut().next();
@@ -316,7 +316,7 @@ impl FunctionRootScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -338,7 +338,7 @@ impl FunctionRootScope {
     fn store_uplevel_as_local(
         &self,
         name: &str,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
         uplevel: UplevelSymbolResolution,
         want_dup_on_stack: bool,
@@ -374,7 +374,7 @@ impl FunctionRootScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         let maybe_idx = self.symbols.borrow().get(name).cloned();
@@ -396,7 +396,7 @@ impl FunctionRootScope {
     fn resolve_uplevel_symbol(
         &self,
         name: &str,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
         want_dup_on_stack: bool,
     ) -> ScopeResult<Option<UplevelSymbolResolution>> {
@@ -446,7 +446,7 @@ impl FunctionChildScope {
         &self,
         name: &str,
         _: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         let next_idx = self.get_function_root().index_provider.borrow_mut().next();
@@ -459,7 +459,7 @@ impl FunctionChildScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -474,7 +474,7 @@ impl FunctionChildScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         if let Some(existing_idx) = self.symbols.borrow().get(name) {
@@ -488,7 +488,7 @@ impl FunctionChildScope {
     fn resolve_uplevel_symbol(
         &self,
         name: &str,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
         want_dup_on_stack: bool,
     ) -> ScopeResult<Option<UplevelSymbolResolution>> {
@@ -521,7 +521,7 @@ impl CompilationScope {
         Self::FunctionRoot(Rc::new(FunctionRootScope::root_function(self.clone())))
     }
 
-    pub fn closure(&self, dest: Rc<BasicBlock>) -> Self {
+    pub fn closure(&self, dest: BasicBlock) -> Self {
         Self::FunctionRoot(Rc::new(FunctionRootScope::closure((self.clone(), dest))))
     }
 
@@ -549,7 +549,7 @@ impl CompilationScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         match self {
@@ -564,7 +564,7 @@ impl CompilationScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         dest.write_opcode_and_source_info(
@@ -579,7 +579,7 @@ impl CompilationScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         match self {
@@ -594,7 +594,7 @@ impl CompilationScope {
         &self,
         name: &str,
         consts: &mut ConstantValues,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
     ) -> ScopeResult {
         match self {
@@ -608,7 +608,7 @@ impl CompilationScope {
     fn resolve_uplevel_symbol(
         &self,
         name: &str,
-        dest: Rc<BasicBlock>,
+        dest: BasicBlock,
         loc: SourcePointer,
         want_dup_on_stack: bool,
     ) -> ScopeResult<Option<UplevelSymbolResolution>> {
