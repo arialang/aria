@@ -123,6 +123,11 @@ impl BasicBlock {
         false
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn remove_op_at_idx(&self, idx: usize) {
+        self.imp.writer.borrow_mut().remove(idx);
+    }
+
     fn replace_double_jump(&self) -> bool {
         let mut any = false;
 
