@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::rc::Rc;
 
+use enum_as_inner::EnumAsInner;
 use haxby_opcodes::{Opcode as VmOpcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 
 use crate::builder::{block::BasicBlock, func::FunctionBuilder};
 
+#[derive(Clone, EnumAsInner)]
 pub enum CompilerOpcode {
     Nop,
     Push(u16),
