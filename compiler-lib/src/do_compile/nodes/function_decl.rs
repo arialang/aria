@@ -2,13 +2,12 @@
 use haxby_opcodes::function_attribs::FUNC_ACCEPTS_VARARG;
 
 use crate::{
-    builder::compiler_opcodes::CompilerOpcode,
+    builder::{compiler_opcodes::CompilerOpcode, func::FunctionBuilder},
     constant_value::{CompiledCodeObject, ConstantValue},
     do_compile::{
         CompilationError, CompilationResult, CompileNode, CompileParams, ControlFlowTargets,
         emit_args_at_target,
     },
-    func_builder::FunctionBuilder,
 };
 
 impl<'a> CompileNode<'a> for aria_parser::ast::FunctionDecl {

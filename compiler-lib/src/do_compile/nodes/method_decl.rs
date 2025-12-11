@@ -3,13 +3,12 @@
 use aria_parser::ast::{DeclarationId, Identifier};
 
 use crate::{
-    builder::compiler_opcodes::CompilerOpcode,
+    builder::{compiler_opcodes::CompilerOpcode, func::FunctionBuilder},
     constant_value::{CompiledCodeObject, ConstantValue},
     do_compile::{
         CompilationError, CompilationResult, CompileNode, CompileParams, ControlFlowTargets,
         emit_args_at_target,
     },
-    func_builder::FunctionBuilder,
     scope::CompilationScope,
 };
 

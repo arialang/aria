@@ -5,8 +5,8 @@ use aria_parser::ast::SourcePointer;
 use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_ANY;
 
 use crate::{
-    builder::compiler_opcodes::CompilerOpcode, constant_value::ConstantValues,
-    func_builder::BasicBlock,
+    builder::{block::BasicBlock, compiler_opcodes::CompilerOpcode},
+    constant_value::ConstantValues,
 };
 
 trait Numeric<Output = Self> {

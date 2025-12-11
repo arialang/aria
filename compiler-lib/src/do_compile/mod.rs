@@ -14,9 +14,8 @@ use thiserror::Error;
 
 use crate::{
     CompilationOptions,
-    builder::compiler_opcodes::CompilerOpcode,
+    builder::{block::BasicBlock, compiler_opcodes::CompilerOpcode, func::FunctionBuilder},
     constant_value::{ConstantValue, ConstantValuesError},
-    func_builder::{BasicBlock, FunctionBuilder},
     module::CompiledModule,
     scope::{CompilationScope, ScopeError, ScopeErrorReason},
 };

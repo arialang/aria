@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use haxby_opcodes::{Opcode as VmOpcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 
-use crate::func_builder::{BasicBlock, FunctionBuilder};
+use crate::builder::{block::BasicBlock, func::FunctionBuilder};
 
 pub enum CompilerOpcode {
     Nop,

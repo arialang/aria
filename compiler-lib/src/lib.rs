@@ -9,7 +9,6 @@ pub mod builder;
 pub mod constant_value;
 pub mod do_compile;
 pub mod dump;
-pub mod func_builder;
 pub mod line_table;
 pub mod module;
 pub mod scope;
