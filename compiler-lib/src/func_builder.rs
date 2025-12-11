@@ -419,6 +419,8 @@ impl FunctionBuilder {
     }
 
     fn make_new_block(&mut self, name: &str) -> Rc<BasicBlock> {
+        assert!(!self.names.contains(name));
+
         let blk = Rc::new(BasicBlock::new(name, self.bb_id));
         self.bb_id += 1;
         blk
