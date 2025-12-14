@@ -9,6 +9,9 @@ mixin RngRange {
     }
 
     func one_of(x: List) {
+        if x.len() == 0 {
+            throw RuntimeError::OperationFailed("cannot choose from empty list");
+        }
         val low = 0;
         val high = x.len() - 1;
         val index = this.in_range(low, high);

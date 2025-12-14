@@ -318,3 +318,21 @@ return '#arialang';
     );
     run_passing_repl_line(&mut repl, "foo();", &["#arialang"]);
 }
+
+#[test]
+fn repl_test_oneof_from_empty_list() {
+    let cmdline_options = Args::default();
+    let mut repl = build_test_repl(&cmdline_options);
+
+    run_check_repl_line(
+        &mut repl,
+        r#"
+import XorshiftRng from aria.rng.xorshift;
+val x = XorshiftRng.new();
+x.one_of([])
+        "#,
+        false,
+        &["operation failed: cannot choose from empty list"],
+        &[],
+    );
+}
