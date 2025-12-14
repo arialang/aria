@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: Apache-2.0
+func test_mod(x,y) {
+    try {
+        val n = x % y;
+        assert false; # should not reach here
+    } catch e {
+        return e isa RuntimeError && e.is_DivisionByZero();
+    }
+}
+
+assert test_mod(3, 0);
+assert test_mod(3, 0.0f);
+assert test_mod(3.0f, 0);
+assert test_mod(3.0f, 0.0f);
+
+assert test_mod(0, 0);
+assert test_mod(0, 0.0f);
+assert test_mod(0.0f, 0);
+assert test_mod(0.0f, 0.0f);

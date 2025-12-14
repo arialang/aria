@@ -757,12 +757,24 @@ impl VirtualMachine {
                 let x = pop_or_err!(next, frame, op_idx);
                 let y = pop_or_err!(next, frame, op_idx);
                 if let (RuntimeValue::Integer(a), RuntimeValue::Integer(b)) = (&x, &y) {
+                    if a.raw_value() == 0 {
+                        return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
+                    }
                     frame.stack.push(RuntimeValue::Integer(b % a));
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Float(b)) = (&x, &y) {
+                    if a.raw_value() == 0.0 {
+                        return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
+                    }
                     frame.stack.push(RuntimeValue::Float(b % a))
                 } else if let (RuntimeValue::Integer(a), RuntimeValue::Float(b)) = (&x, &y) {
+                    if a.raw_value() == 0 {
+                        return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
+                    }
                     frame.stack.push(RuntimeValue::Float(b % &a.to_fp()))
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Integer(b)) = (&x, &y) {
+                    if a.raw_value() == 0.0 {
+                        return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
+                    }
                     frame.stack.push(RuntimeValue::Float(&b.to_fp() % a))
                 } else {
                     binop_eval!(
