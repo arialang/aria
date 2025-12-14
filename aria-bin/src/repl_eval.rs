@@ -31,6 +31,7 @@ impl Validator for ReplValidator {
         let mut quote: Option<char> = None; // '" or '\''
         let mut escaped = false;
         let mut balance: Vec<char> = Vec::new();
+        let mut comment = false;
 
         for c in line.chars() {
             // inside string
@@ -47,25 +48,24 @@ impl Validator for ReplValidator {
                     quote = None;
                 }
                 continue;
-            }
-
-            if c == '#' {
-                break;
-            }
-
-            match c {
-                '"' | '\'' => quote = Some(c),
-                '(' => balance.push(')'),
-                '[' => balance.push(']'),
-                '{' => balance.push('}'),
-                ')' | ']' | '}' => {
-                    if !matches!(balance.last(), Some(&need) if need == c) {
-                        return Complete;
-                    } else {
-                        balance.pop();
+            } else if c == '#' || comment {
+                comment = c != '\n';
+                continue;
+            } else {
+                match c {
+                    '"' | '\'' => quote = Some(c),
+                    '(' => balance.push(')'),
+                    '[' => balance.push(']'),
+                    '{' => balance.push('}'),
+                    ')' | ']' | '}' => {
+                        if !matches!(balance.last(), Some(&need) if need == c) {
+                            return Complete;
+                        } else {
+                            balance.pop();
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
 

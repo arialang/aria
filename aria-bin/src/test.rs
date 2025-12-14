@@ -279,3 +279,42 @@ fn repl_test_invalid_literal() {
         &[],
     );
 }
+
+#[test]
+fn repl_allows_comments() {
+    let cmdline_options = Args::default();
+    let mut repl = build_test_repl(&cmdline_options);
+
+    run_passing_repl_line(
+        &mut repl,
+        r#"
+func foo() {
+# this is a comment
+return # this is another comment
+ (
+    12345 # comment after expression
+ );
+}
+"#,
+        &[],
+    );
+    run_passing_repl_line(&mut repl, "foo();", &["12345"]);
+}
+
+#[test]
+fn repl_handles_hashtag_in_string() {
+    let cmdline_options = Args::default();
+    let mut repl = build_test_repl(&cmdline_options);
+
+    run_passing_repl_line(
+        &mut repl,
+        r#"
+func foo() {
+# this is a comment
+return '#arialang';
+}
+"#,
+        &[],
+    );
+    run_passing_repl_line(&mut repl, "foo();", &["#arialang"]);
+}
