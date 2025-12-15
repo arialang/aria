@@ -218,7 +218,10 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
 
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn dylib_haxby_inject(module: *const RuntimeModule) -> LoadResult {
+pub extern "C" fn dylib_haxby_inject(
+    _: *const haxby_vm::vm::VirtualMachine,
+    module: *const RuntimeModule,
+) -> LoadResult {
     match unsafe { module.as_ref() } {
         Some(module) => {
             let request = match module.load_named_value("Request") {
