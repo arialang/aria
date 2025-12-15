@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       BIN_TARGETS: "aria"
-      DYLIB_CRATES: "aria_file aria_http aria_path aria_platform aria_regex aria_timezone"
+      DYLIB_CRATES: "aria_file aria_http aria_path aria_platform aria_regex aria_timezone aria_unicode"
       EXTRA_FILES: "CHANGELOG.md"
       CARGO_TERM_COLOR: always
     steps:

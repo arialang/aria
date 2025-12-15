@@ -1,38 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-import Range from aria.range.range;
+flag: uses_dylib("aria_unicode");
 
 extension String {
-    func is_digit() {
-        val range = Range.from(48).through(57);
-        return range.contains(this.encoding());
-    }
+    func is_letter() = this.is_lowercase_letter() || this.is_uppercase_letter();
 
-    func is_uppercase_letter() {
-        val range = Range.from(65).through(90);
-        return range.contains(this.encoding());
-    }
+    func is_alphanumeric() = this.is_letter() || this.is_digit();
 
-    func is_lowercase_letter() {
-        val range = Range.from(97).through(122);
-        return range.contains(this.encoding());
-    }
-
-    func is_letter() {
-        return this.is_uppercase_letter() || this.is_lowercase_letter();
-    }
-
-    func is_alphanumeric() {
-        return this.is_letter() || this.is_digit();
-    }
-
-    func is_whitespace() {
-        match this {
-            == " "  => { return true; },
-            == "\n" => { return true; },
-            == "\r" => { return true; },
-            == "\t" => { return true; },
-        } else {
-            return false;
-        }
-    }
+    
 }

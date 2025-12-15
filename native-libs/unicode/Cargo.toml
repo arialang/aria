@@ -1,0 +1,15 @@
+[package]
+name = "unicode-lib"
+version = "0.9.20251118"
+edition = "2024"
+
+[lib]
+name = "aria_unicode"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+vm-lib = { path = "../../vm-lib" }
+opcodes-lib = { path = "../../opcodes-lib" }
+libc = "0.2.178"
+unicode_categories = "0.1.1"
