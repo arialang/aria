@@ -195,7 +195,7 @@ extension String {
     func hash() {
         val ret = 0;
         for b in this.bytes() {
-            ret += 31 * b;
+            ret = 31 * ret + b;
         }
 
         return ret;
