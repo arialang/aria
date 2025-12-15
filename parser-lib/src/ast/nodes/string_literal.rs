@@ -24,6 +24,10 @@ fn process_string_literal(s: &str) -> String {
                             result.push('\n');
                             chars.next();
                         }
+                        'r' => {
+                            result.push('\r');
+                            chars.next();
+                        }
                         't' => {
                             result.push('\t');
                             chars.next();

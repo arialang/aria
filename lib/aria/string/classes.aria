@@ -5,6 +5,4 @@ extension String {
     func is_letter() = this.is_lowercase_letter() || this.is_uppercase_letter();
 
     func is_alphanumeric() = this.is_letter() || this.is_digit();
-
-    
 }

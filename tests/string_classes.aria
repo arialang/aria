@@ -31,6 +31,7 @@ func main() {
     assert !" ".is_alphanumeric();
 
     assert " ".is_whitespace();
+    assert "\r".is_whitespace();
     assert "\n".is_whitespace();
     assert "\t".is_whitespace();
 }
