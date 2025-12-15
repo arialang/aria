@@ -3,7 +3,7 @@
 use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_STRING;
 use haxby_vm::{
     builtins::VmBuiltins,
-    error::dylib_load::LoadResult,
+    error::{dylib_load::LoadResult, vm_error::VmErrorReason},
     runtime_module::RuntimeModule,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
     vm::RunloopExit,
@@ -62,10 +62,10 @@ impl<T: CharFunctionImpl + Default> BuiltinFunctionImpl for CharBuiltinFunction<
         if let Some(char0) = this_raw.chars().next() {
             let is = T::do_check(char0);
             cur_frame.stack.push(RuntimeValue::Boolean(is.into()));
+            Ok(RunloopExit::Ok(()))
         } else {
-            todo!() // index out of bounds error
+            Err(VmErrorReason::IndexOutOfBounds(0).into())
         }
-        Ok(RunloopExit::Ok(()))
     }
 
     fn arity(&self) -> haxby_vm::arity::Arity {

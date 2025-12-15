@@ -34,4 +34,12 @@ func main() {
     assert "\r".is_whitespace();
     assert "\n".is_whitespace();
     assert "\t".is_whitespace();
+
+    try {
+        assert "".is_letter();
+    } catch e {
+        assert e isa RuntimeError;
+        assert e.is_IndexOutOfBounds();
+        assert e.unwrap_IndexOutOfBounds() == 0;
+    }
 }
