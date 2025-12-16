@@ -44,4 +44,35 @@ extension JsonValue {
             },
         }
     }
+
+    func prettyprint() {
+        match this {
+            case Boolean(x) => {
+                return "{0}".format(x);
+            },
+            case Number(x) => {
+                return "{0}".format(x);
+            },
+            case String(x) => {
+                return '"{0}"'.format(x);
+            },
+            case Array(x) => {
+                val items = [];
+                for v in x {
+                    items.append(v.prettyprint());
+                }
+                return "[{0}]".format(items.join(", "));
+            },
+            case Object(x) => {
+                val items = [];
+                for v in x {
+                    items.append('"{0}": {1}'.format(v.key, v.value));
+                }
+                return "{" + "{0}".format(items.join(", ")) + "}" + "}";
+            },
+            case Null(x) => {
+                return "null";
+            },
+        }
+    }
 }
