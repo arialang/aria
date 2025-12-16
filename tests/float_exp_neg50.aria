@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+
+### TAGS: XFAIL
+
+import aria.numerics.float.exp;
+
+assert (-50.0).exp() < 11072.0;
+assert (-50.0).exp() == 1.9287498479639178e-22;

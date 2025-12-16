@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+
+### TAGS: XFAIL
+
+import Instant from aria.date.instant;
+
+val a = Instant.new_with_utc_timestamp(0).with_timezone_offset(60);
+val b = Instant.new_with_timestamp_and_offset(0, 60);
+
+assert a == b;

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+
+### TAGS: XFAIL
+
+import Map from aria.structures.map;
+
+val m = Map.new_with_capacity(0);
+m.set(1,2);
+assert m[1] == 2;
