@@ -38,11 +38,21 @@ func offset_ms_to_string(offset_ms) {
     }
 }
 
+func split_ms_floor(timestamp_ms: Int) {
+    val sec = timestamp_ms / 1000;
+    val ms  = timestamp_ms % 1000;
+    if ms < 0 {
+        return [sec - 1, ms + 1000];
+    } else {
+        return [sec, ms];
+    }
+}
+
 struct Instant {
     type func _before_epoch(timestamp_ms) {
-        val millisecond = timestamp_ms.abs() % 1000;
-
-        val timestamp_s = timestamp_ms / 1000;
+        val parts = split_ms_floor(timestamp_ms);
+        val timestamp_s = parts[0];
+        val millisecond = parts[1];
 
         val days = timestamp_s / SECONDS_PER_DAY;
         val rem = timestamp_s % SECONDS_PER_DAY;
@@ -84,28 +94,26 @@ struct Instant {
             year = yg;
         }
 
-        val months = CUMULATIVE_DAYS;
-        if is_leap_year(year) {
-            months = LEAP_CUMULATIVE_DAYS;
-        }
+        val months = is_leap_year(year) ? LEAP_CUMULATIVE_DAYS : CUMULATIVE_DAYS;
 
         val month = 1;
-        for i in Range.from(0).through(11) {
+        for i in Range.from(1).through(12) {
             if days < months[i] {
                 month = i;
-                days -= months[i - 1];
                 break;
             }
         }
 
+        val day = (days - months[month - 1]) + 1;
+
         return alloc(This) {
-            .year = year,
-            .month = month,
-            .day = days + 1,
-            .hour = hour,
-            .minute = minute,
-            .second = second,
-            .millisecond = timestamp_ms.abs() % 1000,
+            .year,
+            .month,
+            .day,
+            .hour,
+            .minute,
+            .second,
+            .millisecond,
         };
     }
 

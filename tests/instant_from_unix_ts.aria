@@ -38,4 +38,76 @@ func main() {
     assert moment.minute == 37;
     assert moment.second == 6;
     assert moment.millisecond == 0;
+
+    moment = Instant.new_with_utc_timestamp(-1);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 31;
+    assert moment.hour == 23;
+    assert moment.minute == 59;
+    assert moment.second == 59;
+    assert moment.millisecond == 999;
+
+    moment = Instant.new_with_utc_timestamp(-999);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 31;
+    assert moment.hour == 23;
+    assert moment.minute == 59;
+    assert moment.second == 59;
+    assert moment.millisecond == 1;
+
+    moment = Instant.new_with_utc_timestamp(-1000);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 31;
+    assert moment.hour == 23;
+    assert moment.minute == 59;
+    assert moment.second == 59;
+    assert moment.millisecond == 0;
+
+    moment = Instant.new_with_utc_timestamp(-1001);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 31;
+    assert moment.hour == 23;
+    assert moment.minute == 59;
+    assert moment.second == 58;
+    assert moment.millisecond == 999;
+
+    moment = Instant.new_with_utc_timestamp(-86400000);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 31;
+    assert moment.hour == 0;
+    assert moment.minute == 0;
+    assert moment.second == 0;
+    assert moment.millisecond == 0;
+
+    moment = Instant.new_with_utc_timestamp(-86400001);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 30;
+    assert moment.hour == 23;
+    assert moment.minute == 59;
+    assert moment.second == 59;
+    assert moment.millisecond == 999;
+
+    moment = Instant.new_with_utc_timestamp(-2678400000);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 1;
+    assert moment.hour == 0;
+    assert moment.minute == 0;
+    assert moment.second == 0;
+    assert moment.millisecond == 0;
+
+    moment = Instant.new_with_utc_timestamp(-1423503211);
+    assert moment.year == 1969;
+    assert moment.month == 12;
+    assert moment.day == 15;
+    assert moment.hour == 12;
+    assert moment.minute == 34;
+    assert moment.second == 56;
+    assert moment.millisecond == 789;
 }
