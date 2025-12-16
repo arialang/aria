@@ -2250,6 +2250,7 @@ dependencies = [
  "ariadne",
  "clap",
  "compiler-lib",
+ "enum-as-inner",
  "glob",
  "once_cell",
  "parser-lib",

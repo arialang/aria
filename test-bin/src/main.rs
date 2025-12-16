@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashSet,
+    fmt::Display,
     process::{ExitCode, Termination, exit},
     time::{Duration, Instant},
 };
@@ -9,6 +10,7 @@ use std::{
 use aria_compiler::compile_from_source;
 use aria_parser::ast::SourceBuffer;
 use clap::{Parser, command};
+use enum_as_inner::EnumAsInner;
 use glob::Paths;
 use haxby_vm::vm::VirtualMachine;
 use rayon::prelude::*;
@@ -44,9 +46,77 @@ struct Args {
     skip_pattern: Vec<String>,
 }
 
-enum TestCaseResult {
-    Pass(Duration),
+#[derive(Clone, EnumAsInner)]
+enum TestCaseOutcome {
+    Pass,
     Fail(String),
+    #[allow(dead_code)]
+    XFail(String),
+}
+
+impl TestCaseOutcome {
+    fn result_emoji(&self) -> &'static str {
+        match self {
+            TestCaseOutcome::Pass => "✅",
+            TestCaseOutcome::Fail(_) => "❌",
+            TestCaseOutcome::XFail(_) => "⚠️ ",
+        }
+    }
+
+    fn display_error_reason(&self) -> String {
+        if let Some(reason) = self.as_fail() {
+            format!("[{}]", reason)
+        } else {
+            String::new()
+        }
+    }
+}
+
+#[derive(Clone)]
+struct TestCaseResult {
+    test: String,
+    duration: Duration,
+    result: TestCaseOutcome,
+}
+
+impl TestCaseResult {
+    fn pass(test: &str, duration: Duration) -> Self {
+        Self {
+            test: test.to_owned(),
+            duration,
+            result: TestCaseOutcome::Pass,
+        }
+    }
+
+    fn fail(test: &str, duration: Duration, reason: String) -> Self {
+        Self {
+            test: test.to_owned(),
+            duration,
+            result: TestCaseOutcome::Fail(reason),
+        }
+    }
+
+    fn xfail(test: &str, duration: Duration, reason: String) -> Self {
+        Self {
+            test: test.to_owned(),
+            duration,
+            result: TestCaseOutcome::XFail(reason),
+        }
+    }
+}
+
+impl Display for TestCaseResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {} [in {}.{:03} seconds]",
+            self.result.result_emoji(),
+            self.test,
+            self.result.display_error_reason(),
+            self.duration.as_secs(),
+            self.duration.subsec_millis()
+        )
+    }
 }
 
 fn should_skip_file_name(path: &std::path::Path, skip_regex: &[Regex]) -> bool {
@@ -89,7 +159,9 @@ fn run_test_from_pattern(path: &str) -> TestCaseResult {
 
         let buffer = match SourceBuffer::file(path) {
             Ok(buffer) => buffer,
-            Err(err) => return TestCaseResult::Fail(format!("I/O error: {err}")),
+            Err(err) => {
+                return TestCaseResult::fail(path, start.elapsed(), format!("I/O error: {err}"));
+            }
         };
 
         let entry_cm = match compile_from_source(&buffer, &Default::default()) {
@@ -100,7 +172,11 @@ fn run_test_from_pattern(path: &str) -> TestCaseResult {
                     .map(|e| e.to_string())
                     .collect::<Vec<_>>()
                     .join("\n");
-                return TestCaseResult::Fail(format!("compilation error: {err_msg}"));
+                return TestCaseResult::fail(
+                    path,
+                    start.elapsed(),
+                    format!("compilation error: {err_msg}"),
+                );
             }
         };
 
@@ -112,44 +188,49 @@ fn run_test_from_pattern(path: &str) -> TestCaseResult {
                 haxby_vm::vm::RunloopExit::Exception(e) => {
                     let mut frame = Default::default();
                     let epp = e.value.prettyprint(&mut frame, &mut vm);
-                    return TestCaseResult::Fail(epp);
+                    return TestCaseResult::fail(path, start.elapsed(), epp);
                 }
             },
-            Err(err) => return TestCaseResult::Fail(err.prettyprint(None)),
+            Err(err) => return TestCaseResult::fail(path, start.elapsed(), err.prettyprint(None)),
         };
 
         match vm.execute_module(&entry_rm) {
             Ok(rle) => match rle {
-                haxby_vm::vm::RunloopExit::Ok(_) => TestCaseResult::Pass(start.elapsed()),
+                haxby_vm::vm::RunloopExit::Ok(_) => TestCaseResult::pass(path, start.elapsed()),
                 haxby_vm::vm::RunloopExit::Exception(e) => {
                     let mut frame = Default::default();
                     let epp = e.value.prettyprint(&mut frame, &mut vm);
-                    TestCaseResult::Fail(epp)
+                    TestCaseResult::fail(path, start.elapsed(), epp)
                 }
             },
-            Err(err) => TestCaseResult::Fail(err.prettyprint(Some(entry_rm))),
+            Err(err) => {
+                TestCaseResult::fail(path, start.elapsed(), err.prettyprint(Some(entry_rm)))
+            }
         }
     };
 
     let mut outcome = run_once();
 
     let is_flaky = tags.contains("FLAKEY") || tags.contains("FLAKY");
-    if is_flaky && let TestCaseResult::Fail(_) = outcome {
-        let retry = run_once();
-        outcome = match retry {
-            ok @ TestCaseResult::Pass(_) => ok,
-            fail @ TestCaseResult::Fail(_) => fail,
-        };
+    if is_flaky && outcome.result.is_fail() {
+        outcome = run_once();
     }
 
     let is_xfail = tags.contains("XFAIL");
     if is_xfail {
-        match outcome {
-            TestCaseResult::Pass(_) => {
-                return TestCaseResult::Fail("unexpected pass (XFAIL)".into());
+        match &outcome.result {
+            TestCaseOutcome::Pass => {
+                return TestCaseResult::fail(
+                    path,
+                    start_wall.elapsed(),
+                    "unexpected pass (XFAIL)".into(),
+                );
             }
-            TestCaseResult::Fail(_) => {
-                return TestCaseResult::Pass(start_wall.elapsed());
+            TestCaseOutcome::Fail(reason) => {
+                return TestCaseResult::xfail(path, start_wall.elapsed(), reason.clone());
+            }
+            _ => {
+                panic!("test runner should only produce pass/fail")
             }
         }
     }
@@ -159,8 +240,9 @@ fn run_test_from_pattern(path: &str) -> TestCaseResult {
 
 #[derive(Default)]
 struct SuiteReport {
-    passes: Vec<(String, Duration)>,
-    fails: HashMap<String, String>,
+    passes: Vec<TestCaseResult>,
+    fails: Vec<TestCaseResult>,
+    xfails: Vec<TestCaseResult>,
     duration: Duration,
 }
 
@@ -173,27 +255,66 @@ impl SuiteReport {
         self.passes.len()
     }
 
+    fn num_xfails(&self) -> usize {
+        self.xfails.len()
+    }
+
     fn len(&self) -> usize {
-        self.num_fails() + self.num_passes()
+        self.num_fails() + self.num_passes() + self.num_xfails()
     }
 
-    fn pass(&mut self, name: &str, duration: &Duration) {
-        self.passes.push((name.to_owned(), *duration));
+    fn pass(&mut self, result: TestCaseResult) {
+        self.passes.push(result);
     }
 
-    fn fail(&mut self, name: &str, why: String) {
-        self.fails.insert(name.to_owned(), why);
+    fn fail(&mut self, result: TestCaseResult) {
+        self.fails.push(result);
     }
 
-    fn sort_passes(&mut self, by: SortBy) {
+    fn xfail(&mut self, result: TestCaseResult) {
+        self.xfails.push(result);
+    }
+
+    fn sort(&mut self, by: &SortBy) -> &mut Self {
         match by {
             SortBy::Name => {
-                self.passes.sort_by(|a, b| a.0.cmp(&b.0));
+                self.passes.sort_by(|a, b| a.test.cmp(&b.test));
+                self.fails.sort_by(|a, b| a.test.cmp(&b.test));
+                self.xfails.sort_by(|a, b| a.test.cmp(&b.test));
             }
             SortBy::Duration => {
-                self.passes.sort_by(|a, b| a.1.cmp(&b.1));
+                self.passes.sort_by(|a, b| a.duration.cmp(&b.duration));
+                self.fails.sort_by(|a, b| a.duration.cmp(&b.duration));
+                self.xfails.sort_by(|a, b| a.duration.cmp(&b.duration));
             }
         }
+
+        self
+    }
+}
+
+impl Display for SuiteReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for pass in &self.passes {
+            writeln!(f, "{}", pass)?;
+        }
+        for xfail in &self.xfails {
+            writeln!(f, "{}", xfail)?;
+        }
+        for fail in &self.fails {
+            writeln!(f, "{}", fail)?;
+        }
+
+        write!(
+            f,
+            "{} tests total - {} passed, {} failed, {} xfailed - in {}.{:03} seconds",
+            self.len(),
+            self.num_passes(),
+            self.num_fails(),
+            self.num_xfails(),
+            self.duration.as_secs(),
+            self.duration.subsec_millis(),
+        )
     }
 }
 
@@ -225,9 +346,11 @@ fn run_tests_from_pattern(patterns: Paths, args: &Args, skip_regex: &[Regex]) ->
                 println!("Running {test_name} (at {test_path})");
             }
             let result = run_test_from_pattern(test_path);
-            ret.push((test_name.to_owned(), result));
-            if args.fail_fast && matches!(ret.last().unwrap().1, TestCaseResult::Fail(_)) {
+            if args.fail_fast && result.result.is_fail() {
+                ret.push(result);
                 break;
+            } else {
+                ret.push(result);
             }
         }
         ret
@@ -237,20 +360,22 @@ fn run_tests_from_pattern(patterns: Paths, args: &Args, skip_regex: &[Regex]) ->
             .filter(|p| !should_skip_file_name(p, skip_regex))
             .par_bridge()
             .map(|path| {
-                let test_name = path.file_stem().unwrap().to_str().unwrap();
                 let test_path = path.as_os_str().to_str().unwrap();
-                (test_name.to_owned(), run_test_from_pattern(test_path))
+                run_test_from_pattern(test_path)
             })
-            .collect::<Vec<(String, TestCaseResult)>>()
+            .collect::<_>()
     };
 
     results.duration = start.elapsed();
 
-    for result in &outcomes {
-        match &result.1 {
-            TestCaseResult::Pass(duration) => results.pass(&result.0, duration),
-            TestCaseResult::Fail(why) => {
-                results.fail(&result.0, why.clone());
+    for result in outcomes {
+        match &result.result {
+            TestCaseOutcome::Pass => results.pass(result),
+            TestCaseOutcome::Fail(_) => {
+                results.fail(result);
+            }
+            TestCaseOutcome::XFail(_) => {
+                results.xfail(result);
             }
         }
     }
@@ -287,30 +412,9 @@ fn main() -> SuiteReport {
         exit(0);
     }
 
-    results.sort_passes(args.sort_by);
+    results.sort(&args.sort_by);
 
-    for pass in &results.passes {
-        println!(
-            "{} ✅ [in {}.{:03} seconds]",
-            pass.0,
-            pass.1.as_secs(),
-            pass.1.subsec_millis()
-        );
-    }
-
-    for fail in &results.fails {
-        println!("{} ❌", fail.0);
-        println!("   reason: {}", fail.1);
-    }
-
-    println!(
-        "{} test(s) total - {} passed, {} failed - in {}.{:03} seconds",
-        results.len(),
-        results.num_passes(),
-        results.num_fails(),
-        results.duration.as_secs(),
-        results.duration.subsec_millis(),
-    );
+    println!("{}", results);
 
     results
 }
