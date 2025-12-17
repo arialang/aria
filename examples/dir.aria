@@ -17,7 +17,7 @@ func run_over_dir(path: Path) {
 
     for entry in path.entries() {
         val mod_time = entry
-                         .created()
+                         .modified()
                          .unwrap_or(Instant.new_with_local_timestamp(0));
 
         val month = pad(mod_time.month);
