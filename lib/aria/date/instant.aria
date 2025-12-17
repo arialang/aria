@@ -25,15 +25,13 @@ val LEAP_CUMULATIVE_DAYS = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 33
 
 val MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-func offset_ms_to_string(offset_ms) {
-    if offset_ms == 0 {
+func offset_to_string(offset_minutes) {
+    if offset_minutes == 0 {
         return "";
     } else {
-        val abs = offset_ms.abs();
-        val hours = abs / (1000 * SECONDS_PER_HOUR);
-        val minutes = (abs % (1000 * SECONDS_PER_HOUR)) / (1000 * SECONDS_PER_MINUTE);
-        val sign = "+";
-        if offset_ms < 0 { sign = "-"; }
+        val hours = offset_minutes / 60;
+        val minutes = offset_minutes % 60;
+        val sign = offset_minutes >= 0 ? "+" : "-";
         return "{0}{1:2}:{2:2}".format(sign, hours, minutes);
     }
 }
@@ -168,16 +166,16 @@ struct Instant {
     }
 
     type func new_with_utc_timestamp(timestamp_ms) {
-        val i = timestamp_ms >= 0 ? Instant._after_epoch(timestamp_ms) : Instant._before_epoch(timestamp_ms);
-        i.unix_ts = timestamp_ms;
-        i.offset_ms = 0;
-        return i;
+        return This.new_with_timestamp_and_offset(timestamp_ms, 0);
     }
 
     type func new_with_timestamp_and_offset(timestamp_ms, offset_minutes) {
         val offset_ms = offset_minutes * SECONDS_PER_MINUTE * 1000;
-        val i = Instant.new_with_utc_timestamp(timestamp_ms + offset_ms);
-        i.offset_ms = offset_ms;
+        val actual_timestamp_ms = timestamp_ms + offset_ms;
+        val i = (actual_timestamp_ms >= 0 ? Instant._after_epoch(actual_timestamp_ms) : Instant._before_epoch(actual_timestamp_ms)){
+            .utc_timestamp_ms = timestamp_ms,
+            .offset_minutes,
+        };
         return i;
     }
 
@@ -185,8 +183,7 @@ struct Instant {
         val tz_offset = tz_info()[0];
         val offset_ms = tz_offset * SECONDS_PER_MINUTE * 1000;
 
-        val this = Instant.new_with_utc_timestamp(timestamp_ms - offset_ms);
-        return this.with_timezone_offset(tz_offset);
+        return Instant.new_with_timestamp_and_offset(timestamp_ms, tz_offset);
     }
 
     type func now() {
@@ -196,9 +193,7 @@ struct Instant {
     }
 
     instance func with_timezone_offset(offset_minutes) {
-        val offset_ms = offset_minutes * SECONDS_PER_MINUTE * 1000;
-        this.offset_ms = offset_ms;
-        return this;
+        return Instant.new_with_timestamp_and_offset(this.utc_timestamp_ms, this.offset_minutes + offset_minutes);
     }
 
     instance func prettyprint() {
@@ -210,15 +205,15 @@ struct Instant {
             this.minute,
             this.second,
             this.millisecond,
-            offset_ms_to_string(this.offset_ms)
+            offset_to_string(this.offset_minutes)
         );
     }
 
     func hash() {
-        return this.unix_ts ^ this.offset_ms;
+        return this.utc_timestamp_ms ^ this.offset_minutes;
     }
 
     operator == (other: Instant) {
-        return this.unix_ts == other.unix_ts && this.offset_ms == other.offset_ms;
+        return this.utc_timestamp_ms == other.utc_timestamp_ms && this.offset_minutes == other.offset_minutes;
     }
 }

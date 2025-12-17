@@ -28,8 +28,8 @@ func main() {
     assert modified.year >= 2025;
     assert accessed.year >= 2025;
 
-    assert accessed.unix_ts >= modified.unix_ts;
-    assert modified.unix_ts >= creation.unix_ts;
+    assert accessed.utc_timestamp_ms >= modified.utc_timestamp_ms;
+    assert modified.utc_timestamp_ms >= creation.utc_timestamp_ms;
 
     if creation.year == 2025 {
         assert creation.month >= 7;
