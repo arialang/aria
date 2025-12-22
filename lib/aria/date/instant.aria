@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import Range from aria.range.range;
 import tz_info from aria.date.timezone;
+import SipHasher from aria.structures.hash.algo.sip;
 
 func is_leap_year(year: Int) {
     return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
@@ -26,14 +27,15 @@ val LEAP_CUMULATIVE_DAYS = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 33
 val MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 func offset_to_string(offset_minutes) {
-    if offset_minutes == 0 {
-        return "";
-    } else {
-        val hours = offset_minutes / 60;
-        val minutes = offset_minutes % 60;
-        val sign = offset_minutes >= 0 ? "+" : "-";
-        return "{0}{1:2}:{2:2}".format(sign, hours, minutes);
+    match offset_minutes {
+        == 0 => { return ""; }
+        < 0 => { offset_minutes = -offset_minutes;  }
     }
+
+    val hours = offset_minutes / 60;
+    val minutes = offset_minutes % 60;
+    val sign = offset_minutes >= 0 ? "+" : "-";
+    return "{0}{1:2}:{2:2}".format(sign, hours, minutes);
 }
 
 func split_ms_floor(timestamp_ms: Int) {
@@ -193,7 +195,7 @@ struct Instant {
     }
 
     instance func with_timezone_offset(offset_minutes) {
-        return Instant.new_with_timestamp_and_offset(this.utc_timestamp_ms, this.offset_minutes + offset_minutes);
+        return Instant.new_with_timestamp_and_offset(this.utc_timestamp_ms, offset_minutes);
     }
 
     instance func prettyprint() {
@@ -210,7 +212,10 @@ struct Instant {
     }
 
     func hash() {
-        return this.utc_timestamp_ms ^ this.offset_minutes;
+        val hasher = SipHasher.new(0x0706050403020100, 0x0f0e0d0c0b0a0908);
+        hasher.write(this.utc_timestamp_ms);
+        hasher.write(this.offset_minutes);
+        return hasher.finish();
     }
 
     operator == (other: Instant) {
