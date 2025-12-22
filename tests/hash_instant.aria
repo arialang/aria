@@ -2,9 +2,9 @@
 import Instant from aria.date.instant;
 
 func main() {
-    val i1 = Instant.now();
+    val i1 = Instant.new_with_utc_timestamp(1234567890);
     val i2 = Instant.new_with_utc_timestamp(0);
-    val i3 = Instant.now().with_timezone_offset(1); # nowhere real should have a 1 minute TZ offset
+    val i3 = Instant.new_with_utc_timestamp(1234567890).with_timezone_offset(1); # nowhere real should have a 1 minute TZ offset
 
     assert i1 != i2;
     assert i1 != i3;
