@@ -11,7 +11,8 @@ func main() {
 
     assert m.len() == 2;
 
-    m.remove(123);
+    assert m.remove(123) == true;
+    assert m.remove(500) == false;
 
     assert m.len() == 1;
 
@@ -24,4 +25,8 @@ func main() {
 
     assert m.get(123).unwrap_Some() == "test string";
     assert m.get(456).unwrap_Some() == "world";
+
+    assert m.remove(456) == true;
+    assert m.get(456).is_None();
+    assert m.remove(456) == false;
 }

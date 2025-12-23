@@ -107,6 +107,8 @@ struct Map {
         if len_increase {
             this.count += 1;
         }
+
+        return len_increase;
     }
 
     func remove(k) {
@@ -121,11 +123,14 @@ struct Map {
                         assert this.count > 0;
                         this.count -= 1;
                         bucket[idx] = Maybe::None;
+                        return true;
                     }
                 }
             }
             idx = idx + 1;
         }
+
+        return false;
     }
 
     func get(k) {

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+import Map from aria.structures.map;
+
+val map = Map.new();
+assert map.set(1,2) == true;
+assert map.set(2,3) == true;
+assert map.set(1,4) == false;
+
+assert map[1] == 4;
+assert map[2] == 3;
