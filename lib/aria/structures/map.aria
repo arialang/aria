@@ -2,6 +2,8 @@
 import Iterator,Iterable from aria.iterator.mixin;
 
 struct Map {
+    type val DEFAULT_CAPACITY = 128;
+
     struct Entry {
         type func new(key, value) = alloc(This) {.key, .value};
     }
@@ -13,15 +15,21 @@ struct Map {
     }
 
     type func new() {
-        return Map.new_with_capacity(128);
+        return Map.new_with_capacity(Map.DEFAULT_CAPACITY);
     }
 
-    type func new_with_capacity(capacity: Int) = alloc(This) {
+    type func new_with_capacity(capacity: Int) {
+        if capacity <= 0 {
+            capacity = Map.DEFAULT_CAPACITY;
+        }
+
+        return alloc(This) {
             .buckets = List.from_function(|_| => [], capacity),
             .count = 0,
             .capacity,
-            .key_list = [],
-    };
+            .key_list = []
+        };
+    }
 
     type func frequency_map(iter) {
         val this = This.new();

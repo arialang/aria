@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
-### TAGS: XFAIL
-
 import Map from aria.structures.map;
 
 val m = Map.new_with_capacity(0);
-m.set(1,2);
-assert m[1] == 2;
+m["apple"] = 5;
+assert m["apple"] == 5;
+
+val m = Map.new_with_capacity(-5);
+m["pear"] = 4;
+assert m["pear"] == 4;
