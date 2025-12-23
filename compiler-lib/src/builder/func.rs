@@ -4,10 +4,7 @@ use std::collections::HashSet;
 use crate::{
     CompilationOptions,
     bc_writer::BytecodeWriter,
-    builder::{
-        block::{BasicBlock, LocalValuesAccess},
-        compiler_opcodes::CompilerOpcode,
-    },
+    builder::block::{BasicBlock, LocalValuesAccess},
     constant_value::ConstantValues,
     line_table::LineTable,
 };
@@ -33,14 +30,6 @@ impl Default for FunctionBuilder {
         this.names.insert(this.current.name().to_owned());
         this
     }
-}
-
-#[allow(dead_code)]
-struct BlockEntryPoint {
-    source: BasicBlock,
-    dest: BasicBlock,
-    op: CompilerOpcode,
-    op_idx: usize,
 }
 
 impl FunctionBuilder {
@@ -130,26 +119,18 @@ impl FunctionBuilder {
         None
     }
 
-    fn get_block_entrypoints(&self, blk: &BasicBlock) -> Vec<BlockEntryPoint> {
-        let mut dests = Vec::<BlockEntryPoint>::new();
-
+    fn has_entrypoints(&self, blk: &BasicBlock) -> bool {
         for src_blk in &self.blocks {
             let br = src_blk.imp.writer.borrow();
-            for (op_idx, src_op) in br.as_slice().iter().enumerate() {
+            for src_op in br.as_slice() {
                 if let Some(dst) = src_op.op.is_jump_instruction()
                     && dst.id() == blk.id()
                 {
-                    dests.push(BlockEntryPoint {
-                        source: src_blk.clone(),
-                        dest: dst,
-                        op: src_op.op.clone(),
-                        op_idx,
-                    });
+                    return true;
                 }
             }
         }
-
-        dests
+        false
     }
 
     fn find_orphaned_blocks(&self) -> HashSet<usize> {
@@ -157,8 +138,8 @@ impl FunctionBuilder {
 
         for blk in &self.blocks {
             if blk.id() != 0 {
-                let entrypoints = self.get_block_entrypoints(blk);
-                if entrypoints.is_empty() {
+                let has_entrypoints = self.has_entrypoints(blk);
+                if !has_entrypoints {
                     orphans.insert(blk.id());
                 }
             }
