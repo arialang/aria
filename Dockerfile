@@ -1,6 +1,14 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:24.04
 
+# Build arguments for Aria version and build timestamp
+# To build with a specific version, use:
+#   docker build --build-arg ARIA_VERSION=<version> --build-arg ARIA_BUILD_TIMESTAMP=<timestamp> -t aria:<version> .
+# Example:
+#   docker build --build-arg ARIA_VERSION=0.9.20251220 --build-arg ARIA_BUILD_TIMESTAMP=20251220123456 -t aria:0.9.20251220 .
+ARG ARIA_VERSION=0.9.20251222
+ARG ARIA_BUILD_TIMESTAMP=20251222174650
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
@@ -8,7 +16,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
-    url="https://github.com/arialang/aria/releases/download/v0.9.20251222/aria-0.9.20251222-x86_64-unknown-linux-gnu-20251222174650.tgz"; \
+    url="https://github.com/arialang/aria/releases/download/v${ARIA_VERSION}/aria-${ARIA_VERSION}-x86_64-unknown-linux-gnu-${ARIA_BUILD_TIMESTAMP}.tgz"; \
     mkdir -p /usr/aria; \
     curl -fsSL "$url" -o /tmp/aria.tgz; \
     tar -xzf /tmp/aria.tgz -C /usr/aria; \
