@@ -22,4 +22,4 @@ RUN set -eux; \
     test -x /usr/aria/aria; \
     ln -sf /usr/aria/aria /usr/local/bin/aria
 
-CMD ["bash", "-lc", "echo 'Aria is available in your environment. Start it by running \"aria\"\n'; exec bash -i"]
+CMD ["bash", "-lc", "printf 'Aria is available in your environment. Start it by running \"aria\"\n'; exec bash -i"]
