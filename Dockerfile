@@ -9,8 +9,10 @@ RUN apt-get update \
 
 RUN set -eux; \
     url="https://github.com/arialang/aria/releases/download/v0.9.20251222/aria-0.9.20251222-x86_64-unknown-linux-gnu-20251222174650.tgz"; \
+    expected_sha256="47cb8d9de3a2229f1a403e1c616679811f085e819c1743e263c16c2c2d001d50"; \
     mkdir -p /usr/aria; \
     curl -fsSL "$url" -o /tmp/aria.tgz; \
+    echo "$expected_sha256  /tmp/aria.tgz" | sha256sum -c -; \
     tar -xzf /tmp/aria.tgz -C /usr/aria; \
     rm -f /tmp/aria.tgz; \
     if [ ! -x /usr/aria/aria ]; then \
