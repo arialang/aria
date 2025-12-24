@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Based on https://github.com/PlummersSoftwareLLC/Primes/blob/drag-race/PrimeWren/solution_1/primes.wren
+
+import Map from aria.structures.map;
+
+val DICT = Map.new() {
+    [10] = 4,
+    [100] = 25,
+    [1000] = 168,
+    [10000] = 1229,
+    [100000] = 9592,
+    [1000000] = 78498,
+    [10000000] = 664579,
+    [100000000] = 5761455,
+    [1000000000] = 50847534,
+    [10000000000] = 455052511,
+};
+
+extension Int {
+    func sqrt() {
+        val x = this;
+        val y = (x + 1) / 2;
+
+        while y < x {
+            x = y;
+            y = (x + this / x) / 2;
+        }
+
+        return x;
+    }
+}
+
+struct Sieve {
+    type func new(size: Int) = alloc(This) {
+        .size,
+        .bits = List.from_function(|_| => false, size),
+    };
+
+    func run() {
+        val factor = 3;
+        val q = this.size.sqrt();
+
+        while factor <= q {
+            val num = factor;
+            while num < this.size {
+                if !this.bits[num] {
+                    factor = num;
+                    break;
+                }
+
+                num += 2;
+            }
+
+            val num2 = factor * factor;
+            while num2 < this.size {
+                this.bits[num2] = true;
+                num2 += factor * 2;
+            }
+
+            factor += 2;
+        }
+    }
+
+    func count_primes() {
+        val count = 1;
+        val num = 3;
+        while num < this.size {
+            if !this.bits[num] {
+                count += 1;
+            }
+            num += 2;
+        }
+
+        return count;
+    }
+
+    func validate() = DICT.contains(this.size) && DICT[this.size] == this.count_primes();
+
+    func print_results(show, duration, passes) {
+        if show {
+            print("2, ");
+            val count = 1;
+            val num = 3;
+            while num < this.size {
+                if !this.bits[num] {
+                    "{0}, ".printf(num);
+                    count += 1;
+                }
+                num += 2;
+            }
+            println("");
+        }
+
+        assert this.validate();
+
+        "egranata;{0};{1};1;algorithm=base,faithful=yes\n".printf(passes, duration/1000);
+    }
+}
+
+val passes = 0;
+val start_time = now();
+
+while true {
+    val sieve = Sieve.new(1000000);
+    sieve.run();
+
+    passes += 1;
+    val duration = now() - start_time;
+    if duration >= 5000 {
+        sieve.print_results(false, duration, passes);
+        break;
+    }
+}
