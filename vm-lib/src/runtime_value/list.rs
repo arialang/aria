@@ -19,6 +19,13 @@ pub(super) struct ListImpl {
 }
 
 impl ListImpl {
+    fn new_with_capacity(cap: usize) -> Self {
+        Self {
+            values: RefCell::new(Vec::with_capacity(cap)),
+            boxx: ObjectBox::default(),
+        }
+    }
+
     fn len(&self) -> usize {
         self.values.borrow().len()
     }
@@ -90,6 +97,12 @@ impl List {
         let ret = Self::default();
         values.iter().cloned().for_each(|v| ret.append(v));
         ret
+    }
+
+    pub fn new_with_capacity(cap: usize) -> Self {
+        Self {
+            imp: Rc::new(ListImpl::new_with_capacity(cap)),
+        }
     }
 
     pub fn len(&self) -> usize {

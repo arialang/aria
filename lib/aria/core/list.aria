@@ -56,13 +56,29 @@ extension List {
     }
 
     type func from_function(f, n: Int) {
-        val ret = [];
         if n <= 0 {
-            return ret;
+            return [];
         }
+    
+        val ret = List.new_with_capacity(n);
         val i = 0;
         while i < n {
             ret.append(f(i));
+            i = i + 1;
+        }
+
+        return ret;
+    }
+
+    type func filled(x, n: Int) {
+        if n <= 0 {
+            return [];
+        }
+
+        val ret = List.new_with_capacity(n);
+        val i = 0;
+        while i < n {
+            ret.append(x);
             i = i + 1;
         }
 

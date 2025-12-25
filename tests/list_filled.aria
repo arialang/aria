@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+val l = List.filled(false, 100);
+
+assert l.len() == 100;
+for item in l {
+    assert item == false;
+}

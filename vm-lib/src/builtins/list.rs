@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-use haxby_opcodes::function_attribs::FUNC_IS_METHOD;
+use haxby_opcodes::function_attribs::{FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 
 use crate::{
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{
         RuntimeValue, builtin_type::BuiltinType, function::BuiltinFunctionImpl,
-        kind::RuntimeValueType,
+        kind::RuntimeValueType, list::List,
     },
     vm::RunloopExit,
 };
@@ -167,6 +167,35 @@ impl BuiltinFunctionImpl for SetAt {
     }
 }
 
+#[derive(Default)]
+struct NewWithCapacity {}
+impl BuiltinFunctionImpl for NewWithCapacity {
+    fn eval(
+        &self,
+        frame: &mut Frame,
+        _: &mut crate::vm::VirtualMachine,
+    ) -> crate::vm::ExecutionResult<RunloopExit> {
+        let _ = frame.stack.pop(); // ignore List type, we know who we are
+        let capacity = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let capacity = if capacity < 0 { 0 } else { capacity } as usize;
+        let list = List::new_with_capacity(capacity);
+        frame.stack.push(RuntimeValue::List(list));
+        Ok(RunloopExit::Ok(()))
+    }
+
+    fn attrib_byte(&self) -> u8 {
+        FUNC_IS_METHOD | METHOD_ATTRIBUTE_TYPE
+    }
+
+    fn arity(&self) -> crate::arity::Arity {
+        crate::arity::Arity::required(2)
+    }
+
+    fn name(&self) -> &str {
+        "new_with_capacity"
+    }
+}
+
 pub(super) fn insert_list_builtins(builtins: &mut VmBuiltins) {
     let list_builtin = BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::List);
 
@@ -175,6 +204,7 @@ pub(super) fn insert_list_builtins(builtins: &mut VmBuiltins) {
     list_builtin.insert_builtin::<Drop>();
     list_builtin.insert_builtin::<GetAt>();
     list_builtin.insert_builtin::<SetAt>();
+    list_builtin.insert_builtin::<NewWithCapacity>();
 
     builtins.insert(
         "List",
