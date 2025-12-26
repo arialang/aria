@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use haxby_opcodes::Opcode;
+use haxby_opcodes::{BuiltinTypeId, BuiltinValueId, Opcode};
 
 pub struct BytecodeReader {
     data: Vec<u8>,
@@ -19,6 +19,7 @@ pub enum DecodeError {
     EndOfStream,
     InsufficientData,
     UnknownOpcode(u8),
+    UnknownOperand(u8, u8),
 }
 
 pub type DecodeResult<T> = Result<T, DecodeError>;
@@ -56,20 +57,8 @@ impl BytecodeReader {
     }
 
     pub fn read_opcode(&mut self) -> DecodeResult<Opcode> {
-        let next = match self.read_u8() {
-            Ok(next) => next,
-            Err(err) => match err {
-                DecodeError::EndOfStream => {
-                    return Err(DecodeError::EndOfStream);
-                }
-                DecodeError::InsufficientData => {
-                    return Err(DecodeError::EndOfStream);
-                }
-                DecodeError::UnknownOpcode(x) => {
-                    return Err(DecodeError::UnknownOpcode(x));
-                }
-            },
-        };
+        let next = self.read_u8()?;
+
         match next {
             haxby_opcodes::OPCODE_NOP => Ok(Opcode::Nop),
             haxby_opcodes::OPCODE_PUSH => self
@@ -79,16 +68,36 @@ impl BytecodeReader {
             haxby_opcodes::OPCODE_PUSH_1 => Ok(Opcode::Push1),
             haxby_opcodes::OPCODE_PUSH_TRUE => Ok(Opcode::PushTrue),
             haxby_opcodes::OPCODE_PUSH_FALSE => Ok(Opcode::PushFalse),
-            haxby_opcodes::OPCODE_PUSH_BUILTIN_TYPE => self
-                .read_u8()
-                .map_or(Err(DecodeError::InsufficientData), |b| {
-                    Ok(Opcode::PushBuiltinTy(b))
-                }),
-            haxby_opcodes::OPCODE_PUSH_RUNTIME_VALUE => self
-                .read_u8()
-                .map_or(Err(DecodeError::InsufficientData), |b| {
-                    Ok(Opcode::PushRuntimeValue(b))
-                }),
+            haxby_opcodes::OPCODE_PUSH_BUILTIN_TYPE => {
+                let arg0 = match self.read_u8() {
+                    Ok(b) => b,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                let bt_id = match BuiltinTypeId::try_from(arg0) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        return Err(DecodeError::UnknownOperand(next, arg0));
+                    }
+                };
+                Ok(Opcode::PushBuiltinTy(bt_id))
+            }
+            haxby_opcodes::OPCODE_PUSH_RUNTIME_VALUE => {
+                let arg0 = match self.read_u8() {
+                    Ok(b) => b,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                let bt_id = match BuiltinValueId::try_from(arg0) {
+                    Ok(id) => id,
+                    Err(_) => {
+                        return Err(DecodeError::UnknownOperand(next, arg0));
+                    }
+                };
+                Ok(Opcode::PushRuntimeValue(bt_id))
+            }
             haxby_opcodes::OPCODE_POP => Ok(Opcode::Pop),
             haxby_opcodes::OPCODE_DUP => Ok(Opcode::Dup),
             haxby_opcodes::OPCODE_SWAP => Ok(Opcode::Swap),

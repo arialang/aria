@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use aria_parser::ast::{Expression, ExpressionList, Identifier, SourcePointer};
-use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_RESULT;
+use haxby_opcodes::BuiltinTypeId;
 
 use crate::{builder::compiler_opcodes::CompilerOpcode, constant_value::ConstantValue};
 
@@ -195,7 +195,7 @@ impl<'a> PostfixValue {
                     .writer
                     .get_current_block()
                     .write_opcode_and_source_info(
-                        CompilerOpcode::PushBuiltinTy(BUILTIN_TYPE_RESULT),
+                        CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Result),
                         tp.loc.clone(),
                     )
                     .write_opcode_and_source_info(

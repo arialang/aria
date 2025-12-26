@@ -35,10 +35,10 @@ impl BytecodeWriter {
             Opcode::PushFalse => self.write_u8(haxby_opcodes::OPCODE_PUSH_FALSE),
             Opcode::PushBuiltinTy(n) => self
                 .write_u8(haxby_opcodes::OPCODE_PUSH_BUILTIN_TYPE)
-                .write_u8(*n),
+                .write_u8(n.to_u8()),
             Opcode::PushRuntimeValue(n) => self
                 .write_u8(haxby_opcodes::OPCODE_PUSH_RUNTIME_VALUE)
-                .write_u8(*n),
+                .write_u8(n.to_u8()),
             Opcode::Pop => self.write_u8(haxby_opcodes::OPCODE_POP),
             Opcode::Dup => self.write_u8(haxby_opcodes::OPCODE_DUP),
             Opcode::Swap => self.write_u8(haxby_opcodes::OPCODE_SWAP),

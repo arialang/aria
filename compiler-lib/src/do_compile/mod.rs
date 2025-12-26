@@ -9,7 +9,7 @@ use aria_parser::ast::{
     StringLiteral, StructDecl, StructEntry, ValDeclStatement, prettyprint::PrettyPrintable,
     source_to_ast,
 };
-use haxby_opcodes::{builtin_type_ids::BUILTIN_TYPE_ANY, function_attribs::*};
+use haxby_opcodes::{BuiltinTypeId, function_attribs::*};
 use thiserror::Error;
 
 use crate::{
@@ -154,7 +154,7 @@ trait CompileNode<'a, T = (), E = CompilationError> {
             .writer
             .get_current_block()
             .write_opcode_and_source_info(
-                CompilerOpcode::PushBuiltinTy(haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_UNIT),
+                CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Unit),
                 loc.clone(),
             )
             .write_opcode_and_source_info(
@@ -238,7 +238,7 @@ fn emit_arg_at_target(
             .writer
             .get_current_block()
             .write_opcode_and_source_info(
-                CompilerOpcode::PushBuiltinTy(BUILTIN_TYPE_ANY),
+                CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Any),
                 arg.loc.clone(),
             );
     }

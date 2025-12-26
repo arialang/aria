@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use aria_parser::ast::{ImportFromStatement, ImportPath, ParsedModule};
-use haxby_opcodes::runtime_value_ids::RUNTIME_VALUE_THIS_MODULE;
+use haxby_opcodes::BuiltinValueId;
 
 use crate::{
     builder::compiler_opcodes::CompilerOpcode,
@@ -120,7 +120,7 @@ impl<'a> CompileNode<'a, (), Vec<CompilationError>> for ParsedModule {
                 params
                     .writer
                     .get_current_block()
-                    .write_opcode(CompilerOpcode::PushRuntimeValue(RUNTIME_VALUE_THIS_MODULE))
+                    .write_opcode(CompilerOpcode::PushRuntimeValue(BuiltinValueId::ThisModule))
                     .write_opcode(CompilerOpcode::LoadDylib(cidx));
             }
         }

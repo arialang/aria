@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use aria_parser::ast::SourcePointer;
-use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_RUNTIME_ERROR;
+use haxby_opcodes::BuiltinTypeId;
 
 use crate::{
     builtins::VmBuiltins,
@@ -83,7 +83,7 @@ impl VmException {
         }
 
         let rt_err_type = some_or_err!(
-            builtins.get_builtin_type_by_id(BUILTIN_TYPE_RUNTIME_ERROR),
+            builtins.get_builtin_type_by_id(BuiltinTypeId::RuntimeError),
             err
         );
 

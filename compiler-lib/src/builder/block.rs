@@ -355,8 +355,8 @@ impl BasicBlock {
                 }
                 CompilerOpcode::TypedefLocal(x) => {
                     if i > 0 {
-                        if let CompilerOpcode::PushBuiltinTy(x) = br[i - 1].op
-                            && x == 1
+                        if let CompilerOpcode::PushBuiltinTy(t) = br[i - 1].op
+                            && t.is_any()
                         {
                             dest.writes.insert(x);
                         } else {
