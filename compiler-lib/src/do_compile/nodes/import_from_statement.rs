@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use haxby_opcodes::runtime_value_ids::RUNTIME_VALUE_THIS_MODULE;
+use haxby_opcodes::BuiltinValueId;
 
 use crate::{
     builder::compiler_opcodes::CompilerOpcode,
@@ -56,7 +56,7 @@ impl<'a> CompileNode<'a> for aria_parser::ast::ImportFromStatement {
                         self.loc.clone(),
                     )
                     .write_opcode_and_source_info(
-                        CompilerOpcode::PushRuntimeValue(RUNTIME_VALUE_THIS_MODULE),
+                        CompilerOpcode::PushRuntimeValue(BuiltinValueId::ThisModule),
                         self.loc.clone(),
                     )
                     .write_opcode_and_source_info(CompilerOpcode::LiftModule, self.loc.clone());

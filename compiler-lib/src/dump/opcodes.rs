@@ -1,33 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 use aria_parser::ast::prettyprint::printout_accumulator::PrintoutAccumulator;
-use haxby_opcodes::{Opcode, builtin_type_ids::*, runtime_value_ids::RUNTIME_VALUE_THIS_MODULE};
+use haxby_opcodes::Opcode;
 
 use crate::module::CompiledModule;
-
-fn builtin_type_id_to_str(id: u8) -> &'static str {
-    match id {
-        BUILTIN_TYPE_ANY => "Any",
-        BUILTIN_TYPE_INT => "Int",
-        BUILTIN_TYPE_LIST => "List",
-        BUILTIN_TYPE_STRING => "String",
-        BUILTIN_TYPE_BOOL => "Bool",
-        BUILTIN_TYPE_MAYBE => "Maybe",
-        BUILTIN_TYPE_FLOAT => "Float",
-        BUILTIN_TYPE_UNIMPLEMENTED => "Unimplemented",
-        BUILTIN_TYPE_RUNTIME_ERROR => "RuntimeError",
-        BUILTIN_TYPE_UNIT => "Unit",
-        BUILTIN_TYPE_RESULT => "Result",
-        BUILTIN_TYPE_TYPE => "Type",
-        _ => "Unknown",
-    }
-}
-
-fn runtime_val_id_to_str(id: u8) -> &'static str {
-    match id {
-        RUNTIME_VALUE_THIS_MODULE => "ThisModule",
-        _ => "Unknown",
-    }
-}
 
 fn const_best_repr(module: &CompiledModule, idx: u16) -> String {
     match module.load_indexed_const(idx) {
@@ -54,10 +29,10 @@ pub fn opcode_prettyprint(
             buffer << "PUSH(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
         }
         Opcode::PushBuiltinTy(n) => {
-            buffer << "PUSH_BUILTIN_TY(" << *n << ") [" << builtin_type_id_to_str(*n) << "]"
+            buffer << "PUSH_BUILTIN_TY(" << n.to_u8() << ") [" << n.name() << "]"
         }
         Opcode::PushRuntimeValue(n) => {
-            buffer << "PUSH_RUNTIME_VAL(" << *n << ") [" << runtime_val_id_to_str(*n) << "]"
+            buffer << "PUSH_RUNTIME_VAL(" << n.to_u8() << ") [" << n.name() << "]"
         }
         Opcode::ReadNamed(idx) => {
             buffer << "READ_NAMED(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"

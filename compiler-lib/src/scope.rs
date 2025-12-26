@@ -2,7 +2,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use aria_parser::ast::SourcePointer;
-use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_ANY;
+use haxby_opcodes::BuiltinTypeId;
 
 use crate::{
     builder::{block::BasicBlock, compiler_opcodes::CompilerOpcode},
@@ -568,7 +568,7 @@ impl CompilationScope {
         loc: SourcePointer,
     ) -> ScopeResult {
         dest.write_opcode_and_source_info(
-            CompilerOpcode::PushBuiltinTy(BUILTIN_TYPE_ANY),
+            CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Any),
             loc.clone(),
         );
         self.emit_typed_define(name, consts, dest.clone(), loc.clone())?;

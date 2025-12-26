@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::rc::Rc;
 
-use haxby_opcodes::builtin_type_ids::*;
+use haxby_opcodes::BuiltinTypeId;
 
 use crate::{
     error::vm_error::VmErrorReason,
@@ -131,29 +131,15 @@ impl VmBuiltins {
         }
     }
 
-    pub fn get_builtin_type_by_id(&self, n: u8) -> Option<RuntimeValueType> {
-        match n {
-            BUILTIN_TYPE_ANY => self.get_builtin_type_by_name("Any"),
-            BUILTIN_TYPE_INT => self.get_builtin_type_by_name("Int"),
-            BUILTIN_TYPE_FLOAT => self.get_builtin_type_by_name("Float"),
-            BUILTIN_TYPE_LIST => self.get_builtin_type_by_name("List"),
-            BUILTIN_TYPE_STRING => self.get_builtin_type_by_name("String"),
-            BUILTIN_TYPE_BOOL => self.get_builtin_type_by_name("Bool"),
-            BUILTIN_TYPE_MAYBE => self.get_builtin_type_by_name("Maybe"),
-            BUILTIN_TYPE_RESULT => self.get_builtin_type_by_name("Result"),
-            BUILTIN_TYPE_UNIMPLEMENTED => self.get_builtin_type_by_name("Unimplemented"),
-            BUILTIN_TYPE_RUNTIME_ERROR => self.get_builtin_type_by_name("RuntimeError"),
-            BUILTIN_TYPE_UNIT => self.get_builtin_type_by_name("Unit"),
-            BUILTIN_TYPE_TYPE => self.get_builtin_type_by_name("Type"),
-            _ => None,
-        }
+    pub fn get_builtin_type_by_id(&self, bt_id: BuiltinTypeId) -> Option<RuntimeValueType> {
+        self.get_builtin_type_by_name(bt_id.name())
     }
 }
 
 impl VmBuiltins {
     pub fn create_maybe_some(&self, x: RuntimeValue) -> Result<RuntimeValue, VmErrorReason> {
         let rt_maybe = self
-            .get_builtin_type_by_id(BUILTIN_TYPE_MAYBE)
+            .get_builtin_type_by_id(BuiltinTypeId::Maybe)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let rt_maybe_enum = rt_maybe.as_enum().ok_or(VmErrorReason::UnexpectedType)?;
 
@@ -170,7 +156,7 @@ impl VmBuiltins {
 
     pub fn create_result_ok(&self, x: RuntimeValue) -> Result<RuntimeValue, VmErrorReason> {
         let rt_result = self
-            .get_builtin_type_by_id(BUILTIN_TYPE_RESULT)
+            .get_builtin_type_by_id(BuiltinTypeId::Result)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let rt_result_enum = rt_result.as_enum().ok_or(VmErrorReason::UnexpectedType)?;
 
@@ -187,7 +173,7 @@ impl VmBuiltins {
 
     pub fn create_maybe_none(&self) -> Result<RuntimeValue, VmErrorReason> {
         let rt_maybe = self
-            .get_builtin_type_by_id(BUILTIN_TYPE_MAYBE)
+            .get_builtin_type_by_id(BuiltinTypeId::Maybe)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let rt_maybe_enum = rt_maybe.as_enum().ok_or(VmErrorReason::UnexpectedType)?;
 
@@ -204,7 +190,7 @@ impl VmBuiltins {
 
     pub fn create_result_err(&self, x: RuntimeValue) -> Result<RuntimeValue, VmErrorReason> {
         let rt_result = self
-            .get_builtin_type_by_id(BUILTIN_TYPE_RESULT)
+            .get_builtin_type_by_id(BuiltinTypeId::Result)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let rt_result_enum = rt_result.as_enum().ok_or(VmErrorReason::UnexpectedType)?;
 
@@ -221,7 +207,7 @@ impl VmBuiltins {
 
     pub fn create_unit_object(&self) -> Result<RuntimeValue, VmErrorReason> {
         let rt_unit = self
-            .get_builtin_type_by_id(BUILTIN_TYPE_UNIT)
+            .get_builtin_type_by_id(BuiltinTypeId::Unit)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let rt_unit_enum = rt_unit.as_enum().ok_or(VmErrorReason::UnexpectedType)?;
 

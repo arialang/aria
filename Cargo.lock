@@ -1387,6 +1387,9 @@ checksum = "d6790f58c7ff633d8771f42965289203411a5e5c68388703c06e14f24770b41e"
 [[package]]
 name = "opcodes-lib"
 version = "0.9.20251222"
+dependencies = [
+ "enum-as-inner",
+]
 
 [[package]]
 name = "openssl"

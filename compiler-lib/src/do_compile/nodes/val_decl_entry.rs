@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_ANY;
+use haxby_opcodes::BuiltinTypeId;
 
 use crate::{
     builder::compiler_opcodes::CompilerOpcode,
@@ -28,7 +28,7 @@ impl<'a> CompileNode<'a> for aria_parser::ast::ValDeclEntry {
                 .writer
                 .get_current_block()
                 .write_opcode_and_source_info(
-                    CompilerOpcode::PushBuiltinTy(BUILTIN_TYPE_ANY),
+                    CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Any),
                     self.loc.clone(),
                 );
         }

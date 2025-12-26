@@ -8,12 +8,7 @@ use std::{
 
 use aria_compiler::{bc_reader::BytecodeReader, compile_from_source, module::CompiledModule};
 use aria_parser::ast::{SourceBuffer, prettyprint::printout_accumulator::PrintoutAccumulator};
-use haxby_opcodes::{
-    Opcode,
-    builtin_type_ids::{BUILTIN_TYPE_MAYBE, BUILTIN_TYPE_RESULT},
-    enum_case_attribs::CASE_HAS_PAYLOAD,
-    runtime_value_ids::RUNTIME_VALUE_THIS_MODULE,
-};
+use haxby_opcodes::{BuiltinTypeId, Opcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 use std::sync::OnceLock;
 
 use crate::{
@@ -630,11 +625,8 @@ impl VirtualMachine {
                 }
             },
             Opcode::PushRuntimeValue(n) => match n {
-                RUNTIME_VALUE_THIS_MODULE => {
-                    frame.stack.push(RuntimeValue::Module(this_module.clone()));
-                }
-                _ => {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                haxby_opcodes::BuiltinValueId::ThisModule => {
+                    frame.stack.push(RuntimeValue::Module(this_module.clone()))
                 }
             },
             Opcode::Pop => {
@@ -1528,7 +1520,7 @@ impl VirtualMachine {
             }
             Opcode::TryUnwrapProtocol(mode) => {
                 let result_enum = if let Some(re) =
-                    self.builtins.get_builtin_type_by_id(BUILTIN_TYPE_RESULT)
+                    self.builtins.get_builtin_type_by_id(BuiltinTypeId::Result)
                     && let Some(re) = re.as_enum()
                 {
                     re.clone()
@@ -1536,7 +1528,7 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedVmState, next, frame, op_idx);
                 };
                 let maybe_enum = if let Some(re) =
-                    self.builtins.get_builtin_type_by_id(BUILTIN_TYPE_MAYBE)
+                    self.builtins.get_builtin_type_by_id(BuiltinTypeId::Maybe)
                     && let Some(re) = re.as_enum()
                 {
                     re.clone()
@@ -1856,17 +1848,22 @@ impl VirtualMachine {
             let op_idx = reader.get_index();
             let next = match reader.read_opcode() {
                 Ok(next) => next,
-                Err(err) => match err {
-                    aria_compiler::bc_reader::DecodeError::EndOfStream => {
-                        return Ok(RunloopExit::Ok(()));
-                    }
-                    aria_compiler::bc_reader::DecodeError::InsufficientData => {
-                        return Err(VmErrorReason::IncompleteInstruction.into());
-                    }
-                    aria_compiler::bc_reader::DecodeError::UnknownOpcode(n) => {
-                        return Err(VmErrorReason::UnknownOpcode(n).into());
-                    }
-                },
+                Err(err) => {
+                    return match err {
+                        aria_compiler::bc_reader::DecodeError::EndOfStream => {
+                            Ok(RunloopExit::Ok(()))
+                        }
+                        aria_compiler::bc_reader::DecodeError::InsufficientData => {
+                            Err(VmErrorReason::IncompleteInstruction.into())
+                        }
+                        aria_compiler::bc_reader::DecodeError::UnknownOpcode(n) => {
+                            Err(VmErrorReason::UnknownOpcode(n).into())
+                        }
+                        aria_compiler::bc_reader::DecodeError::UnknownOperand(a, b) => {
+                            Err(VmErrorReason::InvalidVmOperand(a, b).into())
+                        }
+                    };
+                }
             };
             if self.options.tracing {
                 let poa = PrintoutAccumulator::default();

@@ -86,32 +86,99 @@ pub mod function_attribs {
 #[allow(unused_imports)]
 use function_attribs::*;
 
-#[rustfmt::skip]
-pub mod runtime_value_ids {
-    pub const RUNTIME_VALUE_THIS_MODULE:   u8 = 1;
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, enum_as_inner::EnumAsInner)]
+pub enum BuiltinValueId {
+    ThisModule = 0,
 }
 
-#[allow(unused_imports)]
-use runtime_value_ids::*;
+impl BuiltinValueId {
+    pub fn to_u8(&self) -> u8 {
+        *self as u8
+    }
 
-#[rustfmt::skip]
-pub mod builtin_type_ids {
-    pub const BUILTIN_TYPE_ANY:            u8 = 1;
-    pub const BUILTIN_TYPE_INT:            u8 = 2;
-    pub const BUILTIN_TYPE_LIST:           u8 = 3;
-    pub const BUILTIN_TYPE_STRING:         u8 = 4;
-    pub const BUILTIN_TYPE_BOOL:           u8 = 5;
-    pub const BUILTIN_TYPE_MAYBE:          u8 = 6;
-    pub const BUILTIN_TYPE_FLOAT:          u8 = 7;
-    pub const BUILTIN_TYPE_UNIMPLEMENTED:  u8 = 8;
-    pub const BUILTIN_TYPE_RUNTIME_ERROR:  u8 = 9;
-    pub const BUILTIN_TYPE_UNIT:           u8 = 10;
-    pub const BUILTIN_TYPE_RESULT:         u8 = 11;
-    pub const BUILTIN_TYPE_TYPE:           u8 = 12;
+    pub fn name(&self) -> &'static str {
+        match self {
+            BuiltinValueId::ThisModule => "ThisModule",
+        }
+    }
 }
 
-#[allow(unused_imports)]
-use builtin_type_ids::*;
+impl TryFrom<u8> for BuiltinValueId {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(BuiltinValueId::ThisModule),
+            _ => Err(()),
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, PartialEq, Eq, enum_as_inner::EnumAsInner)]
+pub enum BuiltinTypeId {
+    Any = 0,
+    Module = 1,
+    Int = 2,
+    List = 3,
+    String = 4,
+    Bool = 5,
+    Maybe = 6,
+    Float = 7,
+    Unimplemented = 8,
+    RuntimeError = 9,
+    Unit = 10,
+    Result = 11,
+    Type = 12,
+}
+
+impl BuiltinTypeId {
+    pub fn to_u8(&self) -> u8 {
+        *self as u8
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            BuiltinTypeId::Any => "Any",
+            BuiltinTypeId::Module => "Module",
+            BuiltinTypeId::Int => "Int",
+            BuiltinTypeId::List => "List",
+            BuiltinTypeId::String => "String",
+            BuiltinTypeId::Bool => "Bool",
+            BuiltinTypeId::Maybe => "Maybe",
+            BuiltinTypeId::Float => "Float",
+            BuiltinTypeId::Unimplemented => "Unimplemented",
+            BuiltinTypeId::RuntimeError => "RuntimeError",
+            BuiltinTypeId::Unit => "Unit",
+            BuiltinTypeId::Result => "Result",
+            BuiltinTypeId::Type => "Type",
+        }
+    }
+}
+
+impl TryFrom<u8> for BuiltinTypeId {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(BuiltinTypeId::Any),
+            1 => Ok(BuiltinTypeId::Module),
+            2 => Ok(BuiltinTypeId::Int),
+            3 => Ok(BuiltinTypeId::List),
+            4 => Ok(BuiltinTypeId::String),
+            5 => Ok(BuiltinTypeId::Bool),
+            6 => Ok(BuiltinTypeId::Maybe),
+            7 => Ok(BuiltinTypeId::Float),
+            8 => Ok(BuiltinTypeId::Unimplemented),
+            9 => Ok(BuiltinTypeId::RuntimeError),
+            10 => Ok(BuiltinTypeId::Unit),
+            11 => Ok(BuiltinTypeId::Result),
+            12 => Ok(BuiltinTypeId::Type),
+            _ => Err(()),
+        }
+    }
+}
 
 #[rustfmt::skip]
 pub mod enum_case_attribs {
@@ -138,8 +205,8 @@ pub enum Opcode {
     Push1,
     PushTrue,
     PushFalse,
-    PushBuiltinTy(u8),
-    PushRuntimeValue(u8),
+    PushBuiltinTy(BuiltinTypeId),
+    PushRuntimeValue(BuiltinValueId),
     Pop,
     Dup,
     Swap,
@@ -213,8 +280,8 @@ impl std::fmt::Display for Opcode {
             Self::Push1 => write!(f, "PUSH_1"),
             Self::PushTrue => write!(f, "PUSH_T"),
             Self::PushFalse => write!(f, "PUSH_F"),
-            Self::PushBuiltinTy(arg0) => write!(f, "PUSH_BUILTIN_TY {arg0}"),
-            Self::PushRuntimeValue(arg0) => write!(f, "PUSH_RUNTIME_VAL {arg0}"),
+            Self::PushBuiltinTy(arg0) => write!(f, "PUSH_BUILTIN_TY {}", arg0.name()),
+            Self::PushRuntimeValue(arg0) => write!(f, "PUSH_RUNTIME_VAL {}", arg0.name()),
             Self::Pop => write!(f, "POP"),
             Self::Dup => write!(f, "DUP"),
             Self::Swap => write!(f, "SWAP"),
