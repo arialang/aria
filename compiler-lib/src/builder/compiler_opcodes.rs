@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 use enum_as_inner::EnumAsInner;
-use haxby_opcodes::{Opcode as VmOpcode, enum_case_attribs::CASE_HAS_PAYLOAD};
+use haxby_opcodes::{
+    BuiltinTypeId, BuiltinValueId, Opcode as VmOpcode, enum_case_attribs::CASE_HAS_PAYLOAD,
+};
 
 use crate::builder::{block::BasicBlock, func::FunctionBuilder};
 
@@ -12,8 +14,8 @@ pub enum CompilerOpcode {
     Push1,
     PushTrue,
     PushFalse,
-    PushBuiltinTy(u8),
-    PushRuntimeValue(u8),
+    PushBuiltinTy(BuiltinTypeId),
+    PushRuntimeValue(BuiltinValueId),
     Pop,
     Dup,
     Swap,
@@ -343,8 +345,8 @@ impl std::fmt::Display for CompilerOpcode {
             Push1 => write!(f, "Push1"),
             PushTrue => write!(f, "PushTrue"),
             PushFalse => write!(f, "PushFalse"),
-            PushBuiltinTy(n) => write!(f, "PushBuiltinTy({})", n),
-            PushRuntimeValue(n) => write!(f, "PushRuntimeValue({})", n),
+            PushBuiltinTy(n) => write!(f, "PushBuiltinTy({})", n.name()),
+            PushRuntimeValue(n) => write!(f, "PushRuntimeValue({})", n.name()),
             Pop => write!(f, "Pop"),
             Dup => write!(f, "Dup"),
             Swap => write!(f, "Swap"),

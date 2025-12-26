@@ -67,6 +67,9 @@ pub enum VmErrorReason {
     #[error("{0} is not a known opcode")]
     UnknownOpcode(u8),
 
+    #[error("{1} is not a valid operand for opcode {0}")]
+    InvalidVmOperand(u8, u8),
+
     #[error("VM execution halted")]
     VmHalted,
 }

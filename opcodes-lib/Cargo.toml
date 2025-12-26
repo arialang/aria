@@ -6,3 +6,6 @@ edition = "2024"
 [lib]
 name = "haxby_opcodes"
 path = "src/lib.rs"
+
+[dependencies]
+enum-as-inner = "0.6.1"

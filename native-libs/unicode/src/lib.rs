@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use haxby_opcodes::builtin_type_ids::BUILTIN_TYPE_STRING;
+use haxby_opcodes::BuiltinTypeId;
 use haxby_vm::{
     builtins::VmBuiltins,
     error::{dylib_load::LoadResult, vm_error::VmErrorReason},
@@ -87,7 +87,7 @@ pub extern "C" fn dylib_haxby_inject(
     // into the String builtin type, but I'd rather be safe here and check that it's also a valid
     // module, not just a valid VM instance
     if let (Some(vm), Some(_)) = unsafe { (vm.as_ref(), module.as_ref()) }
-        && let Some(string) = vm.builtins.get_builtin_type_by_id(BUILTIN_TYPE_STRING)
+        && let Some(string) = vm.builtins.get_builtin_type_by_id(BuiltinTypeId::String)
         && let Some(string) = string.as_builtin()
     {
         string.insert_builtin::<CharBuiltinFunction<is_lowercase_letter>>();
