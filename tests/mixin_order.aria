@@ -21,10 +21,20 @@ struct B_Then_A {
     include A
 }
 
+struct C_Shorthand_Then_B : A {
+    include B
+}
+
+func test_shorthand_order() {
+    val c = alloc(C_Shorthand_Then_B);
+    assert c.answer() == "Mixin B";  # should be B (last included)
+}
+
 func main() {
     val a_then_b = alloc(A_Then_B);
     val b_then_a = alloc(B_Then_A);
 
     assert a_then_b.answer() == "Mixin B";
     assert b_then_a.answer() == "Mixin A"; 
+    test_shorthand_order();
 }

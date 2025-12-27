@@ -23,8 +23,7 @@ mixin Navigation {
     }
 }
 
-extension Direction {
-    include Navigation
+extension Direction : Navigation {
 }
 
 func main() {

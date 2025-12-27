@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+
+mixin A {
+    func from_a() { return "A"; }
+}
+
+mixin B {
+    func from_b() { return "B"; }
+}
+
+struct Multi : A, B {
+    type func new() {
+        return alloc(This);
+    }
+}
+
+func main() {
+    val m = Multi.new();
+    assert m.from_a() == "A";
+    assert m.from_b() == "B";
+}

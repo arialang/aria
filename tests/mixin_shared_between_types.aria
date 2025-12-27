@@ -19,12 +19,10 @@ struct ProvidesString {
     }
 }
 
-extension ProvidesInteger {
-    include SomeBehavior
+extension ProvidesInteger : SomeBehavior {
 }
 
-extension ProvidesString {
-    include SomeBehavior
+extension ProvidesString : SomeBehavior {
 }
 
 func main() {

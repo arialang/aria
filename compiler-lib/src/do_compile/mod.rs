@@ -748,7 +748,22 @@ fn do_struct_compile(sd: &StructDecl, params: &mut CompileParams) -> Compilation
         .get_current_block()
         .write_opcode_and_source_info(CompilerOpcode::BuildStruct, sd.loc.clone());
 
-    emit_type_members_compile(&sd.body, params, false)
+    // Inject mixin includes for each item in the inherits list
+    let body = if !sd.inherits.is_empty() {
+        let mut new_body = vec![];
+        for mixin_expr in &sd.inherits {
+            new_body.push(StructEntry::MixinInclude(Box::new(MixinIncludeDecl {
+                loc: sd.loc.clone(),
+                what: mixin_expr.clone(),
+            })));
+        }
+        new_body.extend_from_slice(&sd.body);
+        new_body
+    } else {
+        sd.body.clone()
+    };
+
+    emit_type_members_compile(&body, params, false)
 }
 
 fn do_enum_compile<T>(

@@ -15,9 +15,24 @@ struct SomeType {
     include Answer
 }
 
+struct AnotherType : Answer {
+    type func new(x) {
+        return alloc(This){
+            .x = x,
+        };
+    }
+}
+
+func test_shorthand() {
+    val at = AnotherType.new(2);
+    assert at.x == 2;
+    assert at.answer() == 42;
+}
+
 func main() {
     val st = SomeType.new(1);
     assert st.x == 1;
     assert st.answer() == 42;
+    test_shorthand();
 }
 

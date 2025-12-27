@@ -161,10 +161,12 @@ mixin_decl = { "mixin" ~ identifier ~ "{" ~ struct_entry* ~ "}" }
 
 mixin_include_decl = { "include" ~ expression }
 
+mixin_list = { expression ~ ("," ~ expression)* }
+
 struct_entry = { method_decl | operator_decl | "type" ~ val_decl_stmt | mixin_include_decl | struct_decl | enum_decl }
 
-struct_decl    = { "struct" ~ identifier ~ "{" ~ struct_entry* ~ "}" }
-extension_decl = { "extension" ~ expression ~ "{" ~ struct_entry* ~ "}" }
+struct_decl = { "struct" ~ identifier ~ (":" ~ mixin_list)? ~ "{" ~ struct_entry* ~ "}" }
+extension_decl = { "extension" ~ expression ~ (":" ~ mixin_list)? ~ "{" ~ struct_entry* ~ "}" }
 
 enum_case_decl  = { "case" ~ identifier ~ ("(" ~ expression ~ ")")? }
 enum_decl_entry = { (enum_case_decl | struct_entry) ~ ","? }

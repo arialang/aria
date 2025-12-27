@@ -15,9 +15,23 @@ extension Foo {
     }
 }
 
+mixin Bar {
+    func double() {
+        return this * 2;
+    }
+}
+
+extension Int : Bar {
+}
+
+func test_extension_shorthand() {
+    assert 5.double() == 10;
+}
+
 func main() {
     val f = alloc(UsesFoo);
     assert f.bar() == 1;
 
     assert f.baz() == 2;
+    test_extension_shorthand();
 }
