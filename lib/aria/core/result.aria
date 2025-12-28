@@ -5,6 +5,41 @@ func ok(v)  { return Result::Ok(v); }
 func err(e) { return Result::Err(e); }
 
 extension Result {
+    # these helpers are built by the Aria compiler, but since Result is a builtin type we need to provide them here
+    func is_Ok() {
+        match this {
+            case Ok(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func is_Err() {
+        match this {
+            case Err(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func unwrap_Ok() {
+        match this {
+            case Ok(value) => { return value; },
+        } else {
+            assert false;
+        }
+    }
+
+    func unwrap_Err() {
+        match this {
+            case Err(value) => { return value; },
+        } else {
+            assert false;
+        }
+    }
+}
+
+extension Result {
     func apply(f) {
         match this {
             case Ok(x) => { return Result::Ok(f(x)); },

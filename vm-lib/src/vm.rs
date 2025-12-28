@@ -67,14 +67,6 @@ pub struct VirtualMachine {
     pub loaded_dylibs: HashMap<String, libloading::Library>,
 }
 
-const BUILTIN_VALUES_TO_INJECT: [(&str, &str); 5] = [
-    ("Unit", include_str!("builtins/unit.aria")),
-    ("Unimplemented", include_str!("builtins/unimplemented.aria")),
-    ("Maybe", include_str!("builtins/maybe.aria")),
-    ("Result", include_str!("builtins/result.aria")),
-    ("RuntimeError", include_str!("builtins/runtime_error.aria")),
-];
-
 impl VirtualMachine {
     pub fn console(&self) -> &ConsoleHandle {
         &self.options.console
@@ -85,38 +77,6 @@ impl VirtualMachine {
         assert!(!aria_version.is_empty());
         self.builtins
             .insert("ARIA_VERSION", RuntimeValue::String(aria_version.into()));
-        self
-    }
-
-    fn load_core_file_into_builtins(&mut self, name: &str, source: &str) -> RuntimeModule {
-        let sb = SourceBuffer::stdin_with_name(source, name);
-        let cmod = match aria_compiler::compile_from_source(&sb, &Default::default()) {
-            Ok(m) => m,
-            Err(err) => {
-                let err_msg = err
-                    .iter()
-                    .map(|e| format!("error: {e}"))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                panic!("{name} module failed to compile: {err_msg}");
-            }
-        };
-        match self.load_module("", cmod) {
-            Ok(rle) => match rle {
-                RunloopExit::Ok(m) => m.module,
-                RunloopExit::Exception(e) => {
-                    panic!("{name} module raised an exception during load {}", e.value);
-                }
-            },
-            Err(err) => panic!("{name} module failed to load {}", err.prettyprint(None)),
-        }
-    }
-
-    fn load_named_value_into_builtins(self, name: &str, rmod: &RuntimeModule) -> Self {
-        let named_value = rmod
-            .load_named_value(name)
-            .unwrap_or_else(|| panic!("failed to find {name}"));
-        self.builtins.insert(name, named_value);
         self
     }
 }
@@ -130,7 +90,7 @@ impl Default for VirtualMachine {
 
 impl VirtualMachine {
     pub fn with_options(options: VmOptions) -> Self {
-        let mut this = Self {
+        Self {
             modules: Default::default(),
             options,
             builtins: Default::default(),
@@ -138,13 +98,7 @@ impl VirtualMachine {
             imported_modules: Default::default(),
             loaded_dylibs: Default::default(),
         }
-        .load_version_into_builtins();
-        for (builtin_name, source) in BUILTIN_VALUES_TO_INJECT {
-            let rmod = this.load_core_file_into_builtins(builtin_name, source);
-            this = this.load_named_value_into_builtins(builtin_name, &rmod);
-        }
-
-        this
+        .load_version_into_builtins()
     }
 }
 

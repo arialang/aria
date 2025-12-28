@@ -34,4 +34,29 @@ extension Maybe {
             }
         }
     }
+
+    # these helpers are built by the Aria compiler, but since Maybe is a builtin type we need to provide them here
+    func is_Some() {
+        match this {
+            case Some(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func is_None() {
+        match this {
+            case None => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func unwrap_Some() {
+        match this {
+            case Some(value) => { return value; },
+        } else {
+            assert false;
+        }
+    }
 }

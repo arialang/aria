@@ -1,8 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-flag: no_std;
-
-# DO NOT REORDER THESE CASES - the VM relies on the order
-enum Result {
-    case Ok(Any),
-    case Err(Any),
-}

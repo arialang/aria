@@ -25,6 +25,7 @@ mod hasattr;
 mod integer;
 mod list;
 mod listattrs;
+mod maybe;
 pub mod native_iterator;
 mod now;
 mod prettyprint;
@@ -32,12 +33,16 @@ mod print;
 mod println;
 mod readattr;
 mod readln;
+mod result;
+mod runtime_error;
 mod setenv;
 mod sleep;
 mod string;
 mod system;
 mod typ;
 mod typeof_builtin;
+mod unimplemented;
+mod unit;
 mod writeattr;
 
 pub struct VmBuiltins {
@@ -78,12 +83,24 @@ impl Default for VmBuiltins {
             values: Default::default(),
         };
 
+        this.insert("Any", RuntimeValue::Type(RuntimeValueType::Any)); // Most anything needs Any
+        this.insert("Module", RuntimeValue::Type(RuntimeValueType::Module));
+
+        unit::insert_unit_builtins(&mut this);
+        unimplemented::insert_unimplemented_builtins(&mut this);
+        maybe::insert_maybe_builtins(&mut this);
+        result::insert_result_builtins(&mut this);
+        integer::insert_integer_builtins(&mut this); // RuntimeError needs Integer
+        string::insert_string_builtins(&mut this); // and String
+        runtime_error::insert_runtime_error_builtins(&mut this);
+
+        // from here on out, any order is fine
+
         alloc::insert_builtins(&mut this);
         arity::insert_builtins(&mut this);
         boolean::insert_boolean_builtins(&mut this);
         cmdline_args::insert_builtins(&mut this);
         exit::insert_builtins(&mut this);
-        integer::insert_integer_builtins(&mut this);
         float::insert_float_builtins(&mut this);
         getenv::insert_builtins(&mut this);
         hasattr::insert_builtins(&mut this);
@@ -97,14 +114,10 @@ impl Default for VmBuiltins {
         readln::insert_builtins(&mut this);
         setenv::insert_builtins(&mut this);
         sleep::insert_builtins(&mut this);
-        string::insert_string_builtins(&mut this);
         system::insert_builtins(&mut this);
         typ::insert_type_builtins(&mut this);
         typeof_builtin::insert_builtins(&mut this);
         writeattr::insert_builtins(&mut this);
-
-        this.insert("Any", RuntimeValue::Type(RuntimeValueType::Any));
-        this.insert("Module", RuntimeValue::Type(RuntimeValueType::Module));
 
         this
     }

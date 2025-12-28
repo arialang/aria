@@ -138,6 +138,10 @@ impl BuiltinTypeId {
         *self as u8
     }
 
+    pub fn last() -> Self {
+        BuiltinTypeId::Type
+    }
+
     pub fn name(&self) -> &'static str {
         match self {
             BuiltinTypeId::Any => "Any",

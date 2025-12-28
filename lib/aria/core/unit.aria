@@ -7,4 +7,7 @@ extension Unit {
     func prettyprint() = "unit";
 
     operator ==(rhs) = rhs isa Unit;
+
+    # this is normally provided by the compiler, but since Unit is a builtin type we need to provide it here
+    func is_unit() = true;
 }

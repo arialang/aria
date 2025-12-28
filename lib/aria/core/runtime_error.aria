@@ -1,0 +1,142 @@
+# SPDX-License-Identifier: Apache-2.0
+flag: no_std;
+
+extension RuntimeError.ArgcMismatch {
+    func prettyprint() = "argument count mismatch, {0} expected, {1} actual".format(this.expected, this.actual);
+}
+
+extension RuntimeError {
+    # helpers that are normally provided by the Aria compiler but we must define them here for a builtin type
+    func is_DivisionByZero() {
+        match this {
+            case DivisionByZero => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func is_EnumWithoutPayload() {
+        match this {
+            case EnumWithoutPayload => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+    func is_IndexOutOfBounds() {
+        match this {
+            case IndexOutOfBounds(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+    func unwrap_IndexOutOfBounds() {
+        match this {
+            case IndexOutOfBounds(x) => { return x; },
+        } else {
+            assert false;
+        }
+    }
+
+    func is_MismatchedArgumentCount() {
+        match this {
+            case MismatchedArgumentCount(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+    func unwrap_MismatchedArgumentCount() {
+        match this {
+            case MismatchedArgumentCount(x) => { return x; },
+        } else {
+            assert false;
+        }
+    }
+
+    func is_NoSuchCase() {
+        match this {
+            case NoSuchCase(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+    func unwrap_NoSuchCase() {
+        match this {
+            case NoSuchCase(x) => { return x; },
+        } else {
+            assert false;
+        }
+    }
+
+    func is_NoSuchIdentifier() {
+        match this {
+            case NoSuchIdentifier(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+    func unwrap_NoSuchIdentifier() {
+        match this {
+            case NoSuchIdentifier(x) => { return x; },
+        } else {
+            assert false;
+        }
+    }
+
+    func is_OperationFailed() {
+        match this {
+            case OperationFailed(_) => { return true; },
+        } else {
+            return false;
+        }
+    }
+    func unwrap_OperationFailed() {
+        match this {
+            case OperationFailed(x) => { return x; },
+        } else {
+            assert false;
+        }
+    }
+
+    func is_UnexpectedType() {
+        match this {
+            case UnexpectedType => { return true; },
+        } else {
+            return false;
+        }
+    }
+
+}
+
+extension RuntimeError {
+    func prettyprint() {
+        match this {
+            case DivisionByZero => {
+                return "division by zero";
+            },
+            case EnumWithoutPayload => {
+                return "enum case has no payload";
+            },
+            case IndexOutOfBounds(n) => {
+                return "index {0} is out of bounds".format(n);
+            },
+            case MismatchedArgumentCount(m) => {
+                return m.prettyprint();
+            },
+            case NoSuchCase(s) => {
+                return "case '{0}' not found".format(s);
+            },
+            case NoSuchIdentifier(s) => {
+                return "identifier '{0}' not found".format(s);
+            },
+            case OperationFailed(s) => {
+                return "operation failed: {0}".format(s);
+            }
+            case UnexpectedType => {
+                return "unexpected type";
+            }
+        }
+
+        return "unprintable error";
+    }
+}
