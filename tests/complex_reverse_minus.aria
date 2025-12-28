@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 
-### TAGS: XFAIL
-
 import Complex from aria.numerics.complex;
 
 assert (3 - Complex.new(3,4)).imag == -4;

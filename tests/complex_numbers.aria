@@ -25,7 +25,7 @@ func main() {
     assert (some_num - one) == complex(2,2);
     assert (some_num - complex(0,2)) == 3;
 
-    assert 1 - complex(1,2) - complex(0,1) == complex(0,1);
+    assert 1 - complex(1,2) - complex(0,1) == complex(0,-3);
 
     assert complex(3,2) * complex(4,-1) == complex(14,5);
     assert 2 * complex(0,1) == complex(0,2);

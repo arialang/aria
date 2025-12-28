@@ -86,7 +86,7 @@ struct Complex {
 
     reverse operator -(lhs) {
         if (lhs isa Int) || (lhs isa Float) {
-            return Complex.new(lhs - this.real, this.imag);
+            return Complex.new(lhs - this.real, -this.imag);
         } elsif lhs isa Complex {
             return Complex.new(lhs.real - this.real, lhs.imag - this.imag);
         } else {
