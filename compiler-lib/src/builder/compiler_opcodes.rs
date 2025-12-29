@@ -56,6 +56,7 @@ pub enum CompilerOpcode {
     JumpIfArgSupplied(u8, BasicBlock),
     Call(u8),
     Return,
+    ReturnUnit,
     TryEnter(BasicBlock),
     TryExit,
     Throw,
@@ -131,6 +132,7 @@ impl CompilerOpcode {
             Self::JumpIfArgSupplied(..) => false,
             Self::Call(_) => false,
             Self::Return => true,
+            Self::ReturnUnit => true,
             Self::TryEnter(_) => false,
             Self::TryExit => false,
             Self::Throw => true,
@@ -206,6 +208,7 @@ impl CompilerOpcode {
             Self::JumpIfArgSupplied(..) => 4,
             Self::Call(_) => 2,
             Self::Return => 1,
+            Self::ReturnUnit => 1,
             Self::TryEnter(_) => 3,
             Self::TryExit => 1,
             Self::Throw => 1,
@@ -304,6 +307,7 @@ impl CompilerOpcode {
             }
             Self::Call(n) => VmOpcode::Call(*n),
             Self::Return => VmOpcode::Return,
+            Self::ReturnUnit => VmOpcode::ReturnUnit,
             Self::TryEnter(dst) => {
                 let offset = parent.offset_of_block(dst).expect("invalid block") - 1;
                 VmOpcode::TryEnter(offset)
@@ -389,6 +393,7 @@ impl std::fmt::Display for CompilerOpcode {
             }
             Call(n) => write!(f, "Call({})", n),
             Return => write!(f, "Return"),
+            ReturnUnit => write!(f, "ReturnUnit"),
             TryEnter(dst) => write!(f, "TryEnter({})", dst.name()),
             TryExit => write!(f, "TryExit"),
             Throw => write!(f, "Throw"),

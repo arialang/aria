@@ -147,21 +147,10 @@ trait CompileNode<'a, T = (), E = CompilationError> {
         params: &mut CompileParams,
         loc: &SourcePointer,
     ) -> CompilationResult {
-        let unit_const_idx =
-            self.insert_const_or_fail(params, ConstantValue::String("unit".to_owned()), loc)?;
-
         params
             .writer
             .get_current_block()
-            .write_opcode_and_source_info(
-                CompilerOpcode::PushBuiltinTy(BuiltinTypeId::Unit),
-                loc.clone(),
-            )
-            .write_opcode_and_source_info(
-                CompilerOpcode::NewEnumVal(false, unit_const_idx),
-                loc.clone(),
-            )
-            .write_opcode_and_source_info(CompilerOpcode::Return, loc.clone());
+            .write_opcode_and_source_info(CompilerOpcode::ReturnUnit, loc.clone());
 
         Ok(())
     }

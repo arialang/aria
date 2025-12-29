@@ -55,6 +55,7 @@ pub const OPCODE_TRY_EXIT: u8 = 73;
 pub const OPCODE_THROW: u8 = 74;
 pub const OPCODE_CALL: u8 = 75;
 pub const OPCODE_RETURN: u8 = 76;
+pub const OPCODE_RETURN_UNIT: u8 = 77;
 // ...
 pub const OPCODE_BUILD_LIST: u8 = 80;
 pub const OPCODE_BUILD_FUNCTION: u8 = 81;
@@ -251,6 +252,7 @@ pub enum Opcode {
     JumpIfArgSupplied(u8, u16),
     Call(u8),
     Return,
+    ReturnUnit,
     TryEnter(u16),
     TryExit,
     Throw,
@@ -326,6 +328,7 @@ impl std::fmt::Display for Opcode {
             Self::JumpIfArgSupplied(arg0, arg1) => write!(f, "JUMP_IF_ARG_SUPPLIED {arg0} {arg1}"),
             Self::Call(arg0) => write!(f, "CALL {arg0}"),
             Self::Return => write!(f, "RETURN"),
+            Self::ReturnUnit => write!(f, "RETURN_UNIT"),
             Self::TryEnter(arg0) => write!(f, "ENTER_TRY {arg0}"),
             Self::TryExit => write!(f, "EXIT_TRY"),
             Self::Throw => write!(f, "THROW"),
@@ -403,6 +406,7 @@ impl Opcode {
             Self::Jump(_) => 3,
             Self::Call(_) => 2,
             Self::Return => 1,
+            Self::ReturnUnit => 1,
             Self::TryEnter(_) => 3,
             Self::TryExit => 1,
             Self::Throw => 1,

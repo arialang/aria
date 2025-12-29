@@ -1199,6 +1199,17 @@ impl VirtualMachine {
             Opcode::Return => {
                 return Ok(OpcodeRunExit::Return);
             }
+            Opcode::ReturnUnit => {
+                return match self.globals.create_unit_object() {
+                    Ok(unit) => {
+                        frame.stack.push(unit);
+                        Ok(OpcodeRunExit::Return)
+                    }
+                    Err(e) => {
+                        build_vm_error!(e, next, frame, op_idx)
+                    }
+                };
+            }
             Opcode::TryEnter(offset) => {
                 frame
                     .ctrl_blocks
