@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use haxby_opcodes::BuiltinTypeId;
 
@@ -47,20 +47,20 @@ mod writeattr;
 
 #[derive(Default)]
 pub struct AriaBuiltinTypes {
-    types: Rc<RefCell<Vec<RuntimeValueType>>>,
+    types: Vec<RuntimeValueType>,
 }
 
 impl AriaBuiltinTypes {
-    pub fn register_builtin_type(&self, bt: RuntimeValueType) -> BuiltinTypeId {
-        let mut types = self.types.borrow_mut();
-        types.push(bt);
-        let ty_id = u8::try_from(types.len() - 1).expect("too many builtin types registered");
+    #[inline(always)]
+    pub fn register_builtin_type(&mut self, bt: RuntimeValueType) -> BuiltinTypeId {
+        self.types.push(bt);
+        let ty_id = u8::try_from(self.types.len() - 1).expect("too many builtin types registered");
         BuiltinTypeId::try_from(ty_id).expect("invalid builtin type id")
     }
 
+    #[inline(always)]
     pub fn get_builtin_type(&self, id: BuiltinTypeId) -> RuntimeValueType {
-        let types = self.types.borrow();
-        types
+        self.types
             .get(id as usize)
             .expect("invalid builtin type id")
             .clone()
