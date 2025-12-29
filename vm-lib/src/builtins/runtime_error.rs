@@ -13,49 +13,53 @@ use super::VmGlobals;
 
 pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
     let argc_mismatch = Struct::new("ArgcMismatch");
-
-    let rt_err_enum = Enum::new("RuntimeError");
-
-    rt_err_enum.store_named_value(
-        "ArgcMismatch",
-        RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch.clone())),
-    );
-
     let int = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
     let str = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
 
-    rt_err_enum.add_case(EnumCase {
-        name: "DivisionByZero".to_owned(),
-        payload_type: None,
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "EnumWithoutPayload".to_owned(),
-        payload_type: None,
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "IndexOutOfBounds".to_owned(),
-        payload_type: Some(IsaCheckable::Type(int.clone())),
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "MismatchedArgumentCount".to_owned(),
-        payload_type: Some(IsaCheckable::Type(RuntimeValueType::Struct(argc_mismatch))),
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "NoSuchCase".to_owned(),
-        payload_type: Some(IsaCheckable::Type(str.clone())),
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "NoSuchIdentifier".to_owned(),
-        payload_type: Some(IsaCheckable::Type(str.clone())),
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "OperationFailed".to_owned(),
-        payload_type: Some(IsaCheckable::Type(str.clone())),
-    });
-    rt_err_enum.add_case(EnumCase {
-        name: "UnexpectedType".to_owned(),
-        payload_type: None,
-    });
+    let rt_err_enum = Enum::new_with_cases(
+        "RuntimeError",
+        &[
+            EnumCase {
+                name: "DivisionByZero".to_owned(),
+                payload_type: None,
+            },
+            EnumCase {
+                name: "EnumWithoutPayload".to_owned(),
+                payload_type: None,
+            },
+            EnumCase {
+                name: "IndexOutOfBounds".to_owned(),
+                payload_type: Some(IsaCheckable::Type(int.clone())),
+            },
+            EnumCase {
+                name: "MismatchedArgumentCount".to_owned(),
+                payload_type: Some(IsaCheckable::Type(RuntimeValueType::Struct(
+                    argc_mismatch.clone(),
+                ))),
+            },
+            EnumCase {
+                name: "NoSuchCase".to_owned(),
+                payload_type: Some(IsaCheckable::Type(str.clone())),
+            },
+            EnumCase {
+                name: "NoSuchIdentifier".to_owned(),
+                payload_type: Some(IsaCheckable::Type(str.clone())),
+            },
+            EnumCase {
+                name: "OperationFailed".to_owned(),
+                payload_type: Some(IsaCheckable::Type(str.clone())),
+            },
+            EnumCase {
+                name: "UnexpectedType".to_owned(),
+                payload_type: None,
+            },
+        ],
+    );
+
+    rt_err_enum.store_named_value(
+        "ArgcMismatch",
+        RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch)),
+    );
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::RuntimeError,

@@ -8,17 +8,19 @@ use crate::runtime_value::{
 use super::VmGlobals;
 
 pub(super) fn insert_maybe_builtins(builtins: &mut VmGlobals) {
-    let maybe_enum = Enum::new("Maybe");
-
-    maybe_enum.add_case(EnumCase {
-        name: "Some".to_owned(),
-        payload_type: Some(IsaCheckable::any()),
-    });
-
-    maybe_enum.add_case(EnumCase {
-        name: "None".to_owned(),
-        payload_type: None,
-    });
+    let maybe_enum = Enum::new_with_cases(
+        "Maybe",
+        &[
+            EnumCase {
+                name: "Some".to_owned(),
+                payload_type: Some(IsaCheckable::any()),
+            },
+            EnumCase {
+                name: "None".to_owned(),
+                payload_type: None,
+            },
+        ],
+    );
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::Maybe,

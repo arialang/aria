@@ -46,6 +46,13 @@ impl EnumImpl {
         idx
     }
 
+    pub fn add_cases(&self, cases: &[EnumCase]) {
+        let mut b = self.cases.borrow_mut();
+        for case in cases {
+            b.push(case.clone());
+        }
+    }
+
     fn get_case_by_idx(&self, idx: usize) -> Option<EnumCase> {
         let b = self.cases.borrow();
         b.get(idx).cloned()
@@ -98,6 +105,12 @@ impl Enum {
         Self {
             imp: Rc::new(EnumImpl::new(name)),
         }
+    }
+
+    pub fn new_with_cases(name: &str, cases: &[EnumCase]) -> Self {
+        let enumm = Self::new(name);
+        enumm.imp.add_cases(cases);
+        enumm
     }
 
     pub fn name(&self) -> &str {

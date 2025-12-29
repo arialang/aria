@@ -8,17 +8,19 @@ use crate::runtime_value::{
 use super::VmGlobals;
 
 pub(super) fn insert_result_builtins(builtins: &mut VmGlobals) {
-    let result_enum = Enum::new("Result");
-
-    result_enum.add_case(EnumCase {
-        name: "Ok".to_owned(),
-        payload_type: Some(IsaCheckable::any()),
-    });
-
-    result_enum.add_case(EnumCase {
-        name: "Err".to_owned(),
-        payload_type: Some(IsaCheckable::any()),
-    });
+    let result_enum = Enum::new_with_cases(
+        "Result",
+        &[
+            EnumCase {
+                name: "Ok".to_owned(),
+                payload_type: Some(IsaCheckable::any()),
+            },
+            EnumCase {
+                name: "Err".to_owned(),
+                payload_type: Some(IsaCheckable::any()),
+            },
+        ],
+    );
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::Result,
