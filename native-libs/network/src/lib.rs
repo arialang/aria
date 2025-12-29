@@ -15,8 +15,8 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
         frame: &mut haxby_vm::frame::Frame,
         vm: &mut haxby_vm::vm::VirtualMachine,
     ) -> haxby_vm::vm::ExecutionResult<haxby_vm::vm::RunloopExit> {
-        let this = haxby_vm::builtins::VmBuiltins::extract_arg(frame, |x| x.as_object().cloned())?;
-        let headers = haxby_vm::builtins::VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
+        let this = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_object().cloned())?;
+        let headers = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let this_url = this.extract_field("url", |field| field.as_string().cloned())?;
         let this_timeout = this.extract_field("timeout", |field| field.as_float().cloned())?;
         let as_struct = this.get_struct();
@@ -69,7 +69,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                             RuntimeValue::String("content is not a valid String".into()),
                         );
                         let result_err = vm
-                            .builtins
+                            .globals
                             .create_result_err(RuntimeValue::Object(error_obj))?;
                         frame.stack.push(result_err);
                         return ExecutionResult::Ok(haxby_vm::vm::RunloopExit::Ok(()));
@@ -77,7 +77,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                 }
 
                 let result_ok = vm
-                    .builtins
+                    .globals
                     .create_result_ok(RuntimeValue::Object(response_obj.clone()))?;
 
                 frame.stack.push(result_ok);
@@ -87,7 +87,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                 let error_obj = Object::new(&this_error);
                 error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
                 let result_err = vm
-                    .builtins
+                    .globals
                     .create_result_err(RuntimeValue::Object(error_obj))?;
 
                 frame.stack.push(result_err);
@@ -117,10 +117,10 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
         frame: &mut haxby_vm::frame::Frame,
         vm: &mut haxby_vm::vm::VirtualMachine,
     ) -> haxby_vm::vm::ExecutionResult<haxby_vm::vm::RunloopExit> {
-        let this = haxby_vm::builtins::VmBuiltins::extract_arg(frame, |x| x.as_object().cloned())?;
-        let headers = haxby_vm::builtins::VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
+        let this = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_object().cloned())?;
+        let headers = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let payload =
-            haxby_vm::builtins::VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
+            haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
 
         let this_url = this.extract_field("url", |field| field.as_string().cloned())?;
         let this_timeout = this.extract_field("timeout", |field| field.as_float().cloned())?;
@@ -175,7 +175,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                             RuntimeValue::String("content is not a valid String".into()),
                         );
                         let result_err = vm
-                            .builtins
+                            .globals
                             .create_result_err(RuntimeValue::Object(error_obj))?;
 
                         frame.stack.push(result_err);
@@ -184,7 +184,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                 }
 
                 let result_ok = vm
-                    .builtins
+                    .globals
                     .create_result_ok(RuntimeValue::Object(response_obj.clone()))?;
 
                 frame.stack.push(result_ok);
@@ -194,7 +194,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                 let error_obj = Object::new(&this_error);
                 error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
                 let result_err = vm
-                    .builtins
+                    .globals
                     .create_result_err(RuntimeValue::Object(error_obj))?;
 
                 frame.stack.push(result_err);

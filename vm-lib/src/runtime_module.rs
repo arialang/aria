@@ -5,7 +5,7 @@ use aria_compiler::{constant_value::ConstantValue, module::CompiledModule};
 use rustc_data_structures::fx::FxHashMap;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     runtime_value::{
         RuntimeValue,
@@ -66,7 +66,7 @@ impl RuntimeModuleImpl {
         &self,
         name: &str,
         val: RuntimeValue,
-        builtins: &VmBuiltins,
+        builtins: &VmGlobals,
     ) -> Result<(), VmErrorReason> {
         let mut bm = self.values.borrow_mut();
         if let Some(nval) = bm.get_mut(name) {
@@ -145,7 +145,7 @@ impl RuntimeModule {
         &self,
         name: &str,
         val: RuntimeValue,
-        builtins: &VmBuiltins,
+        builtins: &VmGlobals,
     ) -> Result<(), VmErrorReason> {
         self.imp.store_typechecked_named_value(name, val, builtins)
     }
@@ -161,7 +161,7 @@ impl RuntimeModule {
     ) -> Result<(), VmErrorReason> {
         for (name, val) in prior_art.named_values_of_this() {
             self.typedef_named_value(&name, val.ty.clone());
-            self.store_typechecked_named_value(&name, val.val.clone(), &vm.builtins)?;
+            self.store_typechecked_named_value(&name, val.val.clone(), &vm.globals)?;
         }
         Ok(())
     }

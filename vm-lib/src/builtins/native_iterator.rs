@@ -6,7 +6,7 @@ use haxby_opcodes::function_attribs::FUNC_IS_METHOD;
 
 use crate::{
     arity::Arity,
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{
@@ -63,7 +63,7 @@ impl BuiltinFunctionImpl for Next {
         frame: &mut Frame,
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_this = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_this = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let iterator_impl = aria_this
             .read("__impl")
@@ -73,9 +73,9 @@ impl BuiltinFunctionImpl for Next {
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         if let Some(next) = rust_native_iter.borrow_mut().next() {
-            frame.stack.push(vm.builtins.create_maybe_some(next)?);
+            frame.stack.push(vm.globals.create_maybe_some(next)?);
         } else {
-            frame.stack.push(vm.builtins.create_maybe_none()?);
+            frame.stack.push(vm.globals.create_maybe_none()?);
         }
 
         Ok(RunloopExit::Ok(()))

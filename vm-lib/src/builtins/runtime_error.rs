@@ -9,9 +9,9 @@ use crate::runtime_value::{
     structure::Struct,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_runtime_error_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
     let argc_mismatch = Struct::new("ArgcMismatch");
 
     let rt_err_enum = Enum::new("RuntimeError");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
     arity::Arity,
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{
@@ -18,11 +18,11 @@ impl BuiltinFunctionImpl for Alloc {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        use crate::runtime_value::builtin_type::BuiltinValueKind as BVK;
-        let alloc_type = VmBuiltins::extract_arg(frame, |x| x.as_type().cloned())?;
+        use crate::runtime_value::rust_native_type::RustNativeValueKind as BVK;
+        let alloc_type = VmGlobals::extract_arg(frame, |x| x.as_type().cloned())?;
 
         match alloc_type {
-            RuntimeValueType::Builtin(b) => {
+            RuntimeValueType::RustNative(b) => {
                 let rv = match b.get_tag() {
                     BVK::Boolean => RuntimeValue::Boolean(false.into()),
                     BVK::Integer => RuntimeValue::Integer(0.into()),
@@ -57,6 +57,6 @@ impl BuiltinFunctionImpl for Alloc {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Alloc>();
 }

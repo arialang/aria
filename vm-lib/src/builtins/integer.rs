@@ -5,13 +5,13 @@ use haxby_opcodes::function_attribs::FUNC_IS_METHOD;
 use crate::{
     frame::Frame,
     runtime_value::{
-        RuntimeValue, builtin_type::BuiltinType, function::BuiltinFunctionImpl,
-        kind::RuntimeValueType,
+        RuntimeValue, function::BuiltinFunctionImpl, kind::RuntimeValueType,
+        rust_native_type::RustNativeType,
     },
     vm::RunloopExit,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
 fn int_format(n: i64, fmt: &str) -> String {
     // Determine if format ends with 'x' or 'X' for hexadecimal formatting
@@ -48,8 +48,8 @@ impl BuiltinFunctionImpl for Prettyprint {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
-        let format_style = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
+        let this = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let format_style = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
         let output_string = int_format(this, &format_style);
         frame.stack.push(RuntimeValue::String(output_string.into()));
         Ok(RunloopExit::Ok(()))
@@ -68,14 +68,14 @@ impl BuiltinFunctionImpl for Prettyprint {
     }
 }
 
-pub(super) fn insert_integer_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_integer_builtins(builtins: &mut VmGlobals) {
     let int_builtin =
-        BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::Integer);
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Integer);
 
     int_builtin.insert_builtin::<Prettyprint>();
 
     builtins.insert(
         "Int",
-        RuntimeValue::Type(RuntimeValueType::Builtin(int_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(int_builtin)),
     );
 }

@@ -12,7 +12,7 @@ use super::{
 };
 
 #[derive(EnumAsInner, Clone, PartialEq, Eq)]
-pub enum BuiltinValueKind {
+pub enum RustNativeValueKind {
     Boolean,
     Integer,
     Float,
@@ -21,13 +21,13 @@ pub enum BuiltinValueKind {
     Type,
 }
 
-struct BuiltinTypeImpl {
-    tag: BuiltinValueKind,
+struct RustNativeTypeImpl {
+    tag: RustNativeValueKind,
     boxx: Rc<ObjectBox>,
     mixins: RefCell<crate::mixin_includer::MixinIncluder>,
 }
 
-impl BuiltinTypeImpl {
+impl RustNativeTypeImpl {
     fn write(&self, name: &str, val: RuntimeValue) {
         self.boxx.write(name, val)
     }
@@ -55,14 +55,14 @@ impl BuiltinTypeImpl {
 }
 
 #[derive(Clone)]
-pub struct BuiltinType {
-    imp: Rc<BuiltinTypeImpl>,
+pub struct RustNativeType {
+    imp: Rc<RustNativeTypeImpl>,
 }
 
-impl BuiltinType {
-    pub fn new(rvt: BuiltinValueKind) -> Self {
+impl RustNativeType {
+    pub fn new(rvt: RustNativeValueKind) -> Self {
         Self {
-            imp: Rc::new(BuiltinTypeImpl {
+            imp: Rc::new(RustNativeTypeImpl {
                 tag: rvt,
                 boxx: Rc::new(Default::default()),
                 mixins: Default::default(),
@@ -70,7 +70,7 @@ impl BuiltinType {
         }
     }
 
-    pub fn get_tag(&self) -> &BuiltinValueKind {
+    pub fn get_tag(&self) -> &RustNativeValueKind {
         &self.imp.tag
     }
 
@@ -109,22 +109,22 @@ impl BuiltinType {
     }
 }
 
-impl PartialEq for BuiltinType {
+impl PartialEq for RustNativeType {
     fn eq(&self, other: &Self) -> bool {
         Rc::ptr_eq(&self.imp, &other.imp) || self.imp.tag == other.imp.tag
     }
 }
-impl Eq for BuiltinType {}
+impl Eq for RustNativeType {}
 
-impl std::fmt::Debug for BuiltinType {
+impl std::fmt::Debug for RustNativeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.get_tag() {
-            BuiltinValueKind::Boolean => write!(f, "Bool"),
-            BuiltinValueKind::Integer => write!(f, "Int"),
-            BuiltinValueKind::Float => write!(f, "Float"),
-            BuiltinValueKind::List => write!(f, "List"),
-            BuiltinValueKind::String => write!(f, "String"),
-            BuiltinValueKind::Type => write!(f, "Type"),
+            RustNativeValueKind::Boolean => write!(f, "Bool"),
+            RustNativeValueKind::Integer => write!(f, "Int"),
+            RustNativeValueKind::Float => write!(f, "Float"),
+            RustNativeValueKind::List => write!(f, "List"),
+            RustNativeValueKind::String => write!(f, "String"),
+            RustNativeValueKind::Type => write!(f, "Type"),
         }
     }
 }

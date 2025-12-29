@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
     vm::RunloopExit,
@@ -14,16 +14,16 @@ impl BuiltinFunctionImpl for Getenv {
         frame: &mut Frame,
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let var_name = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
+        let var_name = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
         match std::env::var(var_name.raw_value()).map(|s| RuntimeValue::String(s.into())) {
-            Ok(s) => match vm.builtins.create_maybe_some(s) {
+            Ok(s) => match vm.globals.create_maybe_some(s) {
                 Ok(s) => {
                     frame.stack.push(s);
                     Ok(RunloopExit::Ok(()))
                 }
                 Err(e) => Err(e.into()),
             },
-            Err(_) => match vm.builtins.create_maybe_none() {
+            Err(_) => match vm.globals.create_maybe_none() {
                 Ok(s) => {
                     frame.stack.push(s);
                     Ok(RunloopExit::Ok(()))
@@ -42,6 +42,6 @@ impl BuiltinFunctionImpl for Getenv {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Getenv>();
 }

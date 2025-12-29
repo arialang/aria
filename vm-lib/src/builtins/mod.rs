@@ -45,11 +45,11 @@ mod unimplemented;
 mod unit;
 mod writeattr;
 
-pub struct VmBuiltins {
+pub struct VmGlobals {
     values: Rc<ObjectBox>,
 }
 
-impl VmBuiltins {
+impl VmGlobals {
     pub fn insert_builtin<T>(&mut self)
     where
         T: 'static + Default + BuiltinFunctionImpl,
@@ -77,7 +77,7 @@ impl VmBuiltins {
     }
 }
 
-impl Default for VmBuiltins {
+impl Default for VmGlobals {
     fn default() -> Self {
         let mut this = Self {
             values: Default::default(),
@@ -123,7 +123,7 @@ impl Default for VmBuiltins {
     }
 }
 
-impl VmBuiltins {
+impl VmGlobals {
     pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
         self.values.read(name)
     }
@@ -149,7 +149,7 @@ impl VmBuiltins {
     }
 }
 
-impl VmBuiltins {
+impl VmGlobals {
     pub fn create_maybe_some(&self, x: RuntimeValue) -> Result<RuntimeValue, VmErrorReason> {
         let rt_maybe = self
             .get_builtin_type_by_id(BuiltinTypeId::Maybe)

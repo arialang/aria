@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins, error::vm_error::VmErrorReason, frame::Frame,
+    builtins::VmGlobals, error::vm_error::VmErrorReason, frame::Frame,
     runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
 
@@ -12,8 +12,8 @@ impl BuiltinFunctionImpl for Setenv {
         frame: &mut Frame,
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let var_name = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
-        let var_value = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
+        let var_name = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
+        let var_value = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
         if var_name.is_empty() || var_value.is_empty() {
             return Err(VmErrorReason::OperationFailed("empty key or value".into()).into());
         }
@@ -26,7 +26,7 @@ impl BuiltinFunctionImpl for Setenv {
         unsafe {
             std::env::set_var(var_name.raw_value(), var_value.raw_value());
         }
-        frame.stack.push(vm.builtins.create_unit_object()?);
+        frame.stack.push(vm.globals.create_unit_object()?);
         Ok(RunloopExit::Ok(()))
     }
 
@@ -39,6 +39,6 @@ impl BuiltinFunctionImpl for Setenv {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Setenv>();
 }

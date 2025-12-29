@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, kind::RuntimeValueType},
     vm::RunloopExit,
@@ -15,7 +15,7 @@ impl BuiltinFunctionImpl for Typeof {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let the_type = RuntimeValueType::get_type(&the_value, &vm.builtins);
+        let the_type = RuntimeValueType::get_type(&the_value, &vm.globals);
         frame.stack.push(RuntimeValue::Type(the_type));
         Ok(RunloopExit::Ok(()))
     }
@@ -29,6 +29,6 @@ impl BuiltinFunctionImpl for Typeof {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Typeof>();
 }

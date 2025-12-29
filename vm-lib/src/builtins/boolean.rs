@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
-use crate::runtime_value::{RuntimeValue, builtin_type::BuiltinType, kind::RuntimeValueType};
+use crate::runtime_value::{
+    RuntimeValue, kind::RuntimeValueType, rust_native_type::RustNativeType,
+};
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_boolean_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_boolean_builtins(builtins: &mut VmGlobals) {
     let bool_builtin =
-        BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::Boolean);
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Boolean);
 
     builtins.insert(
         "Bool",
-        RuntimeValue::Type(RuntimeValueType::Builtin(bool_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(bool_builtin)),
     );
 
     builtins.insert("true", RuntimeValue::Boolean(true.into()));

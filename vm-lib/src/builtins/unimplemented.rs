@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::runtime_value::{RuntimeValue, kind::RuntimeValueType, structure::Struct};
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_unimplemented_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_unimplemented_builtins(builtins: &mut VmGlobals) {
     let unimplemented_struct = Struct::new("Unimplemented");
     builtins.insert(
         "Unimplemented",

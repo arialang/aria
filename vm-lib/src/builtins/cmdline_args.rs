@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
     vm::RunloopExit,
@@ -34,6 +34,6 @@ impl BuiltinFunctionImpl for CmdlineArgs {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<CmdlineArgs>();
 }

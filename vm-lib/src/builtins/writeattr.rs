@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins, error::vm_error::VmErrorReason, frame::Frame,
+    builtins::VmGlobals, error::vm_error::VmErrorReason, frame::Frame,
     runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
 
@@ -13,12 +13,12 @@ impl BuiltinFunctionImpl for WriteAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_object = frame.stack.pop();
-        let the_string = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
         let the_value = frame.stack.pop();
         let result = the_object.write_attribute(&the_string.raw_value(), the_value);
         match result {
             Ok(_) => {
-                frame.stack.push(vm.builtins.create_unit_object()?);
+                frame.stack.push(vm.globals.create_unit_object()?);
                 Ok(RunloopExit::Ok(()))
             }
             Err(e) => {
@@ -47,6 +47,6 @@ impl BuiltinFunctionImpl for WriteAttr {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<WriteAttr>();
 }

@@ -6,9 +6,9 @@ use crate::runtime_value::{
     kind::RuntimeValueType,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_maybe_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_maybe_builtins(builtins: &mut VmGlobals) {
     let maybe_enum = Enum::new("Maybe");
 
     maybe_enum.add_case(EnumCase {

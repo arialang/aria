@@ -3,10 +3,11 @@
 use enum_as_inner::EnumAsInner;
 use rustc_data_structures::fx::FxHashSet;
 
-use crate::{arity::Arity, builtins::VmBuiltins};
+use crate::{arity::Arity, builtins::VmGlobals};
 
 use super::{
-    AttributeError, RuntimeValue, builtin_type::BuiltinType, enumeration::Enum, structure::Struct,
+    AttributeError, RuntimeValue, enumeration::Enum, rust_native_type::RustNativeType,
+    structure::Struct,
 };
 
 #[derive(Clone, PartialEq, Eq)]
@@ -30,7 +31,7 @@ impl std::fmt::Debug for FunctionType {
 #[derive(EnumAsInner, Clone)]
 pub enum RuntimeValueType {
     Any,
-    Builtin(BuiltinType),
+    RustNative(RustNativeType),
     CodeObject,
     Module,
     Function(FunctionType),
@@ -48,7 +49,7 @@ impl PartialEq for RuntimeValueType {
         match (self, other) {
             (Self::Function(f0), Self::Function(f1)) => f0 == f1,
             (Self::BoundFunction(f0), Self::BoundFunction(f1)) => f0 == f1,
-            (Self::Builtin(l0), Self::Builtin(r0)) => l0 == r0,
+            (Self::RustNative(l0), Self::RustNative(r0)) => l0 == r0,
             (Self::Struct(l0), Self::Struct(r0)) => l0 == r0,
             (Self::Enum(l0), Self::Enum(r0)) => l0 == r0,
             (Self::Union(l0), Self::Union(r0)) => {
@@ -70,7 +71,7 @@ impl PartialEq for RuntimeValueType {
 impl Eq for RuntimeValueType {}
 
 impl RuntimeValueType {
-    pub fn get_type(value: &RuntimeValue, builtins: &VmBuiltins) -> Self {
+    pub fn get_type(value: &RuntimeValue, builtins: &VmGlobals) -> Self {
         match value {
             RuntimeValue::Object(obj) => Self::Struct(obj.get_struct().clone()),
             RuntimeValue::EnumValue(env) => Self::Enum(env.get_container_enum().clone()),
@@ -113,7 +114,7 @@ impl std::fmt::Debug for RuntimeValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Any => write!(f, "Any"),
-            Self::Builtin(b) => write!(f, "{b:?}"),
+            Self::RustNative(b) => write!(f, "{b:?}"),
             Self::CodeObject => write!(f, "CodeObject"),
             Self::Module => write!(f, "Module"),
             Self::Mixin => write!(f, "Mixin"),
@@ -189,7 +190,7 @@ impl RuntimeValueType {
                 Some(x) => Ok(x),
                 None => Err(AttributeError::NoSuchAttribute),
             }
-        } else if let Some(bt) = self.as_builtin() {
+        } else if let Some(bt) = self.as_rust_native() {
             match bt.read(attr_name) {
                 Some(x) => Ok(x),
                 None => Err(AttributeError::NoSuchAttribute),
@@ -210,7 +211,7 @@ impl RuntimeValueType {
         } else if let Some(enumm) = self.as_enum() {
             enumm.store_named_value(attr_name, val);
             Ok(())
-        } else if let Some(bt) = self.as_builtin() {
+        } else if let Some(bt) = self.as_rust_native() {
             bt.write(attr_name, val);
             Ok(())
         } else {
@@ -223,7 +224,7 @@ impl RuntimeValueType {
             struk.list_attributes()
         } else if let Some(enumm) = self.as_enum() {
             enumm.list_attributes()
-        } else if let Some(bt) = self.as_builtin() {
+        } else if let Some(bt) = self.as_rust_native() {
             bt.list_attributes()
         } else {
             Default::default()

@@ -2,7 +2,7 @@
 use std::io::Write;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
@@ -43,6 +43,6 @@ impl BuiltinFunctionImpl for Readln {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Readln>();
 }

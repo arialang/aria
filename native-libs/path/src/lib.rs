@@ -3,7 +3,7 @@
 use haxby_opcodes::function_attribs::{FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 use haxby_vm::{
     builtins::{
-        VmBuiltins,
+        VmGlobals,
         native_iterator::{NativeIteratorImpl, create_iterator_struct},
     },
     error::{dylib_load::LoadResult, vm_error::VmErrorReason},
@@ -46,7 +46,7 @@ fn create_path_result_err(
     let path_error = Object::new(&path_error);
     path_error.write("msg", RuntimeValue::String(message.into()));
 
-    vm.builtins
+    vm.globals
         .create_result_err(RuntimeValue::Object(path_error))
 }
 
@@ -67,9 +67,9 @@ impl BuiltinFunctionImpl for New {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let the_struct = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
+        let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
         let the_path =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
 
         frame.stack.push(new_from_path(&the_struct, the_path));
         Ok(RunloopExit::Ok(()))
@@ -96,9 +96,9 @@ impl BuiltinFunctionImpl for Glob {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let the_struct = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
+        let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
         let glob_expr =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
 
         let val = match glob::glob(&glob_expr) {
             Ok(path) => {
@@ -114,7 +114,7 @@ impl BuiltinFunctionImpl for Glob {
                 let iterator =
                     create_iterator_struct(iterator_struct, NativeIteratorImpl::new(flatten));
 
-                vm.builtins.create_result_ok(iterator)?
+                vm.globals.create_result_ok(iterator)?
             }
             Err(e) => create_path_result_err(&the_struct, e.to_string(), vm)?,
         };
@@ -144,7 +144,7 @@ impl BuiltinFunctionImpl for Cwd {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let the_struct = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
+        let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
 
         let cwd = std::env::current_dir().map_err(|_| VmErrorReason::UnexpectedVmState)?;
 
@@ -173,7 +173,7 @@ impl BuiltinFunctionImpl for Prettyprint {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -209,16 +209,16 @@ impl BuiltinFunctionImpl for Append {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let the_path =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
         let mut rfo = rust_obj.content.borrow_mut();
         rfo.push(the_path);
 
-        frame.stack.push(vm.builtins.create_unit_object()?);
+        frame.stack.push(vm.globals.create_unit_object()?);
         Ok(RunloopExit::Ok(()))
     }
 
@@ -243,7 +243,7 @@ impl BuiltinFunctionImpl for Pop {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -274,7 +274,7 @@ impl BuiltinFunctionImpl for IsAbsolutePath {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -306,7 +306,7 @@ impl BuiltinFunctionImpl for Exists {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -338,7 +338,7 @@ impl BuiltinFunctionImpl for IsDirectory {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -370,7 +370,7 @@ impl BuiltinFunctionImpl for IsFile {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -402,7 +402,7 @@ impl BuiltinFunctionImpl for IsSymlink {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -434,7 +434,7 @@ impl BuiltinFunctionImpl for Canonical {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -443,7 +443,7 @@ impl BuiltinFunctionImpl for Canonical {
             Ok(path) => {
                 let canonical_object = new_from_path(aria_object.get_struct(), &path);
 
-                vm.builtins.create_result_ok(canonical_object)?
+                vm.globals.create_result_ok(canonical_object)?
             }
             Err(e) => create_path_result_err(aria_object.get_struct(), e.to_string(), vm)?,
         };
@@ -473,14 +473,14 @@ impl BuiltinFunctionImpl for Size {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
         let rfo = rust_obj.content.borrow_mut();
         let val = match rfo.metadata() {
             Ok(md) => vm
-                .builtins
+                .globals
                 .create_result_ok(RuntimeValue::Integer((md.len() as i64).into()))?,
             Err(e) => create_path_result_err(aria_object.get_struct(), e.to_string(), vm)?,
         };
@@ -510,7 +510,7 @@ impl BuiltinFunctionImpl for CreatedTime {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -523,7 +523,7 @@ impl BuiltinFunctionImpl for CreatedTime {
                         .duration_since(SystemTime::UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
-                    vm.builtins
+                    vm.globals
                         .create_result_ok(RuntimeValue::Integer((val as i64).into()))?
                 }
             },
@@ -555,7 +555,7 @@ impl BuiltinFunctionImpl for AccessedTime {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -568,7 +568,7 @@ impl BuiltinFunctionImpl for AccessedTime {
                         .duration_since(SystemTime::UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
-                    vm.builtins
+                    vm.globals
                         .create_result_ok(RuntimeValue::Integer((val as i64).into()))?
                 }
             },
@@ -600,7 +600,7 @@ impl BuiltinFunctionImpl for ModifiedTime {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -613,7 +613,7 @@ impl BuiltinFunctionImpl for ModifiedTime {
                         .duration_since(SystemTime::UNIX_EPOCH)
                         .unwrap()
                         .as_millis();
-                    vm.builtins
+                    vm.globals
                         .create_result_ok(RuntimeValue::Integer((val as i64).into()))?
                 }
             },
@@ -645,7 +645,7 @@ impl BuiltinFunctionImpl for Filename {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -654,12 +654,12 @@ impl BuiltinFunctionImpl for Filename {
             Some(name) => {
                 let name = name.to_str().ok_or(VmErrorReason::UnexpectedVmState)?;
                 let val = vm
-                    .builtins
+                    .globals
                     .create_maybe_some(RuntimeValue::String(name.into()))?;
                 frame.stack.push(val);
             }
             None => {
-                let val = vm.builtins.create_maybe_none()?;
+                let val = vm.globals.create_maybe_none()?;
                 frame.stack.push(val);
             }
         }
@@ -687,7 +687,7 @@ impl BuiltinFunctionImpl for Extension {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -696,12 +696,12 @@ impl BuiltinFunctionImpl for Extension {
             Some(name) => {
                 let name = name.to_str().ok_or(VmErrorReason::UnexpectedVmState)?;
                 let val = vm
-                    .builtins
+                    .globals
                     .create_maybe_some(RuntimeValue::String(name.into()))?;
                 frame.stack.push(val);
             }
             None => {
-                let val = vm.builtins.create_maybe_none()?;
+                let val = vm.globals.create_maybe_none()?;
                 frame.stack.push(val);
             }
         }
@@ -729,7 +729,7 @@ impl BuiltinFunctionImpl for Entries {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let aria_struct = aria_object.get_struct().clone();
         let iterator_struct = aria_struct.extract_field("Iterator", |f| f.as_struct().cloned())?;
@@ -773,7 +773,7 @@ impl BuiltinFunctionImpl for MakeDirectory {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -805,7 +805,7 @@ impl BuiltinFunctionImpl for MakeDirectories {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -837,7 +837,7 @@ impl BuiltinFunctionImpl for RemoveDirectory {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -869,7 +869,7 @@ impl BuiltinFunctionImpl for RemoveFile {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let aria_object = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object)?;
 
@@ -901,8 +901,8 @@ impl BuiltinFunctionImpl for Copy {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let this_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let other_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let this_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let other_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let this_path = mut_path_from_aria(&this_path)?;
         let other_path = mut_path_from_aria(&other_path)?;
@@ -939,9 +939,9 @@ impl BuiltinFunctionImpl for CommonAncestor {
         frame: &mut Frame,
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let this_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let this_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let this_struct = this_path.get_struct();
-        let other_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let other_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let this_path = mut_path_from_aria(&this_path)?;
         let other_path = mut_path_from_aria(&other_path)?;
@@ -951,9 +951,9 @@ impl BuiltinFunctionImpl for CommonAncestor {
 
         let val = match this_path.ancestors().find(|p| other_path.starts_with(p)) {
             Some(p) => vm
-                .builtins
+                .globals
                 .create_maybe_some(new_from_path(this_struct, p))?,
-            None => vm.builtins.create_maybe_none()?,
+            None => vm.globals.create_maybe_none()?,
         };
 
         frame.stack.push(val);
@@ -981,8 +981,8 @@ impl BuiltinFunctionImpl for Equals {
         frame: &mut Frame,
         _: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
-        let this_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let other_path = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let this_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let other_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let this_path = mut_path_from_aria(&this_path)?;
         let other_path = mut_path_from_aria(&other_path)?;

@@ -2,7 +2,7 @@
 
 use haxby_opcodes::function_attribs::{FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 use haxby_vm::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::{dylib_load::LoadResult, exception::VmException, vm_error::VmErrorReason},
     frame::Frame,
     runtime_module::RuntimeModule,
@@ -79,11 +79,11 @@ impl BuiltinFunctionImpl for New {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let the_struct = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
+        let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
         let the_path =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
         let the_mode =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
 
         let opts = open_options_from_int(the_mode);
         match opts.open(the_path) {
@@ -122,7 +122,7 @@ impl BuiltinFunctionImpl for Close {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -158,7 +158,7 @@ impl BuiltinFunctionImpl for ReadAll {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -204,9 +204,9 @@ impl BuiltinFunctionImpl for ReadCount {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let count =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -260,9 +260,9 @@ impl BuiltinFunctionImpl for WriteStr {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let text =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -304,7 +304,7 @@ impl BuiltinFunctionImpl for GetPos {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -350,9 +350,9 @@ impl BuiltinFunctionImpl for SetPos {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let offset =
-            VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -398,7 +398,7 @@ impl BuiltinFunctionImpl for GetSize {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,
@@ -443,7 +443,7 @@ impl BuiltinFunctionImpl for Flush {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let aria_file = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
         let rust_file_obj = match aria_file.read("__file") {
             Some(s) => s,

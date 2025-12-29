@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
-use crate::runtime_value::{RuntimeValue, builtin_type::BuiltinType, kind::RuntimeValueType};
+use crate::runtime_value::{
+    RuntimeValue, kind::RuntimeValueType, rust_native_type::RustNativeType,
+};
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_type_builtins(builtins: &mut VmBuiltins) {
-    let type_builtin = BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::Type);
+pub(super) fn insert_type_builtins(builtins: &mut VmGlobals) {
+    let type_builtin =
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Type);
 
     builtins.insert(
         "Type",
-        RuntimeValue::Type(RuntimeValueType::Builtin(type_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(type_builtin)),
     );
 }

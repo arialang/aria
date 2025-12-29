@@ -2,7 +2,7 @@
 
 use haxby_opcodes::function_attribs::{FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 use haxby_vm::{
-    builtins::VmBuiltins, error::dylib_load::LoadResult, frame::Frame,
+    builtins::VmGlobals, error::dylib_load::LoadResult, frame::Frame,
     runtime_module::RuntimeModule, runtime_value::RuntimeValue,
     runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
@@ -23,7 +23,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
             Err(_) => String::from("unknown"),
         };
 
-        let platform_enum = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
+        let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
 
         let linux_info = platform_enum
             .load_named_value("LinuxPlatform")
@@ -70,7 +70,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
             _ => String::from("unknown"),
         };
 
-        let platform_enum = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
+        let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
 
         let mac_info = platform_enum
             .load_named_value("macOSPlatform")
@@ -101,7 +101,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
     ) -> haxby_vm::vm::ExecutionResult<RunloopExit> {
         use haxby_vm::{error::vm_error::VmErrorReason, runtime_value::object::Object};
 
-        let platform_enum = VmBuiltins::extract_arg(frame, |x: RuntimeValue| x.as_enum().clone())?;
+        let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().clone())?;
 
         let unknown_case = platform_enum
             .get_idx_of_case("Unknown")

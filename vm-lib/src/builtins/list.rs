@@ -5,13 +5,13 @@ use crate::{
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{
-        RuntimeValue, builtin_type::BuiltinType, function::BuiltinFunctionImpl,
-        kind::RuntimeValueType, list::List,
+        RuntimeValue, function::BuiltinFunctionImpl, kind::RuntimeValueType, list::List,
+        rust_native_type::RustNativeType,
     },
     vm::RunloopExit,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
 #[derive(Default)]
 struct ListLen {}
@@ -21,7 +21,7 @@ impl BuiltinFunctionImpl for ListLen {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let len = this.len() as i64;
         frame.stack.push(RuntimeValue::Integer(len.into()));
         Ok(RunloopExit::Ok(()))
@@ -48,7 +48,7 @@ impl BuiltinFunctionImpl for ListAppend {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let the_value = frame.stack.pop();
         this.append(the_value);
         frame.stack.push(RuntimeValue::List(this));
@@ -76,7 +76,7 @@ impl BuiltinFunctionImpl for Drop {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         if this.is_empty() {
             Err(VmErrorReason::IndexOutOfBounds(0).into())
         } else {
@@ -108,8 +108,8 @@ impl BuiltinFunctionImpl for GetAt {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
-        let index = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
+        let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
         let index = index.raw_value() as usize;
         match this.get_at(index) {
             Some(v) => {
@@ -141,13 +141,13 @@ impl BuiltinFunctionImpl for SetAt {
         frame: &mut Frame,
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_list().cloned())?;
-        let index = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
+        let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
         let index = index.raw_value() as usize;
         let value = frame.stack.pop();
         match this.set_at(index, value) {
             Ok(_) => {
-                frame.stack.push(vm.builtins.create_unit_object()?);
+                frame.stack.push(vm.globals.create_unit_object()?);
                 Ok(RunloopExit::Ok(()))
             }
             Err(e) => Err(e.into()),
@@ -176,7 +176,7 @@ impl BuiltinFunctionImpl for NewWithCapacity {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let _ = frame.stack.pop(); // ignore List type, we know who we are
-        let capacity = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let capacity = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
         let capacity = if capacity < 0 { 0 } else { capacity } as usize;
         let list = List::new_with_capacity(capacity);
         frame.stack.push(RuntimeValue::List(list));
@@ -196,8 +196,9 @@ impl BuiltinFunctionImpl for NewWithCapacity {
     }
 }
 
-pub(super) fn insert_list_builtins(builtins: &mut VmBuiltins) {
-    let list_builtin = BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::List);
+pub(super) fn insert_list_builtins(builtins: &mut VmGlobals) {
+    let list_builtin =
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::List);
 
     list_builtin.insert_builtin::<ListLen>();
     list_builtin.insert_builtin::<ListAppend>();
@@ -208,6 +209,6 @@ pub(super) fn insert_list_builtins(builtins: &mut VmBuiltins) {
 
     builtins.insert(
         "List",
-        RuntimeValue::Type(RuntimeValueType::Builtin(list_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(list_builtin)),
     );
 }

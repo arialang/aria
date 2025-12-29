@@ -5,7 +5,6 @@ use std::rc::Rc;
 use aria_compiler::constant_value::ConstantValue;
 use boolean::BooleanValue;
 use bound_function::BoundFunction;
-use builtin_type::BuiltinType;
 use enum_as_inner::EnumAsInner;
 use enum_case::EnumValue;
 use enumeration::Enum;
@@ -19,11 +18,12 @@ use mixin::Mixin;
 use object::Object;
 use opaque::OpaqueValue;
 use runtime_code_object::CodeObject;
+use rust_native_type::RustNativeType;
 use string::StringValue;
 use structure::Struct;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_module::RuntimeModule,
@@ -33,7 +33,6 @@ use crate::{
 
 pub mod boolean;
 pub mod bound_function;
-pub mod builtin_type;
 pub mod builtin_value;
 pub mod enum_case;
 pub mod enumeration;
@@ -47,6 +46,7 @@ pub mod mixin;
 pub mod object;
 pub mod opaque;
 pub mod runtime_code_object;
+pub mod rust_native_type;
 pub mod string;
 pub mod structure;
 
@@ -115,7 +115,7 @@ impl RuntimeValue {
     pub(crate) fn is_builtin_unimplemented(&self, vm: &mut VirtualMachine) -> bool {
         if let Some(s) = self.as_object() {
             let unimp = vm
-                .builtins
+                .globals
                 .get_builtin_type_by_id(BuiltinTypeId::Unimplemented)
                 .unwrap();
             let unimplemented = unimp.as_struct().unwrap();
@@ -204,7 +204,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> bool {
-        if let Ok(op_equals) = lhs.read_attribute("_op_impl_equals", &vm.builtins) {
+        if let Ok(op_equals) = lhs.read_attribute("_op_impl_equals", &vm.globals) {
             match RuntimeValue::try_eval_rel_op(op_equals, rhs, cur_frame, vm) {
                 OperatorEvalAttemptOutcome::Ok(val) => {
                     return val;
@@ -219,13 +219,13 @@ impl RuntimeValue {
             }
         }
 
-        if RuntimeValueType::get_type(lhs, &vm.builtins)
-            == RuntimeValueType::get_type(rhs, &vm.builtins)
+        if RuntimeValueType::get_type(lhs, &vm.globals)
+            == RuntimeValueType::get_type(rhs, &vm.globals)
         {
             return lhs.builtin_equals(rhs, cur_frame, vm);
         }
 
-        if let Ok(op_equals) = rhs.read_attribute("_op_impl_equals", &vm.builtins) {
+        if let Ok(op_equals) = rhs.read_attribute("_op_impl_equals", &vm.globals) {
             return match RuntimeValue::try_eval_rel_op(op_equals, lhs, cur_frame, vm) {
                 OperatorEvalAttemptOutcome::Ok(val) => val,
                 OperatorEvalAttemptOutcome::Exception(_)
@@ -250,7 +250,7 @@ macro_rules! rel_op_impl {
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
                 let func_name = concat!("_op_impl_", stringify!($aria_fwd_name));
-                if let Ok(op) = lhs.read_attribute(func_name, &vm.builtins) {
+                if let Ok(op) = lhs.read_attribute(func_name, &vm.globals) {
                     match RuntimeValue::try_eval_rel_op(op, rhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(RuntimeValue::Boolean(rv.into()));
@@ -265,14 +265,14 @@ macro_rules! rel_op_impl {
                     }
                 }
 
-                if RuntimeValueType::get_type(lhs, &vm.builtins)
-                    == RuntimeValueType::get_type(rhs, &vm.builtins)
+                if RuntimeValueType::get_type(lhs, &vm.globals)
+                    == RuntimeValueType::get_type(rhs, &vm.globals)
                 {
                     return OperatorEvalOutcome::Error(VmErrorReason::UnexpectedType.into());
                 }
 
                 let func_name = concat!("_op_impl_", stringify!($aria_rev_name));
-                if let Ok(op) = rhs.read_attribute(func_name, &vm.builtins) {
+                if let Ok(op) = rhs.read_attribute(func_name, &vm.globals) {
                     match RuntimeValue::try_eval_rel_op(op, lhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(RuntimeValue::Boolean(rv.into()));
@@ -303,7 +303,7 @@ macro_rules! bin_op_impl {
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
                 let func_name = concat!("_op_impl_", stringify!($aria_fn_name));
-                if let Ok(op) = lhs.read_attribute(func_name, &vm.builtins) {
+                if let Ok(op) = lhs.read_attribute(func_name, &vm.globals) {
                     match RuntimeValue::try_eval_bin_op(op, rhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(rv);
@@ -318,14 +318,14 @@ macro_rules! bin_op_impl {
                     }
                 }
 
-                if RuntimeValueType::get_type(lhs, &vm.builtins)
-                    == RuntimeValueType::get_type(rhs, &vm.builtins)
+                if RuntimeValueType::get_type(lhs, &vm.globals)
+                    == RuntimeValueType::get_type(rhs, &vm.globals)
                 {
                     return OperatorEvalOutcome::Error(VmErrorReason::UnexpectedType.into());
                 }
 
                 let func_name = concat!("_op_impl_r", stringify!($aria_fn_name));
-                if let Ok(op) = rhs.read_attribute(func_name, &vm.builtins) {
+                if let Ok(op) = rhs.read_attribute(func_name, &vm.globals) {
                     match RuntimeValue::try_eval_bin_op(op, lhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => OperatorEvalOutcome::Ok(rv),
                         OperatorEvalAttemptOutcome::Exception(e) => {
@@ -352,10 +352,9 @@ macro_rules! unary_op_impl {
                 cur_frame: &mut Frame,
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
-                if let Ok(op) = obj.read_attribute(
-                    concat!("_op_impl_", stringify!($aria_fn_name)),
-                    &vm.builtins,
-                ) {
+                if let Ok(op) =
+                    obj.read_attribute(concat!("_op_impl_", stringify!($aria_fn_name)), &vm.globals)
+                {
                     match RuntimeValue::try_eval_unary_op(op, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => OperatorEvalOutcome::Ok(rv),
                         OperatorEvalAttemptOutcome::Exception(e) => {
@@ -486,8 +485,8 @@ impl RuntimeValue {
         self.as_enum().is_some()
     }
 
-    pub fn as_builtin_type(&self) -> Option<&BuiltinType> {
-        self.as_type().and_then(|rt| rt.as_builtin())
+    pub fn as_rust_native(&self) -> Option<&RustNativeType> {
+        self.as_type().and_then(|rt| rt.as_rust_native())
     }
 
     pub fn as_opaque_concrete<T: 'static>(&self) -> Option<Rc<T>> {
@@ -506,7 +505,7 @@ impl RuntimeValue {
         } else if let Some(bf) = self.as_bound_function() {
             bf.eval(argc, cur_frame, vm, discard_result)
         } else {
-            match self.read_attribute("_op_impl_call", &vm.builtins) {
+            match self.read_attribute("_op_impl_call", &vm.globals) {
                 Ok(op_call) => op_call.eval(argc, cur_frame, vm, discard_result),
                 _ => Err(crate::error::vm_error::VmErrorReason::UnexpectedType.into()),
             }
@@ -514,7 +513,7 @@ impl RuntimeValue {
     }
 
     pub fn prettyprint(&self, cur_frame: &mut Frame, vm: &mut VirtualMachine) -> String {
-        if let Ok(ppf) = self.read_attribute("prettyprint", &vm.builtins)
+        if let Ok(ppf) = self.read_attribute("prettyprint", &vm.globals)
             && ppf.eval(0, cur_frame, vm, false).is_ok()
         {
             // either check that the stack is doing ok - or have eval return the value
@@ -567,7 +566,7 @@ impl RuntimeValue {
         }
     }
 
-    pub fn list_attributes(&self, builtins: &VmBuiltins) -> Vec<String> {
+    pub fn list_attributes(&self, builtins: &VmGlobals) -> Vec<String> {
         if let Some(obj) = self.as_object() {
             let mut attrs = obj.list_attributes();
             attrs.extend(obj.get_struct().list_attributes());
@@ -626,7 +625,7 @@ impl RuntimeValue {
     pub fn read_attribute(
         &self,
         attrib_name: &str,
-        builtins: &VmBuiltins,
+        builtins: &VmGlobals,
     ) -> Result<RuntimeValue, AttributeError> {
         if let Some(obj) = self.as_object() {
             match obj.read(attrib_name) {
@@ -755,7 +754,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> ExecutionResult<CallResult> {
-        match self.read_attribute("_op_impl_read_index", &vm.builtins) {
+        match self.read_attribute("_op_impl_read_index", &vm.globals) {
             Ok(read_index) => {
                 for idx in indices.iter().rev() {
                     cur_frame.stack.push(idx.clone());
@@ -773,7 +772,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> ExecutionResult<CallResult> {
-        match self.read_attribute("_op_impl_write_index", &vm.builtins) {
+        match self.read_attribute("_op_impl_write_index", &vm.globals) {
             Ok(write_index) => {
                 cur_frame.stack.push(val.clone());
                 for idx in indices.iter().rev() {

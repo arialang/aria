@@ -12,7 +12,7 @@ use haxby_opcodes::{BuiltinTypeId, Opcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 use std::sync::OnceLock;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     console::{Console, StdConsole},
     error::{
         dylib_load::{LoadResult, LoadStatus},
@@ -61,7 +61,7 @@ impl Default for VmOptions {
 pub struct VirtualMachine {
     pub modules: HashMap<String, RuntimeModule>,
     pub options: VmOptions,
-    pub builtins: VmBuiltins,
+    pub globals: VmGlobals,
     pub import_stack: Stack<String>,
     pub imported_modules: HashMap<String, ModuleLoadInfo>,
     pub loaded_dylibs: HashMap<String, libloading::Library>,
@@ -72,10 +72,10 @@ impl VirtualMachine {
         &self.options.console
     }
 
-    fn load_version_into_builtins(self) -> Self {
+    fn load_version_into_globals(self) -> Self {
         let aria_version = env!("CARGO_PKG_VERSION");
         assert!(!aria_version.is_empty());
-        self.builtins
+        self.globals
             .insert("ARIA_VERSION", RuntimeValue::String(aria_version.into()));
         self
     }
@@ -93,12 +93,12 @@ impl VirtualMachine {
         Self {
             modules: Default::default(),
             options,
-            builtins: Default::default(),
+            globals: Default::default(),
             import_stack: Default::default(),
             imported_modules: Default::default(),
             loaded_dylibs: Default::default(),
         }
-        .load_version_into_builtins()
+        .load_version_into_globals()
     }
 }
 
@@ -533,7 +533,7 @@ impl VirtualMachine {
     ) -> Result<RuntimeValue, VmErrorReason> {
         match module.load_named_value(name) {
             Some(nv) => Ok(nv),
-            _ => match self.builtins.load_named_value(name) {
+            _ => match self.globals.load_named_value(name) {
                 Some(nv) => Ok(nv),
                 _ => Err(VmErrorReason::NoSuchIdentifier(name.to_owned())),
             },
@@ -570,7 +570,7 @@ impl VirtualMachine {
             Opcode::Push1 => frame.stack.push(RuntimeValue::Integer(1.into())),
             Opcode::PushTrue => frame.stack.push(RuntimeValue::Boolean(true.into())),
             Opcode::PushFalse => frame.stack.push(RuntimeValue::Boolean(false.into())),
-            Opcode::PushBuiltinTy(n) => match self.builtins.get_builtin_type_by_id(n) {
+            Opcode::PushBuiltinTy(n) => match self.globals.get_builtin_type_by_id(n) {
                 Some(bty) => {
                     frame.stack.push(RuntimeValue::Type(bty));
                 }
@@ -924,7 +924,7 @@ impl VirtualMachine {
             Opcode::WriteLocal(n) => {
                 let x = pop_or_err!(next, frame, op_idx);
                 let local = &mut frame.locals[n as usize];
-                if !local.ty.isa_check(&x, &self.builtins) {
+                if !local.ty.isa_check(&x, &self.globals) {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 } else {
                     local.val = x;
@@ -951,7 +951,7 @@ impl VirtualMachine {
                     && let Some(sv) = ct.as_string()
                 {
                     let write_result =
-                        this_module.store_typechecked_named_value(sv, x, &self.builtins);
+                        this_module.store_typechecked_named_value(sv, x, &self.globals);
                     match write_result {
                         Ok(_) => {}
                         Err(e) => {
@@ -1028,7 +1028,7 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
                 let val_obj = pop_or_err!(next, frame, op_idx);
-                match val_obj.read_attribute(&attrib_name, &self.builtins) {
+                match val_obj.read_attribute(&attrib_name, &self.globals) {
                     Ok(val) => {
                         frame.stack.push(val);
                     }
@@ -1295,7 +1295,7 @@ impl VirtualMachine {
                     strukt.include_mixin(mixin);
                 } else if let (Some(mixin), Some(enumm)) = (mixin.as_mixin(), struk.as_enum()) {
                     enumm.include_mixin(mixin);
-                } else if let (Some(mixin), Some(btt)) = (mixin.as_mixin(), struk.as_builtin_type())
+                } else if let (Some(mixin), Some(btt)) = (mixin.as_mixin(), struk.as_rust_native())
                 {
                     btt.include_mixin(mixin);
                 } else if let (Some(src_mixin), Some(dst_mixin)) =
@@ -1328,8 +1328,7 @@ impl VirtualMachine {
                 } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_mixin()) {
                     let new_f = Function::from_code_object(x, a, this_module);
                     y.store_named_value(&new_name, RuntimeValue::Function(new_f));
-                } else if let (Some(x), Some(y)) =
-                    (method.as_code_object(), struk.as_builtin_type())
+                } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_rust_native())
                 {
                     let new_f = Function::from_code_object(x, a, this_module);
                     y.write(&new_name, RuntimeValue::Function(new_f));
@@ -1410,7 +1409,7 @@ impl VirtualMachine {
                         let payload = match &case.payload_type {
                             Some(pt) => {
                                 let pv = pop_or_err!(next, frame, op_idx);
-                                if !pt.isa_check(&pv, &self.builtins) {
+                                if !pt.isa_check(&pv, &self.globals) {
                                     return build_vm_error!(
                                         VmErrorReason::UnexpectedType,
                                         next,
@@ -1474,7 +1473,7 @@ impl VirtualMachine {
             }
             Opcode::TryUnwrapProtocol(mode) => {
                 let result_enum = if let Some(re) =
-                    self.builtins.get_builtin_type_by_id(BuiltinTypeId::Result)
+                    self.globals.get_builtin_type_by_id(BuiltinTypeId::Result)
                     && let Some(re) = re.as_enum()
                 {
                     re.clone()
@@ -1482,7 +1481,7 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedVmState, next, frame, op_idx);
                 };
                 let maybe_enum = if let Some(re) =
-                    self.builtins.get_builtin_type_by_id(BuiltinTypeId::Maybe)
+                    self.globals.get_builtin_type_by_id(BuiltinTypeId::Maybe)
                     && let Some(re) = re.as_enum()
                 {
                     re.clone()
@@ -1555,7 +1554,7 @@ impl VirtualMachine {
                 let val = pop_or_err!(next, frame, op_idx);
                 if let Ok(isa_check) = IsaCheckable::try_from(&t) {
                     frame.stack.push(RuntimeValue::Boolean(
-                        isa_check.isa_check(&val, &self.builtins).into(),
+                        isa_check.isa_check(&val, &self.globals).into(),
                     ));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1844,7 +1843,7 @@ impl VirtualMachine {
                 Ok(OpcodeRunExit::Exception(except)) => {
                     need_handle_exception = Some(except);
                 }
-                Err(x) => match VmException::from_vmerror(x, &self.builtins) {
+                Err(x) => match VmException::from_vmerror(x, &self.globals) {
                     Ok(exception) => {
                         need_handle_exception = Some(exception);
                     }

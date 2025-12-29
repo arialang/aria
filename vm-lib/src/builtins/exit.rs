@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins, frame::Frame, runtime_value::function::BuiltinFunctionImpl,
+    builtins::VmGlobals, frame::Frame, runtime_value::function::BuiltinFunctionImpl,
     vm::RunloopExit,
 };
 
@@ -12,7 +12,7 @@ impl BuiltinFunctionImpl for Exit {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let code = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let code = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
         std::process::exit(code as i32);
     }
 
@@ -25,6 +25,6 @@ impl BuiltinFunctionImpl for Exit {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Exit>();
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, list::List},
     vm::RunloopExit,
@@ -15,7 +15,7 @@ impl BuiltinFunctionImpl for ListAttrs {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let attrs = the_value.list_attributes(&vm.builtins);
+        let attrs = the_value.list_attributes(&vm.globals);
         frame.stack.push(RuntimeValue::List(List::from(
             &attrs
                 .iter()
@@ -34,6 +34,6 @@ impl BuiltinFunctionImpl for ListAttrs {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<ListAttrs>();
 }

@@ -4,7 +4,7 @@ use aria_parser::ast::SourcePointer;
 use haxby_opcodes::BuiltinTypeId;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::{
         backtrace::Backtrace,
         vm_error::{VmError, VmErrorReason},
@@ -72,7 +72,7 @@ impl VmException {
 }
 
 impl VmException {
-    pub fn from_vmerror(err: VmError, builtins: &VmBuiltins) -> Result<VmException, VmError> {
+    pub fn from_vmerror(err: VmError, builtins: &VmGlobals) -> Result<VmException, VmError> {
         macro_rules! some_or_err {
             ($opt:expr, $err:expr) => {
                 match $opt {

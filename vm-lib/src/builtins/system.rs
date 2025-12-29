@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use super::VmBuiltins;
+use super::VmGlobals;
 use crate::{
     error::vm_error::VmErrorReason,
     frame::Frame,
@@ -24,7 +24,7 @@ impl BuiltinFunctionImpl for System {
         cur_frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let command = VmBuiltins::extract_arg(cur_frame, |x| x.as_string().cloned())?;
+        let command = VmGlobals::extract_arg(cur_frame, |x| x.as_string().cloned())?;
 
         let output = Command::new(get_shell_path())
             .arg("-c")
@@ -62,6 +62,6 @@ impl BuiltinFunctionImpl for System {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<System>();
 }

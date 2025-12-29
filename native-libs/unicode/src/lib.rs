@@ -2,7 +2,7 @@
 
 use haxby_opcodes::BuiltinTypeId;
 use haxby_vm::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::{dylib_load::LoadResult, vm_error::VmErrorReason},
     runtime_module::RuntimeModule,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
@@ -57,7 +57,7 @@ impl<T: CharFunctionImpl + Default> BuiltinFunctionImpl for CharBuiltinFunction<
         cur_frame: &mut haxby_vm::frame::Frame,
         _: &mut haxby_vm::vm::VirtualMachine,
     ) -> haxby_vm::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(cur_frame, |x: RuntimeValue| x.as_string().cloned())?;
+        let this = VmGlobals::extract_arg(cur_frame, |x: RuntimeValue| x.as_string().cloned())?;
         let this_raw = this.raw_value();
         if let Some(char0) = this_raw.chars().next() {
             let is = T::do_check(char0);
@@ -87,8 +87,8 @@ pub extern "C" fn dylib_haxby_inject(
     // into the String builtin type, but I'd rather be safe here and check that it's also a valid
     // module, not just a valid VM instance
     if let (Some(vm), Some(_)) = unsafe { (vm.as_ref(), module.as_ref()) }
-        && let Some(string) = vm.builtins.get_builtin_type_by_id(BuiltinTypeId::String)
-        && let Some(string) = string.as_builtin()
+        && let Some(string) = vm.globals.get_builtin_type_by_id(BuiltinTypeId::String)
+        && let Some(string) = string.as_rust_native()
     {
         string.insert_builtin::<CharBuiltinFunction<is_lowercase_letter>>();
         string.insert_builtin::<CharBuiltinFunction<is_uppercase_letter>>();

@@ -6,9 +6,9 @@ use crate::runtime_value::{
     kind::RuntimeValueType,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
-pub(super) fn insert_result_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_result_builtins(builtins: &mut VmGlobals) {
     let result_enum = Enum::new("Result");
 
     result_enum.add_case(EnumCase {

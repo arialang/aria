@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl},
     vm::RunloopExit,
@@ -15,9 +15,9 @@ impl BuiltinFunctionImpl for HasAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let the_string = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
         let has_attr = the_value
-            .read_attribute(&the_string.raw_value(), &vm.builtins)
+            .read_attribute(&the_string.raw_value(), &vm.globals)
             .is_ok();
         frame.stack.push(RuntimeValue::Boolean(has_attr.into()));
         Ok(RunloopExit::Ok(()))
@@ -32,6 +32,6 @@ impl BuiltinFunctionImpl for HasAttr {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<HasAttr>();
 }

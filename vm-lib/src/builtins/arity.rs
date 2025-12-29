@@ -2,7 +2,7 @@
 use std::cell::OnceCell;
 
 use crate::{
-    builtins::VmBuiltins,
+    builtins::VmGlobals,
     error::vm_error::{VmError, VmErrorReason},
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, object::Object},
@@ -74,7 +74,7 @@ fn get_to_function_for_callable(
         Some((f.clone(), false))
     } else if let Some(bf) = val.as_bound_function() {
         Some((bf.func().clone(), true))
-    } else if let Ok(call) = val.read_attribute("_op_impl_call", &vm.builtins) {
+    } else if let Ok(call) = val.read_attribute("_op_impl_call", &vm.globals) {
         get_to_function_for_callable(&call, vm)
     } else {
         None
@@ -88,7 +88,7 @@ impl BuiltinFunctionImpl for Arity {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let (f_this, has_receiver) =
-            VmBuiltins::extract_arg(frame, |val| get_to_function_for_callable(&val, vm))?;
+            VmGlobals::extract_arg(frame, |val| get_to_function_for_callable(&val, vm))?;
         let arity_cache = self.fill_in_cache(vm)?;
 
         let f_arity = f_this.arity();
@@ -136,6 +136,6 @@ impl BuiltinFunctionImpl for Arity {
     }
 }
 
-pub(super) fn insert_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_builtins(builtins: &mut VmGlobals) {
     builtins.insert_builtin::<Arity>();
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use crate::builtins::VmBuiltins;
+use crate::builtins::VmGlobals;
 use crate::runtime_value::mixin::Mixin;
 use crate::runtime_value::{RuntimeValue, RuntimeValueType};
 
@@ -41,7 +41,7 @@ impl std::fmt::Debug for IsaCheckable {
 }
 
 impl IsaCheckable {
-    fn isa(val: &RuntimeValue, t: &RuntimeValueType, builtins: &VmBuiltins) -> bool {
+    fn isa(val: &RuntimeValue, t: &RuntimeValueType, builtins: &VmGlobals) -> bool {
         match t {
             RuntimeValueType::Any => true,
             RuntimeValueType::Union(u) => {
@@ -56,7 +56,7 @@ impl IsaCheckable {
         }
     }
 
-    fn isa_mixin(val: &RuntimeValue, mixin: &Mixin, builtins: &VmBuiltins) -> bool {
+    fn isa_mixin(val: &RuntimeValue, mixin: &Mixin, builtins: &VmGlobals) -> bool {
         if let Some(obj) = val.as_object() {
             obj.get_struct().isa_mixin(mixin)
         } else if let Some(env) = val.as_enum_value() {
@@ -67,7 +67,7 @@ impl IsaCheckable {
             st.isa_mixin(mixin)
         } else if let Some(en) = val.as_enum() {
             en.isa_mixin(mixin)
-        } else if let Some(btt) = RuntimeValueType::get_type(val, builtins).as_builtin() {
+        } else if let Some(btt) = RuntimeValueType::get_type(val, builtins).as_rust_native() {
             btt.isa_mixin(mixin)
         } else {
             false
@@ -76,7 +76,7 @@ impl IsaCheckable {
 }
 
 impl IsaCheckable {
-    pub fn isa_check(&self, other: &RuntimeValue, builtins: &VmBuiltins) -> bool {
+    pub fn isa_check(&self, other: &RuntimeValue, builtins: &VmGlobals) -> bool {
         match self {
             IsaCheckable::Type(t) => IsaCheckable::isa(other, t, builtins),
             IsaCheckable::Mixin(m) => IsaCheckable::isa_mixin(other, m, builtins),

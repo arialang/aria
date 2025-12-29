@@ -5,13 +5,13 @@ use haxby_opcodes::function_attribs::FUNC_IS_METHOD;
 use crate::{
     frame::Frame,
     runtime_value::{
-        RuntimeValue, builtin_type::BuiltinType, function::BuiltinFunctionImpl,
-        kind::RuntimeValueType,
+        RuntimeValue, function::BuiltinFunctionImpl, kind::RuntimeValueType,
+        rust_native_type::RustNativeType,
     },
     vm::RunloopExit,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
 #[derive(Default)]
 struct FpHash {}
@@ -21,7 +21,7 @@ impl BuiltinFunctionImpl for FpHash {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_float().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
         let hv = unsafe { std::mem::transmute_copy::<f64, i64>(&this.raw_value()) };
         frame.stack.push(RuntimeValue::Integer(hv.into()));
         Ok(RunloopExit::Ok(()))
@@ -48,7 +48,7 @@ impl BuiltinFunctionImpl for FpFloor {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_float().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
         let result = RuntimeValue::Float(this.raw_value().floor().into());
         frame.stack.push(result);
         Ok(RunloopExit::Ok(()))
@@ -75,7 +75,7 @@ impl BuiltinFunctionImpl for FpCeil {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_float().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
         let result = RuntimeValue::Float(this.raw_value().ceil().into());
         frame.stack.push(result);
         Ok(RunloopExit::Ok(()))
@@ -102,7 +102,7 @@ impl BuiltinFunctionImpl for FpInt {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_float().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
         let iv = this.raw_value() as i64;
         frame.stack.push(RuntimeValue::Integer(iv.into()));
         Ok(RunloopExit::Ok(()))
@@ -129,9 +129,9 @@ impl BuiltinFunctionImpl for FpPrettyprint {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_float().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
         let format_opt = if !frame.stack.is_empty() {
-            Some(VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?)
+            Some(VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?)
         } else {
             None
         };
@@ -173,8 +173,9 @@ impl BuiltinFunctionImpl for FpPrettyprint {
     }
 }
 
-pub(super) fn insert_float_builtins(builtins: &mut VmBuiltins) {
-    let fp_builtin = BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::Float);
+pub(super) fn insert_float_builtins(builtins: &mut VmGlobals) {
+    let fp_builtin =
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Float);
 
     fp_builtin.insert_builtin::<FpHash>();
     fp_builtin.insert_builtin::<FpFloor>();
@@ -188,6 +189,6 @@ pub(super) fn insert_float_builtins(builtins: &mut VmBuiltins) {
 
     builtins.insert(
         "Float",
-        RuntimeValue::Type(RuntimeValueType::Builtin(fp_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(fp_builtin)),
     );
 }

@@ -5,13 +5,13 @@ use crate::{
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{
-        RuntimeValue, builtin_type::BuiltinType, function::BuiltinFunctionImpl,
-        kind::RuntimeValueType, list::List,
+        RuntimeValue, function::BuiltinFunctionImpl, kind::RuntimeValueType, list::List,
+        rust_native_type::RustNativeType,
     },
     vm::RunloopExit,
 };
 
-use super::VmBuiltins;
+use super::VmGlobals;
 
 #[derive(Default)]
 struct StringLen {}
@@ -292,7 +292,7 @@ impl BuiltinFunctionImpl for FromBytes {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this_str_type = match frame
             .stack
-            .pop_if(|x| RuntimeValue::as_builtin_type(&x).cloned())
+            .pop_if(|x| RuntimeValue::as_rust_native(&x).cloned())
         {
             Some(x) => x,
             None => {
@@ -526,8 +526,8 @@ impl BuiltinFunctionImpl for Contains {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |a| a.as_string().cloned())?;
-        let that = VmBuiltins::extract_arg(frame, |a| a.as_string().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |a| a.as_string().cloned())?;
+        let that = VmGlobals::extract_arg(frame, |a| a.as_string().cloned())?;
 
         let contains = this.raw_value().contains(&that.raw_value());
 
@@ -556,8 +556,8 @@ impl BuiltinFunctionImpl for GetAt {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmBuiltins::extract_arg(frame, |x| x.as_string().cloned())?;
-        let index = VmBuiltins::extract_arg(frame, |x| x.as_integer().cloned())?;
+        let this = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
+        let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
         let index = index.raw_value() as usize;
         match this.get_at(index) {
             Some(v) => {
@@ -581,9 +581,9 @@ impl BuiltinFunctionImpl for GetAt {
     }
 }
 
-pub(super) fn insert_string_builtins(builtins: &mut VmBuiltins) {
+pub(super) fn insert_string_builtins(builtins: &mut VmGlobals) {
     let string_builtin =
-        BuiltinType::new(crate::runtime_value::builtin_type::BuiltinValueKind::String);
+        RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::String);
 
     string_builtin.insert_builtin::<StringLen>();
     string_builtin.insert_builtin::<StringHasPrefix>();
@@ -603,6 +603,6 @@ pub(super) fn insert_string_builtins(builtins: &mut VmBuiltins) {
 
     builtins.insert(
         "String",
-        RuntimeValue::Type(RuntimeValueType::Builtin(string_builtin)),
+        RuntimeValue::Type(RuntimeValueType::RustNative(string_builtin)),
     );
 }
