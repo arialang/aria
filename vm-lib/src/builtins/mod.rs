@@ -174,6 +174,7 @@ impl VmGlobals {
         self.values.write(name, val);
     }
 
+    #[deprecated(note = "use get_builtin_type_by_id instead")]
     pub fn get_builtin_type_by_name(&self, name: &str) -> Option<RuntimeValueType> {
         if let Some(bv) = self.load_named_value(name) {
             bv.as_type().cloned()

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use enum_as_inner::EnumAsInner;
+use haxby_opcodes::BuiltinTypeId;
 use rustc_data_structures::fx::FxHashSet;
 
 use crate::{arity::Arity, builtins::VmGlobals};
@@ -88,24 +89,12 @@ impl RuntimeValueType {
                 arity: bf.func().arity(),
                 varargs: bf.func().varargs(),
             }),
-            RuntimeValue::Type(_) => builtins
-                .get_builtin_type_by_name("Type")
-                .expect("missing Type builtin"),
-            RuntimeValue::Boolean(_) => builtins
-                .get_builtin_type_by_name("Bool")
-                .expect("missing Bool builtin"),
-            RuntimeValue::Integer(_) => builtins
-                .get_builtin_type_by_name("Int")
-                .expect("missing Int builtin"),
-            RuntimeValue::Float(_) => builtins
-                .get_builtin_type_by_name("Float")
-                .expect("missing Float builtin"),
-            RuntimeValue::List(_) => builtins
-                .get_builtin_type_by_name("List")
-                .expect("missing List builtin"),
-            RuntimeValue::String(_) => builtins
-                .get_builtin_type_by_name("String")
-                .expect("missing String builtin"),
+            RuntimeValue::Type(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::Type),
+            RuntimeValue::Boolean(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::Bool),
+            RuntimeValue::Integer(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::Int),
+            RuntimeValue::Float(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::Float),
+            RuntimeValue::List(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::List),
+            RuntimeValue::String(_) => builtins.get_builtin_type_by_id(BuiltinTypeId::String),
         }
     }
 }
