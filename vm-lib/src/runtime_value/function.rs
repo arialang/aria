@@ -278,6 +278,7 @@ impl Function {
     }
 
     // DO NOT CALL unless you are Function or BoundFunction
+    #[inline(always)]
     pub(super) fn eval_in_frame(
         &self,
         argc: u8,
@@ -293,6 +294,7 @@ impl Function {
         }
     }
 
+    #[inline(always)]
     pub fn eval(
         &self,
         argc: u8,

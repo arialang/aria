@@ -550,6 +550,7 @@ impl VirtualMachine {
         self.runloop(&mut bc_reader, module, target_frame)
     }
 
+    #[inline(always)]
     fn run_opcode(
         &mut self,
         next: Opcode,
