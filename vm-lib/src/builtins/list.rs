@@ -207,8 +207,8 @@ pub(super) fn insert_list_builtins(builtins: &mut VmGlobals) {
     list_builtin.insert_builtin::<SetAt>();
     list_builtin.insert_builtin::<NewWithCapacity>();
 
-    builtins.insert(
-        "List",
-        RuntimeValue::Type(RuntimeValueType::RustNative(list_builtin)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::List,
+        RuntimeValueType::RustNative(list_builtin),
     );
 }

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::runtime_value::{
-    RuntimeValue,
     enumeration::{Enum, EnumCase},
     isa::IsaCheckable,
     kind::RuntimeValueType,
@@ -21,8 +20,8 @@ pub(super) fn insert_result_builtins(builtins: &mut VmGlobals) {
         payload_type: Some(IsaCheckable::any()),
     });
 
-    builtins.insert(
-        "Result",
-        RuntimeValue::Type(RuntimeValueType::Enum(result_enum)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::Result,
+        RuntimeValueType::Enum(result_enum),
     );
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use haxby_opcodes::BuiltinTypeId;
 
@@ -45,8 +45,28 @@ mod unimplemented;
 mod unit;
 mod writeattr;
 
+#[derive(Default)]
+pub struct AriaBuiltinTypes {
+    types: Rc<RefCell<Vec<RuntimeValueType>>>,
+}
+
+impl AriaBuiltinTypes {
+    pub fn register_builtin_type(&self, bt: RuntimeValueType) -> BuiltinTypeId {
+        let mut types = self.types.borrow_mut();
+        types.push(bt);
+        let ty_id = u8::try_from(types.len() - 1).expect("too many builtin types registered");
+        BuiltinTypeId::try_from(ty_id).expect("invalid builtin type id")
+    }
+
+    pub fn get_builtin_type(&self, id: BuiltinTypeId) -> Option<RuntimeValueType> {
+        let types = self.types.borrow();
+        types.get(id as usize).cloned()
+    }
+}
+
 pub struct VmGlobals {
     values: Rc<ObjectBox>,
+    builtin_types: AriaBuiltinTypes,
 }
 
 impl VmGlobals {
@@ -75,16 +95,31 @@ impl VmGlobals {
             None => Err(VmErrorReason::UnexpectedType.into()),
         }
     }
+
+    pub fn register_builtin_type(&mut self, id: BuiltinTypeId, ty: RuntimeValueType) {
+        let name = id.name();
+        let registered_id = self.builtin_types.register_builtin_type(ty.clone());
+        assert!(
+            id == registered_id,
+            "Mismatched builtin type registration: expected {} [{}], got {} [{}]",
+            id.to_u8(),
+            id.name(),
+            registered_id.to_u8(),
+            registered_id.name()
+        ); // catch mismatched registrations early
+        self.insert(name, RuntimeValue::Type(ty));
+    }
 }
 
 impl Default for VmGlobals {
     fn default() -> Self {
         let mut this = Self {
             values: Default::default(),
+            builtin_types: Default::default(),
         };
 
-        this.insert("Any", RuntimeValue::Type(RuntimeValueType::Any)); // Most anything needs Any
-        this.insert("Module", RuntimeValue::Type(RuntimeValueType::Module));
+        this.register_builtin_type(BuiltinTypeId::Any, RuntimeValueType::Any); // Most anything needs Any
+        this.register_builtin_type(BuiltinTypeId::Module, RuntimeValueType::Module);
 
         unit::insert_unit_builtins(&mut this);
         unimplemented::insert_unimplemented_builtins(&mut this);

@@ -74,8 +74,8 @@ pub(super) fn insert_integer_builtins(builtins: &mut VmGlobals) {
 
     int_builtin.insert_builtin::<Prettyprint>();
 
-    builtins.insert(
-        "Int",
-        RuntimeValue::Type(RuntimeValueType::RustNative(int_builtin)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::Int,
+        RuntimeValueType::RustNative(int_builtin),
     );
 }

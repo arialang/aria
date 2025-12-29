@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::runtime_value::{
-    RuntimeValue,
     enumeration::{Enum, EnumCase},
     kind::RuntimeValueType,
 };
@@ -15,8 +14,8 @@ pub(super) fn insert_unit_builtins(builtins: &mut VmGlobals) {
         payload_type: None,
     });
 
-    builtins.insert(
-        "Unit",
-        RuntimeValue::Type(RuntimeValueType::Enum(unit_enum)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::Unit,
+        RuntimeValueType::Enum(unit_enum.clone()),
     );
 }

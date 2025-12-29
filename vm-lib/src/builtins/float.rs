@@ -187,8 +187,8 @@ pub(super) fn insert_float_builtins(builtins: &mut VmGlobals) {
     fp_builtin.write("nan", RuntimeValue::Float(f64::NAN.into()));
     fp_builtin.write("epsilon", RuntimeValue::Float(f64::EPSILON.into()));
 
-    builtins.insert(
-        "Float",
-        RuntimeValue::Type(RuntimeValueType::RustNative(fp_builtin)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::Float,
+        RuntimeValueType::RustNative(fp_builtin),
     );
 }

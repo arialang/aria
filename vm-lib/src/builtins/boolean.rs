@@ -9,9 +9,9 @@ pub(super) fn insert_boolean_builtins(builtins: &mut VmGlobals) {
     let bool_builtin =
         RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Boolean);
 
-    builtins.insert(
-        "Bool",
-        RuntimeValue::Type(RuntimeValueType::RustNative(bool_builtin)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::Bool,
+        RuntimeValueType::RustNative(bool_builtin),
     );
 
     builtins.insert("true", RuntimeValue::Boolean(true.into()));

@@ -61,8 +61,8 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
         payload_type: None,
     });
 
-    builtins.insert(
-        "RuntimeError",
-        RuntimeValue::Type(RuntimeValueType::Enum(rt_err_enum)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::RuntimeError,
+        RuntimeValueType::Enum(rt_err_enum),
     );
 }

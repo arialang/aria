@@ -601,8 +601,8 @@ pub(super) fn insert_string_builtins(builtins: &mut VmGlobals) {
     string_builtin.insert_builtin::<Contains>();
     string_builtin.insert_builtin::<GetAt>();
 
-    builtins.insert(
-        "String",
-        RuntimeValue::Type(RuntimeValueType::RustNative(string_builtin)),
+    builtins.register_builtin_type(
+        haxby_opcodes::BuiltinTypeId::String,
+        RuntimeValueType::RustNative(string_builtin),
     );
 }
