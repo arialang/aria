@@ -21,12 +21,8 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
         RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch.clone())),
     );
 
-    let int = builtins
-        .get_builtin_type_by_id(BuiltinTypeId::Int)
-        .expect("RuntimeError needs Int defined");
-    let str = builtins
-        .get_builtin_type_by_id(BuiltinTypeId::String)
-        .expect("RuntimeError needs String defined");
+    let int = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
+    let str = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
 
     rt_err_enum.add_case(EnumCase {
         name: "DivisionByZero".to_owned(),

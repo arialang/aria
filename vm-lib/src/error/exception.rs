@@ -82,10 +82,7 @@ impl VmException {
             };
         }
 
-        let rt_err_type = some_or_err!(
-            builtins.get_builtin_type_by_id(BuiltinTypeId::RuntimeError),
-            err
-        );
+        let rt_err_type = builtins.get_builtin_type_by_id(BuiltinTypeId::RuntimeError);
 
         let rt_err = some_or_err!(rt_err_type.as_enum(), err);
 

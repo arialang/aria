@@ -570,14 +570,9 @@ impl VirtualMachine {
             Opcode::Push1 => frame.stack.push(RuntimeValue::Integer(1.into())),
             Opcode::PushTrue => frame.stack.push(RuntimeValue::Boolean(true.into())),
             Opcode::PushFalse => frame.stack.push(RuntimeValue::Boolean(false.into())),
-            Opcode::PushBuiltinTy(n) => match self.globals.get_builtin_type_by_id(n) {
-                Some(bty) => {
-                    frame.stack.push(RuntimeValue::Type(bty));
-                }
-                _ => {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                }
-            },
+            Opcode::PushBuiltinTy(n) => frame
+                .stack
+                .push(RuntimeValue::Type(self.globals.get_builtin_type_by_id(n))),
             Opcode::PushRuntimeValue(n) => match n {
                 haxby_opcodes::BuiltinValueId::ThisModule => {
                     frame.stack.push(RuntimeValue::Module(this_module.clone()))
@@ -1472,17 +1467,19 @@ impl VirtualMachine {
                 }
             }
             Opcode::TryUnwrapProtocol(mode) => {
-                let result_enum = if let Some(re) =
-                    self.globals.get_builtin_type_by_id(BuiltinTypeId::Result)
-                    && let Some(re) = re.as_enum()
+                let result_enum = if let Some(re) = self
+                    .globals
+                    .get_builtin_type_by_id(BuiltinTypeId::Result)
+                    .as_enum()
                 {
                     re.clone()
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedVmState, next, frame, op_idx);
                 };
-                let maybe_enum = if let Some(re) =
-                    self.globals.get_builtin_type_by_id(BuiltinTypeId::Maybe)
-                    && let Some(re) = re.as_enum()
+                let maybe_enum = if let Some(re) = self
+                    .globals
+                    .get_builtin_type_by_id(BuiltinTypeId::Maybe)
+                    .as_enum()
                 {
                     re.clone()
                 } else {

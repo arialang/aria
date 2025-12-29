@@ -116,8 +116,7 @@ impl RuntimeValue {
         if let Some(s) = self.as_object() {
             let unimp = vm
                 .globals
-                .get_builtin_type_by_id(BuiltinTypeId::Unimplemented)
-                .unwrap();
+                .get_builtin_type_by_id(BuiltinTypeId::Unimplemented);
             let unimplemented = unimp.as_struct().unwrap();
             return s.get_struct() == unimplemented;
         }
@@ -582,35 +581,27 @@ impl RuntimeValue {
                 .collect()
         } else if let Some(i) = self.as_integer() {
             let mut attrs = i.list_attributes();
-            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int).unwrap();
+            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
             attrs.extend(bt.list_attributes());
             attrs.iter().cloned().collect()
         } else if let Some(i) = self.as_float() {
             let mut attrs = i.list_attributes();
-            let bt = builtins
-                .get_builtin_type_by_id(BuiltinTypeId::Float)
-                .unwrap();
+            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Float);
             attrs.extend(bt.list_attributes());
             attrs.iter().cloned().collect()
         } else if let Some(s) = self.as_string() {
             let mut attrs = s.list_attributes();
-            let bt = builtins
-                .get_builtin_type_by_id(BuiltinTypeId::String)
-                .unwrap();
+            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
             attrs.extend(bt.list_attributes());
             attrs.iter().cloned().collect()
         } else if let Some(b) = self.as_boolean() {
             let mut attrs = b.list_attributes();
-            let bt = builtins
-                .get_builtin_type_by_id(BuiltinTypeId::Bool)
-                .unwrap();
+            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Bool);
             attrs.extend(bt.list_attributes());
             attrs.iter().cloned().collect()
         } else if let Some(l) = self.as_list() {
             let mut attrs = l.list_attributes();
-            let bt = builtins
-                .get_builtin_type_by_id(BuiltinTypeId::List)
-                .unwrap();
+            let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::List);
             attrs.extend(bt.list_attributes());
             attrs.iter().cloned().collect()
         } else if let Some(f) = self.as_function() {
@@ -653,7 +644,7 @@ impl RuntimeValue {
             match i.read(attrib_name) {
                 Some(val) => Ok(val),
                 _ => {
-                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int).unwrap();
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)
@@ -666,9 +657,7 @@ impl RuntimeValue {
             match i.read(attrib_name) {
                 Some(val) => Ok(val),
                 _ => {
-                    let bt = builtins
-                        .get_builtin_type_by_id(BuiltinTypeId::Float)
-                        .unwrap();
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Float);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)
@@ -686,9 +675,7 @@ impl RuntimeValue {
             match l.read(attrib_name) {
                 Some(val) => Ok(val),
                 _ => {
-                    let bt = builtins
-                        .get_builtin_type_by_id(BuiltinTypeId::List)
-                        .unwrap();
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::List);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)
@@ -701,9 +688,7 @@ impl RuntimeValue {
             match i.read(attrib_name) {
                 Some(val) => Ok(val),
                 _ => {
-                    let bt = builtins
-                        .get_builtin_type_by_id(BuiltinTypeId::String)
-                        .unwrap();
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)
@@ -716,9 +701,7 @@ impl RuntimeValue {
             match i.read(attrib_name) {
                 Some(val) => Ok(val),
                 _ => {
-                    let bt = builtins
-                        .get_builtin_type_by_id(BuiltinTypeId::Bool)
-                        .unwrap();
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Bool);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)
