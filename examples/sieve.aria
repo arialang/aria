@@ -94,7 +94,7 @@ struct Sieve {
 
         assert this.validate();
 
-        "egranata;{0};{1};1;algorithm=base,faithful=yes\n".printf(passes, duration/1000);
+        "egranata;{0};{1:.2};1;algorithm=base,faithful=yes\n".printf(passes, duration/1000.0);
     }
 }
 
