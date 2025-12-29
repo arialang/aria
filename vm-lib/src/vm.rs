@@ -1797,6 +1797,7 @@ impl VirtualMachine {
         Ok(OpcodeRunExit::Continue)
     }
 
+    #[inline(always)]
     fn runloop(
         &mut self,
         reader: &mut BytecodeReader,
