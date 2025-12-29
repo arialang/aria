@@ -71,5 +71,26 @@ fn bench_while(c: &mut Criterion) {
     bench_aria_code_aux("control_flow/while", INPUT, c);
 }
 
-criterion_group!(control_flow, bench_if, bench_for, bench_while);
+fn bench_empty_function_call(c: &mut Criterion) {
+    const INPUT: &str = r#"
+    func foo() {}
+    func main() {
+        val i = 0;
+        while i < 10 {
+            foo();
+            i += 1;
+        }
+    }
+    "#;
+
+    bench_aria_code_aux("control_flow/empty_function_call", INPUT, c);
+}
+
+criterion_group!(
+    control_flow,
+    bench_if,
+    bench_for,
+    bench_while,
+    bench_empty_function_call
+);
 criterion_main!(control_flow);
