@@ -48,9 +48,10 @@ fn bench_if(c: &mut Criterion) {
 
 fn bench_for(c: &mut Criterion) {
     const INPUT: &str = r#"
+    func foo(_) {}
     func main() {
-        for i in Range.from(0).to(10) {
-            println(i);
+        for i in [0,1,2,3,4,5,6,7,8,9] {
+            foo(i);
         }
     }
     "#;
@@ -86,11 +87,44 @@ fn bench_empty_function_call(c: &mut Criterion) {
     bench_aria_code_aux("control_flow/empty_function_call", INPUT, c);
 }
 
+fn bench_alloc(c: &mut Criterion) {
+    const INPUT: &str = r#"
+    struct Foo {}
+    func foo(_) {}
+    func main() {
+        val f = alloc(Foo);
+        foo(f); # use f to prevent optimization
+    }
+    "#;
+
+    bench_aria_code_aux("control_flow/alloc", INPUT, c);
+}
+
+fn bench_bound_function_call(c: &mut Criterion) {
+    const INPUT: &str = r#"
+    struct Foo {
+        func foo() {}
+    }
+    func main() {
+        val i = 0;
+        val f = alloc(Foo);
+        while i < 10 {
+            f.foo();
+            i += 1;
+        }
+    }
+    "#;
+
+    bench_aria_code_aux("control_flow/bound_function_call", INPUT, c);
+}
+
 criterion_group!(
     control_flow,
     bench_if,
     bench_for,
     bench_while,
-    bench_empty_function_call
+    bench_empty_function_call,
+    bench_alloc,
+    bench_bound_function_call,
 );
 criterion_main!(control_flow);
