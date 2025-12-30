@@ -1,0 +1,20 @@
+#!/bin/sh
+
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARIA_LIB_DIR="${ARIA_LIB_DIR:-${SELF_DIR}/lib}"
+RUST_MIN_STACK=16777216
+
+cargo install cargo-pgo && rustup component add llvm-tools-preview
+
+output=$(cargo pgo build 2>&1)
+
+test_bin=$(printf "%s\n" "$output" | sed -n 's/.* Now run \(.*\/test\) on your workload.*/\1/p')
+aria_bin=$(printf "%s\n" "$output" | sed -n 's/.* Now run \(.*\/aria\) on your workload.*/\1/p')
+lsp_bin=$(printf "%s\n" "$output" | sed -n 's/.* Now run \(.*\/lsp\) on your workload.*/\1/p')
+
+# TODO: write a more interesting benchmark workload
+RUST_MIN_STACK=${RUST_MIN_STACK} ARIA_LIB_DIR=${ARIA_LIB_DIR} ${aria_bin} ${SELF_DIR}/examples/sieve.aria
+
+cargo pgo optimize
+
+printf "Run PGO optimized Aria as ${aria_bin}\n"
