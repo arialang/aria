@@ -1,26 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
-pub struct Stack<T>
-where
-    T: Clone,
-{
+
+pub struct Stack<T> {
     values: Vec<T>,
 }
 
-impl<T> Default for Stack<T>
-where
-    T: Clone,
-{
+impl<T> Default for Stack<T> {
     fn default() -> Self {
-        Self {
-            values: Default::default(),
-        }
+        Self { values: Vec::new() }
     }
 }
 
-impl<T> Stack<T>
-where
-    T: Clone,
-{
+impl<T> Stack<T> {
     pub fn push(&mut self, val: T) {
         self.values.push(val);
     }
@@ -90,7 +80,7 @@ where
 
 impl<T> Stack<T>
 where
-    T: Clone + std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     pub fn dump(&self) {
         let mut first = true;
