@@ -14,6 +14,9 @@ use haxby_vm::vm::{VirtualMachine, VmOptions};
 struct Args {
     /// The name of the program file to run
     path: Option<String>,
+    /// The destination for the VM performance trace
+    #[arg(long("perf-trace-dest"))]
+    perf_trace_dest: Option<String>,
     /// Should the VM trace instruction execution
     #[arg(long("trace-exec"))]
     trace_exec: bool,

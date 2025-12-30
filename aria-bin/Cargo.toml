@@ -11,6 +11,7 @@ vm-lib = { path = "../vm-lib" }
 clap = { version = "4.5.53", features = ["derive"] }
 ariadne = { git = "https://github.com/zesterer/ariadne.git", rev="b60b500" }
 reedline = "0.44.0"
+pprof = { version = "0.15.0", features = ["cpp", "default", "flamegraph", "framehop", "framehop-unwinder", "perfmaps", "_protobuf", "prost-codec"] }
 
 [[bin]]
 name = "aria"

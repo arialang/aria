@@ -349,6 +349,10 @@ impl<'a> Repl<'a> {
 }
 
 pub(crate) fn repl_eval(args: &Args) -> i32 {
+    if args.perf_trace_dest.is_some() {
+        eprintln!("Warning: --perf-trace-dest has no effect in REPL mode");
+    }
+
     let vm_opts = VmOptions::from(args);
     let mut repl = Repl::new(vm_opts, args).unwrap();
 

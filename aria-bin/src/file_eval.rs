@@ -91,10 +91,25 @@ fn eval_buffer(
 }
 
 pub(crate) fn file_eval(path: &str, args: &Args) -> i32 {
+    use pprof::protos::Message;
+    use std::io::Write;
+
     let mut vm = VirtualMachine::with_options(VmOptions::from(args));
 
+    let guard = if args.perf_trace_dest.is_some() {
+        Some(
+            pprof::ProfilerGuardBuilder::default()
+                .frequency(10000)
+                .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+                .build()
+                .unwrap(),
+        )
+    } else {
+        None
+    };
+
     let buffer = SourceBuffer::file(path);
-    match buffer {
+    let exit = match buffer {
         Ok(src) => match eval_buffer(src, &mut vm, args) {
             Ok(_) => 0,
             Err(_) => 1,
@@ -103,5 +118,19 @@ pub(crate) fn file_eval(path: &str, args: &Args) -> i32 {
             println!("error reading source file: {err}");
             1
         }
+    };
+
+    if let Some(guard) = guard
+        && let Ok(report) = guard.report().build()
+    {
+        let mut file = std::fs::File::create(args.perf_trace_dest.as_ref().unwrap()).unwrap();
+        let profile = report.pprof().unwrap();
+
+        let mut content = Vec::new();
+        profile.encode(&mut content).unwrap();
+        file.write_all(&content).unwrap();
+        file.flush().unwrap();
     }
+
+    exit
 }
