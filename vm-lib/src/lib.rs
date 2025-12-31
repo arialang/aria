@@ -9,6 +9,7 @@ pub mod error;
 pub mod frame;
 pub mod mixin_includer;
 pub mod opcodes;
+pub mod runloop;
 pub mod runtime_module;
 pub mod runtime_value;
 pub mod stack;

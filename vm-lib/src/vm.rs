@@ -21,11 +21,12 @@ use crate::{
     },
     frame::Frame,
     opcodes::prettyprint::opcode_prettyprint,
+    runloop::RunloopFrame,
     runtime_module::RuntimeModule,
     runtime_value::{
         RuntimeValue,
         enumeration::{Enum, EnumCase},
-        function::Function,
+        function::{Function, FunctionImpl},
         isa::IsaCheckable,
         kind::RuntimeValueType,
         list::List,
@@ -161,6 +162,8 @@ enum OpcodeRunExit {
     Continue,
     Return,
     Exception(VmException),
+    #[allow(unused)]
+    EnterNewFrame(RunloopFrame),
 }
 
 macro_rules! binop_eval {
@@ -488,13 +491,13 @@ impl VirtualMachine {
             _ => return Ok(RunloopExit::Ok(())),
         };
 
-        let mut main_frame = Frame::default();
+        let mut main_frame = Frame::new_with_function(main_f.clone());
 
         let main_arity = main_f.arity();
         let req = main_arity.required;
         let opt = main_arity.optional;
         let va = main_f.varargs();
-        let main_argc = if req == 0 && opt == 0 && !va {
+        let _ = if req == 0 && opt == 0 && !va {
             0
         } else if req == 1 && opt == 0 && !va {
             let cmdline_args = RuntimeValue::List(List::from(
@@ -519,10 +522,21 @@ impl VirtualMachine {
             return Err(VmErrorReason::InvalidMainSignature.into());
         };
 
-        match main_f.eval(main_argc, &mut main_frame, self, &Default::default(), true)? {
-            crate::runtime_value::CallResult::OkNoValue
-            | crate::runtime_value::CallResult::Ok(_) => Ok(RunloopExit::Ok(())),
-            crate::runtime_value::CallResult::Exception(e) => Ok(RunloopExit::Exception(e)),
+        if let FunctionImpl::BytecodeFunction(bcf) = main_f.imp.as_ref() {
+            let rl_frame = RunloopFrame {
+                reader: BytecodeReader::from(bcf.body.as_ref()),
+                module: m.clone(),
+                frame: main_frame,
+            };
+            match self.enter_runloop(rl_frame) {
+                Ok(rle) => match rle {
+                    RunloopExit::Ok(_) => Ok(RunloopExit::Ok(())),
+                    RunloopExit::Exception(e) => Ok(RunloopExit::Exception(e)),
+                },
+                Err(_) => todo!(),
+            }
+        } else {
+            unimplemented!()
         }
     }
 
@@ -550,7 +564,6 @@ impl VirtualMachine {
         self.runloop(&mut bc_reader, module, target_frame)
     }
 
-    #[inline(always)]
     fn run_opcode(
         &mut self,
         next: Opcode,
@@ -1182,12 +1195,33 @@ impl VirtualMachine {
             }
             Opcode::Call(argc) => {
                 let x = pop_or_err!(next, frame, op_idx);
-                match x.eval(argc, frame, self, false) {
-                    Ok(crate::runtime_value::CallResult::OkNoValue)
-                    | Ok(crate::runtime_value::CallResult::Ok(_)) => {}
-                    Ok(crate::runtime_value::CallResult::Exception(e)) => {
-                        return Ok(OpcodeRunExit::Exception(e));
-                    }
+                match x.prepare_invocation(argc, frame, self) {
+                    Ok(cis) => match cis {
+                        crate::runloop::CallInvocationScheme::Runloop(new_rl_frame) => {
+                            return Ok(OpcodeRunExit::EnterNewFrame(new_rl_frame));
+                        }
+                        crate::runloop::CallInvocationScheme::RustNative(rl_exit) => {
+                            match rl_exit {
+                                Ok(rle) => match rle {
+                                    RunloopExit::Ok(mut rl_frame) => {
+                                        if let Some(ret_val) = rl_frame.stack.try_pop() {
+                                            frame.stack.push(ret_val);
+                                        }
+                                    }
+                                    RunloopExit::Exception(e) => {
+                                        return Ok(OpcodeRunExit::Exception(e));
+                                    }
+                                },
+                                Err(err) => {
+                                    if err.loc.is_some() {
+                                        return Err(err);
+                                    } else {
+                                        return build_vm_error!(err.reason, next, frame, op_idx);
+                                    }
+                                }
+                            }
+                        }
+                    },
                     Err(err) => {
                         if err.loc.is_some() {
                             return Err(err);
@@ -1798,6 +1832,125 @@ impl VirtualMachine {
     }
 
     #[inline(always)]
+    #[allow(unused)]
+    pub(crate) fn enter_runloop(
+        &mut self,
+        rl_frame: RunloopFrame,
+    ) -> ExecutionResult<RunloopExit, VmError> {
+        let mut rl_stack = Stack::<RunloopFrame>::default();
+        rl_stack.push(rl_frame);
+
+        while !rl_stack.is_empty() {
+            let mut rl_frame = rl_stack.peek_mut().unwrap();
+
+            if self.options.tracing && self.options.dump_stack {
+                rl_frame.frame.stack.dump();
+            }
+
+            let op_idx = rl_frame.reader.get_index();
+            let next = match rl_frame.reader.read_opcode() {
+                Ok(next) => next,
+                Err(err) => match err {
+                    aria_compiler::bc_reader::DecodeError::EndOfStream => {
+                        let _ = rl_stack.pop();
+                        continue;
+                    }
+                    aria_compiler::bc_reader::DecodeError::InsufficientData => {
+                        return Err(VmErrorReason::IncompleteInstruction.into());
+                    }
+                    aria_compiler::bc_reader::DecodeError::UnknownOpcode(n) => {
+                        return Err(VmErrorReason::UnknownOpcode(n).into());
+                    }
+                    aria_compiler::bc_reader::DecodeError::UnknownOperand(a, b) => {
+                        return Err(VmErrorReason::InvalidVmOperand(a, b).into());
+                    }
+                },
+            };
+
+            if self.options.tracing {
+                let poa = PrintoutAccumulator::default();
+                let next = opcode_prettyprint(&next, &rl_frame.module, poa).value();
+                let wrote_lt = if let Some(lt) = rl_frame.frame.get_line_entry_at_pos(op_idx as u16)
+                {
+                    println!("{op_idx:05}: {next} --> {lt}");
+                    true
+                } else {
+                    false
+                };
+                if !wrote_lt {
+                    println!("{op_idx:05}: {next}");
+                }
+            }
+
+            // some errors can be converted into exceptions, so reserve the right to postpone exception handling
+            let mut need_handle_exception: Option<VmException> = None;
+
+            match self.run_opcode(
+                next,
+                op_idx,
+                &mut rl_frame.reader,
+                &rl_frame.module,
+                &mut rl_frame.frame,
+            ) {
+                Ok(OpcodeRunExit::Continue) => {}
+                Ok(OpcodeRunExit::Return) => {
+                    let mut returned_frame = rl_stack.pop();
+                    if let Some(next) = rl_stack.peek_mut()
+                        && let Some(ret) = returned_frame.frame.stack.try_pop()
+                    {
+                        next.frame.stack.push(ret);
+                    }
+                    continue;
+                }
+                Ok(OpcodeRunExit::EnterNewFrame(new_rl_frame)) => {
+                    rl_stack.push(new_rl_frame);
+                    continue;
+                }
+                Ok(OpcodeRunExit::Exception(except)) => {
+                    need_handle_exception = Some(except);
+                }
+                Err(x) => match VmException::from_vmerror(x, &self.globals) {
+                    Ok(exception) => {
+                        need_handle_exception = Some(exception);
+                    }
+                    Err(err) => {
+                        let err =
+                            if let Some(lt) = rl_frame.frame.get_line_entry_at_pos(op_idx as u16) {
+                                let mut new_err = err.clone();
+                                new_err.backtrace.push(lt);
+                                new_err
+                            } else {
+                                err
+                            };
+                        return Err(err);
+                    }
+                },
+            }
+
+            if let Some(except) = need_handle_exception {
+                except.fill_in_backtrace();
+                match rl_frame.frame.drop_to_first_try(self) {
+                    Some(o) => {
+                        rl_frame.reader.jump_to_index(o as usize);
+                        rl_frame.frame.stack.push(except.value);
+                    }
+                    None => {
+                        let new_except =
+                            if let Some(lt) = rl_frame.frame.get_line_entry_at_pos(op_idx as u16) {
+                                except.thrown_at(lt)
+                            } else {
+                                except
+                            };
+                        // TODO: need to unwind the rl_stack here
+                        return Ok(RunloopExit::Exception(new_except));
+                    }
+                }
+            }
+        }
+
+        Ok(RunloopExit::Ok(()))
+    }
+
     fn runloop(
         &mut self,
         reader: &mut BytecodeReader,
@@ -1850,6 +2003,7 @@ impl VirtualMachine {
                 Ok(OpcodeRunExit::Return) => {
                     return Ok(RunloopExit::Ok(()));
                 }
+                Ok(OpcodeRunExit::EnterNewFrame(_)) => unimplemented!(),
                 Ok(OpcodeRunExit::Exception(except)) => {
                     need_handle_exception = Some(except);
                 }

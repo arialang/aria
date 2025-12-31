@@ -15,8 +15,12 @@ impl<T> Stack<T> {
         self.values.push(val);
     }
 
-    pub fn peek(&mut self) -> Option<&T> {
+    pub fn peek(&self) -> Option<&T> {
         self.values.last()
+    }
+
+    pub fn peek_mut(&mut self) -> Option<&mut T> {
+        self.values.last_mut()
     }
 
     pub fn try_pop(&mut self) -> Option<T> {
@@ -65,9 +69,14 @@ impl<T> Stack<T> {
         self.values.is_empty()
     }
 
-    pub fn peek_at_offset(&mut self, i: usize) -> Option<&T> {
+    pub fn peek_at_offset(&self, i: usize) -> Option<&T> {
         let idx = self.len() - 1 - i;
         self.values.get(idx)
+    }
+
+    pub fn peek_at_offset_mut(&mut self, i: usize) -> Option<&mut T> {
+        let idx = self.len() - 1 - i;
+        self.values.get_mut(idx)
     }
 
     pub fn contains(&self, val: &T) -> bool

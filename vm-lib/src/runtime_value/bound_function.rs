@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use crate::{
     frame::Frame,
+    runloop::CallInvocationScheme,
     runtime_value::function::PartialFunctionApplication,
     vm::{ExecutionResult, VirtualMachine},
 };
@@ -32,6 +33,19 @@ impl BoundFunction {
 
     pub fn func(&self) -> &Function {
         &self.imp.func
+    }
+
+    #[inline(always)]
+    pub fn prepare_invocation(
+        &self,
+        argc: u8,
+        cur_frame: &mut Frame,
+        vm: &mut VirtualMachine,
+    ) -> ExecutionResult<CallInvocationScheme> {
+        let partial_application =
+            PartialFunctionApplication::default().with_suffix_arg(self.this().clone());
+        self.func()
+            .prepare_invocation(argc, cur_frame, vm, &partial_application)
     }
 
     pub fn eval(

@@ -26,6 +26,7 @@ use crate::{
     builtins::VmGlobals,
     error::vm_error::VmErrorReason,
     frame::Frame,
+    runloop::CallInvocationScheme,
     runtime_module::RuntimeModule,
     runtime_value::isa::IsaCheckable,
     vm::{ExecutionResult, VirtualMachine},
@@ -490,6 +491,24 @@ impl RuntimeValue {
 
     pub fn as_opaque_concrete<T: 'static>(&self) -> Option<Rc<T>> {
         self.as_opaque().and_then(|c| c.as_concrete_object::<T>())
+    }
+
+    pub fn prepare_invocation(
+        &self,
+        argc: u8,
+        cur_frame: &mut Frame,
+        vm: &mut VirtualMachine,
+    ) -> ExecutionResult<CallInvocationScheme> {
+        if let Some(f) = self.as_function() {
+            f.prepare_invocation(argc, cur_frame, vm, &Default::default())
+        } else if let Some(bf) = self.as_bound_function() {
+            bf.prepare_invocation(argc, cur_frame, vm)
+        } else {
+            match self.read_attribute("_op_impl_call", &vm.globals) {
+                Ok(op_call) => op_call.prepare_invocation(argc, cur_frame, vm),
+                _ => Err(crate::error::vm_error::VmErrorReason::UnexpectedType.into()),
+            }
+        }
     }
 
     pub fn eval(

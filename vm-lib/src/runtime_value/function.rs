@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::{collections::HashMap, rc::Rc};
 
-use aria_compiler::line_table::LineTable;
+use aria_compiler::{bc_reader::BytecodeReader, line_table::LineTable};
 use aria_parser::ast::SourcePointer;
 use haxby_opcodes::function_attribs::{FUNC_ACCEPTS_VARARG, FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 use rustc_data_structures::fx::FxHashSet;
@@ -9,6 +9,7 @@ use rustc_data_structures::fx::FxHashSet;
 use crate::{
     arity::Arity,
     frame::Frame,
+    runloop::{CallInvocationScheme, RunloopFrame},
     runtime_module::RuntimeModule,
     vm::{ExecutionResult, RunloopExit, VirtualMachine},
 };
@@ -274,6 +275,97 @@ impl Function {
     pub fn from_code_object(co: &CodeObject, a: u8, m: &RuntimeModule) -> Self {
         Self {
             imp: Rc::new(FunctionImpl::from_code_object(co, a, m)),
+        }
+    }
+
+    #[inline(always)]
+    pub fn prepare_invocation(
+        &self,
+        argc: u8,
+        cur_frame: &mut Frame,
+        vm: &mut VirtualMachine,
+        other_args: &PartialFunctionApplication,
+    ) -> ExecutionResult<CallInvocationScheme> {
+        let mut new_frame = Frame::new_with_function(self.clone());
+
+        let other_argc = other_args.suffix_args.len() as u8;
+        let effective_argc = argc + other_argc;
+        let fixed_arity = self.arity().required + self.arity().optional;
+
+        if self.attribute().is_vararg() {
+            if effective_argc < self.arity().required {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        self.arity().required as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+
+            let mut popped_args = cur_frame.stack.pop_count(argc as usize);
+            let split_at = (fixed_arity - other_argc) as usize;
+            let varargs = popped_args.split_off(split_at.min(popped_args.len()));
+
+            let l = List::default();
+            for arg in varargs {
+                l.append(arg);
+            }
+
+            new_frame.stack.push(super::RuntimeValue::List(l));
+            for arg in popped_args.into_iter().rev() {
+                new_frame.stack.push(arg);
+            }
+        } else {
+            if effective_argc < self.arity().required {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        self.arity().required as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+            if effective_argc > fixed_arity {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        fixed_arity as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+
+            for item in cur_frame.stack.pop_count(argc as usize).into_iter().rev() {
+                new_frame.stack.push(item);
+            }
+        }
+
+        for arg in &other_args.suffix_args {
+            new_frame.stack.push(arg.clone());
+        }
+
+        match self.imp.as_ref() {
+            FunctionImpl::BytecodeFunction(bcf) => {
+                new_frame.set_argc(argc);
+                let rl_frame = RunloopFrame {
+                    reader: BytecodeReader::from(bcf.body.as_ref()),
+                    module: bcf.module.clone(),
+                    frame: new_frame,
+                };
+                Ok(CallInvocationScheme::Runloop(rl_frame))
+            }
+            FunctionImpl::BuiltinFunction(bnf) => match bnf.body.eval(&mut new_frame, vm) {
+                Ok(a) => match a {
+                    RunloopExit::Ok(_) => Ok(CallInvocationScheme::RustNative(Ok(
+                        RunloopExit::Ok(new_frame),
+                    ))),
+                    RunloopExit::Exception(e) => Ok(CallInvocationScheme::RustNative(Ok(
+                        RunloopExit::Exception(e),
+                    ))),
+                },
+                Err(e) => Err(e),
+            },
         }
     }
 
