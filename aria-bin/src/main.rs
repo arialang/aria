@@ -14,6 +14,9 @@ use haxby_vm::vm::{VirtualMachine, VmOptions};
 struct Args {
     /// The name of the program file to run
     path: Option<String>,
+    /// The destination for the VM performance trace
+    #[arg(long("perf-trace-dest"))]
+    perf_trace_dest: Option<String>,
     /// Should the VM trace instruction execution
     #[arg(long("trace-exec"))]
     trace_exec: bool,
@@ -58,6 +61,23 @@ impl From<&Args> for VmOptions {
     }
 }
 
+impl Args {
+    fn check(&self) -> Vec<String> {
+        let mut ret = vec![];
+
+        if self.path.is_some() && self.no_repl_preamble {
+            ret.push("--no-repl-preamble has no effect when a file path is provided".to_string());
+        }
+        if self.path.is_none() && self.perf_trace_dest.is_some() {
+            ret.push(
+                "--perf-trace-dest has no effect when a file path is not provided".to_string(),
+            );
+        }
+
+        ret
+    }
+}
+
 fn print_lib_paths() {
     let lib_paths = VirtualMachine::get_aria_library_paths();
     for path in lib_paths {
@@ -71,6 +91,14 @@ fn main_loop() -> i32 {
     if args.print_lib_path {
         print_lib_paths();
         return 0;
+    }
+
+    let checks = args.check();
+    if !checks.is_empty() {
+        for check in checks {
+            eprintln!("Error: {}", check);
+        }
+        return 1;
     }
 
     if let Some(path) = &args.path {

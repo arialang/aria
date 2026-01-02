@@ -91,10 +91,29 @@ fn eval_buffer(
 }
 
 pub(crate) fn file_eval(path: &str, args: &Args) -> i32 {
+    use pprof::protos::Message;
+    use std::io::Write;
+
     let mut vm = VirtualMachine::with_options(VmOptions::from(args));
 
+    let guard = if args.perf_trace_dest.is_some() {
+        match pprof::ProfilerGuardBuilder::default()
+            .frequency(10000)
+            .blocklist(&["libc", "libgcc", "pthread", "vdso"])
+            .build()
+        {
+            Ok(guard) => Some(guard),
+            Err(err) => {
+                eprintln!("could not start profiler: {}", err);
+                return 1;
+            }
+        }
+    } else {
+        None
+    };
+
     let buffer = SourceBuffer::file(path);
-    match buffer {
+    let exit = match buffer {
         Ok(src) => match eval_buffer(src, &mut vm, args) {
             Ok(_) => 0,
             Err(_) => 1,
@@ -103,5 +122,26 @@ pub(crate) fn file_eval(path: &str, args: &Args) -> i32 {
             println!("error reading source file: {err}");
             1
         }
+    };
+
+    if let Some(guard) = guard
+        && let Ok(report) = guard.report().build()
+    {
+        let mut content = Vec::new();
+
+        if let Ok(mut dest_file) = std::fs::File::create(args.perf_trace_dest.as_ref().unwrap())
+            && let Ok(profile) = report.pprof()
+            && let Ok(_) = profile.encode(&mut content)
+        {
+            dest_file
+                .write_all(&content)
+                .expect("could not write pprof report");
+            dest_file.flush().expect("could not flush pprof report");
+        } else {
+            eprintln!("could not generate pprof report");
+            return exit;
+        }
     }
+
+    exit
 }
