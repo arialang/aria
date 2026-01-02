@@ -454,10 +454,7 @@ macro_rules! val_or_bound_func {
     };
 }
 
-pub enum CallResult<T = RuntimeValue> {
-    Ok(T),
-    Exception(crate::error::exception::VmException),
-}
+pub type CallResult = crate::vm::RunloopExit<RuntimeValue>;
 
 impl RuntimeValue {
     pub fn bind(&self, f: Function) -> RuntimeValue {
