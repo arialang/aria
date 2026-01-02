@@ -25,6 +25,7 @@ pub enum DecodeError {
 pub type DecodeResult<T> = Result<T, DecodeError>;
 
 impl BytecodeReader {
+    #[inline]
     fn read_u8(&mut self) -> DecodeResult<u8> {
         if self.idx < self.data.len() {
             let val = self.data[self.idx];
@@ -35,17 +36,31 @@ impl BytecodeReader {
         }
     }
 
+    #[inline]
     fn read_u16(&mut self) -> DecodeResult<u16> {
-        Ok(u16::from_le_bytes([self.read_u8()?, self.read_u8()?]))
+        if self.idx + 1 < self.data.len() {
+            let val = u16::from_le_bytes([self.data[self.idx], self.data[self.idx + 1]]);
+            self.idx += 2;
+            Ok(val)
+        } else {
+            Err(DecodeError::EndOfStream)
+        }
     }
 
+    #[inline]
     fn read_u32(&mut self) -> DecodeResult<u32> {
-        Ok(u32::from_le_bytes([
-            self.read_u8()?,
-            self.read_u8()?,
-            self.read_u8()?,
-            self.read_u8()?,
-        ]))
+        if self.idx + 3 < self.data.len() {
+            let val = u32::from_le_bytes([
+                self.data[self.idx],
+                self.data[self.idx + 1],
+                self.data[self.idx + 2],
+                self.data[self.idx + 3],
+            ]);
+            self.idx += 4;
+            Ok(val)
+        } else {
+            Err(DecodeError::EndOfStream)
+        }
     }
 
     pub fn jump_to_index(&mut self, idx: usize) {
