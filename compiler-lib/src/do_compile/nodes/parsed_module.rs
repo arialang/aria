@@ -129,7 +129,7 @@ impl<'a> CompileNode<'a, (), Vec<CompilationError>> for ParsedModule {
         params
             .writer
             .get_current_block()
-            .write_opcode(CompilerOpcode::Return);
+            .write_opcode(CompilerOpcode::ReturnUnit);
 
         let co = match params
             .writer

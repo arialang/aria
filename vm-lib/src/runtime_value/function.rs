@@ -368,7 +368,7 @@ impl Function {
                     }
                     Ok(CallResult::Ok(ret))
                 }
-                _ => Ok(CallResult::OkNoValue),
+                _ => panic!("functions must return a value"),
             },
             RunloopExit::Exception(e) => Ok(CallResult::Exception(e)),
         }
