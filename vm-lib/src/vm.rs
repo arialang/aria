@@ -520,8 +520,7 @@ impl VirtualMachine {
         };
 
         match main_f.eval(main_argc, &mut main_frame, self, &Default::default(), true)? {
-            crate::runtime_value::CallResult::OkNoValue
-            | crate::runtime_value::CallResult::Ok(_) => Ok(RunloopExit::Ok(())),
+            crate::runtime_value::CallResult::Ok(_) => Ok(RunloopExit::Ok(())),
             crate::runtime_value::CallResult::Exception(e) => Ok(RunloopExit::Exception(e)),
         }
     }
@@ -975,8 +974,7 @@ impl VirtualMachine {
                 }
                 let cnt = pop_or_err!(next, frame, op_idx);
                 match cnt.read_index(&indices, frame, self) {
-                    Ok(crate::runtime_value::CallResult::OkNoValue)
-                    | Ok(crate::runtime_value::CallResult::Ok(_)) => {}
+                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
                     Ok(crate::runtime_value::CallResult::Exception(e)) => {
                         return Ok(OpcodeRunExit::Exception(e));
                     }
@@ -998,8 +996,7 @@ impl VirtualMachine {
                 }
                 let cnt = pop_or_err!(next, frame, op_idx);
                 match cnt.write_index(&indices, &val, frame, self) {
-                    Ok(crate::runtime_value::CallResult::OkNoValue)
-                    | Ok(crate::runtime_value::CallResult::Ok(_)) => {}
+                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
                     Ok(crate::runtime_value::CallResult::Exception(e)) => {
                         return Ok(OpcodeRunExit::Exception(e));
                     }
@@ -1182,8 +1179,7 @@ impl VirtualMachine {
             Opcode::Call(argc) => {
                 let x = pop_or_err!(next, frame, op_idx);
                 match x.eval(argc, frame, self, false) {
-                    Ok(crate::runtime_value::CallResult::OkNoValue)
-                    | Ok(crate::runtime_value::CallResult::Ok(_)) => {}
+                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
                     Ok(crate::runtime_value::CallResult::Exception(e)) => {
                         return Ok(OpcodeRunExit::Exception(e));
                     }

@@ -133,7 +133,6 @@ impl RuntimeValue {
         cur_frame.stack.push(other_val.clone());
         match rel_op_obj.eval(1, cur_frame, vm, true) {
             Ok(cr) => match cr {
-                CallResult::OkNoValue => OperatorEvalAttemptOutcome::NeedTryROperator,
                 CallResult::Ok(rv) => {
                     if let Some(bl) = rv.as_boolean() {
                         OperatorEvalAttemptOutcome::Ok(bl.raw_value())
@@ -162,7 +161,6 @@ impl RuntimeValue {
         cur_frame.stack.push(other_val.clone());
         match op_equals.eval(1, cur_frame, vm, true) {
             Ok(cr) => match cr {
-                CallResult::OkNoValue => OperatorEvalAttemptOutcome::NeedTryROperator,
                 CallResult::Ok(rv) => OperatorEvalAttemptOutcome::Ok(rv),
                 CallResult::Exception(e) => {
                     if e.is_builtin_unimplemented(vm) {
@@ -183,7 +181,6 @@ impl RuntimeValue {
     ) -> OperatorEvalAttemptOutcome<RuntimeValue> {
         match op.eval(0, cur_frame, vm, true) {
             Ok(cr) => match cr {
-                CallResult::OkNoValue => OperatorEvalAttemptOutcome::NeedTryROperator,
                 CallResult::Ok(rv) => OperatorEvalAttemptOutcome::Ok(rv),
                 CallResult::Exception(e) => {
                     if e.is_builtin_unimplemented(vm) {
@@ -458,7 +455,6 @@ macro_rules! val_or_bound_func {
 }
 
 pub enum CallResult<T = RuntimeValue> {
-    OkNoValue,
     Ok(T),
     Exception(crate::error::exception::VmException),
 }
