@@ -6,7 +6,7 @@ use std::{
     rc::Rc,
 };
 
-use aria_compiler::{bc_reader::BytecodeReader, compile_from_source, module::CompiledModule};
+use aria_compiler::{compile_from_source, module::CompiledModule};
 use aria_parser::ast::{SourceBuffer, prettyprint::printout_accumulator::PrintoutAccumulator};
 use haxby_opcodes::{BuiltinTypeId, Opcode, enum_case_attribs::CASE_HAS_PAYLOAD};
 use std::sync::OnceLock;
@@ -105,7 +105,7 @@ impl VirtualMachine {
 macro_rules! build_vm_error {
     ($reason: expr, $next: expr, $frame: expr, $idx: expr) => {{
         let lt = if let Some(lt) = $frame.get_line_table() {
-            lt.get($idx as u16)
+            lt.get(*$idx as u16)
         } else {
             None
         };
@@ -444,7 +444,10 @@ impl VirtualMachine {
 
         let entry_cm = r_mod.get_compiled_module();
         let entry_cco = entry_cm.load_entry_code_object();
-        let entry_co: CodeObject = Into::into(&entry_cco);
+        let entry_co = match CodeObject::try_from(&entry_cco) {
+            Ok(co) => co,
+            Err(err) => return Err(VmErrorReason::from(err).into()),
+        };
         let entry_f = Function::from_code_object(&entry_co, 0, &r_mod);
         let mut entry_frame: Frame = Default::default();
 
@@ -463,8 +466,7 @@ impl VirtualMachine {
         name: &str,
         entry_cm: CompiledModule,
     ) -> ExecutionResult<RunloopExit<ModuleLoadInfo>> {
-        let r_mod = RuntimeModule::new(entry_cm);
-        self.load_into_module(name, r_mod)
+        self.load_into_module(name, RuntimeModule::new(entry_cm)?)
     }
 
     pub fn get_module_by_name(&self, name: &str) -> Option<RuntimeModule> {
@@ -542,29 +544,34 @@ impl VirtualMachine {
     pub(crate) fn eval_bytecode_in_frame(
         &mut self,
         module: &RuntimeModule,
-        bc: &[u8],
+        bc: &[Opcode],
         target_frame: &mut Frame,
     ) -> ExecutionResult<RunloopExit> {
-        let mut bc_reader = BytecodeReader::from(bc);
-        self.runloop(&mut bc_reader, module, target_frame)
+        self.runloop(bc, module, target_frame)
     }
 
     fn run_opcode(
         &mut self,
         next: Opcode,
-        op_idx: usize,
-        reader: &mut BytecodeReader,
+        op_idx: &mut usize,
         this_module: &RuntimeModule,
         frame: &mut Frame,
     ) -> ExecutionResult<OpcodeRunExit, VmError> {
         match next {
             Opcode::Nop => {}
-            Opcode::Push(n) => {
-                let ct = this_module.load_indexed_const(n);
-                if let Some(ct) = ct {
-                    frame.stack.push(RuntimeValue::from(&ct));
+            Opcode::Push(n) => match this_module.load_indexed_const(n) {
+                Some(rv) => {
+                    frame.stack.push(rv.clone());
                 }
-            }
+                None => {
+                    return build_vm_error!(
+                        VmErrorReason::NoSuchModuleConstant(n),
+                        next,
+                        frame,
+                        op_idx
+                    );
+                }
+            },
             Opcode::Push0 => frame.stack.push(RuntimeValue::Integer(0.into())),
             Opcode::Push1 => frame.stack.push(RuntimeValue::Integer(1.into())),
             Opcode::PushTrue => frame.stack.push(RuntimeValue::Boolean(true.into())),
@@ -936,7 +943,9 @@ impl VirtualMachine {
                 if let Some(ct) = this_module.load_indexed_const(n)
                     && let Some(sv) = ct.as_string()
                 {
-                    frame.stack.push(self.read_named_symbol(this_module, sv)?);
+                    frame
+                        .stack
+                        .push(self.read_named_symbol(this_module, &sv.raw_value())?);
                 }
             }
             Opcode::WriteNamed(n) => {
@@ -944,8 +953,11 @@ impl VirtualMachine {
                 if let Some(ct) = this_module.load_indexed_const(n)
                     && let Some(sv) = ct.as_string()
                 {
-                    let write_result =
-                        this_module.store_typechecked_named_value(sv, x, &self.globals);
+                    let write_result = this_module.store_typechecked_named_value(
+                        &sv.raw_value(),
+                        x,
+                        &self.globals,
+                    );
                     match write_result {
                         Ok(_) => {}
                         Err(e) => {
@@ -960,7 +972,7 @@ impl VirtualMachine {
                     if let Some(ct) = this_module.load_indexed_const(n)
                         && let Some(sv) = ct.as_string()
                     {
-                        this_module.typedef_named_value(sv, t);
+                        this_module.typedef_named_value(&sv.raw_value(), t);
                     }
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1012,7 +1024,7 @@ impl VirtualMachine {
             Opcode::ReadAttribute(n) => {
                 let attrib_name = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1049,7 +1061,7 @@ impl VirtualMachine {
                 let obj = pop_or_err!(next, frame, op_idx);
                 let attr_name = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1152,7 +1164,7 @@ impl VirtualMachine {
                 let x = pop_or_err!(next, frame, op_idx);
                 if let RuntimeValue::Boolean(v) = x {
                     if v.raw_value() {
-                        reader.jump_to_index(n as usize);
+                        *op_idx = n as usize;
                     }
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1162,18 +1174,18 @@ impl VirtualMachine {
                 let x = pop_or_err!(next, frame, op_idx);
                 if let RuntimeValue::Boolean(v) = x {
                     if !v.raw_value() {
-                        reader.jump_to_index(n as usize);
+                        *op_idx = n as usize;
                     }
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
             Opcode::Jump(n) => {
-                reader.jump_to_index(n as usize);
+                *op_idx = n as usize;
             }
             Opcode::JumpIfArgSupplied(arg, dest) => {
                 if frame.argc > arg {
-                    reader.jump_to_index(dest as usize);
+                    *op_idx = dest as usize;
                 }
             }
             Opcode::Call(argc) => {
@@ -1223,7 +1235,7 @@ impl VirtualMachine {
                 let ev = pop_or_err!(next, frame, op_idx);
                 match frame.drop_to_first_try(self) {
                     Some(catch_offset) => {
-                        reader.jump_to_index(catch_offset as usize);
+                        *op_idx = catch_offset as usize;
                         frame.stack.push(ev);
                     }
                     None => {
@@ -1313,7 +1325,7 @@ impl VirtualMachine {
                 let struk = pop_or_err!(next, frame, op_idx);
                 let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1354,7 +1366,7 @@ impl VirtualMachine {
 
                 let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1389,12 +1401,12 @@ impl VirtualMachine {
                 let enumm = pop_or_err!(next, frame, op_idx);
                 match enumm.as_enum() {
                     Some(enumm) => {
-                        let case = enumm.get_idx_of_case(&case_name);
+                        let case = enumm.get_idx_of_case(&case_name.raw_value());
                         let (cidx, case) = if let Some(case) = case {
                             (case, enumm.get_case_by_idx(case).unwrap())
                         } else {
                             return build_vm_error!(
-                                VmErrorReason::NoSuchCase(case_name),
+                                VmErrorReason::NoSuchCase(case_name.raw_value()),
                                 next,
                                 frame,
                                 op_idx
@@ -1449,9 +1461,9 @@ impl VirtualMachine {
                         .get_container_enum()
                         .get_case_by_idx(ev.get_case_index())
                         .unwrap();
-                    frame
-                        .stack
-                        .push(RuntimeValue::Boolean((ec.name == case_name).into()));
+                    frame.stack.push(RuntimeValue::Boolean(
+                        (ec.name == case_name.raw_value()).into(),
+                    ));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
@@ -1567,7 +1579,7 @@ impl VirtualMachine {
             Opcode::Assert(n) => {
                 let assert_msg = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1608,7 +1620,7 @@ impl VirtualMachine {
 
                 let lib_name = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1696,7 +1708,7 @@ impl VirtualMachine {
             Opcode::Import(n) => {
                 let ipath = if let Some(ct) = this_module.load_indexed_const(n) {
                     if let Some(sv) = ct.as_string() {
-                        sv.clone()
+                        sv.raw_value()
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
@@ -1794,52 +1806,47 @@ impl VirtualMachine {
 
     fn runloop(
         &mut self,
-        reader: &mut BytecodeReader,
+        bc: &[Opcode],
         module: &RuntimeModule,
         frame: &mut Frame,
     ) -> ExecutionResult<RunloopExit, VmError> {
+        let mut op_counter = 0;
         loop {
             if self.options.tracing && self.options.dump_stack {
                 frame.stack.dump();
             }
-            let op_idx = reader.get_index();
-            let next = match reader.read_opcode() {
-                Ok(next) => next,
-                Err(err) => {
-                    return match err {
-                        aria_compiler::bc_reader::DecodeError::EndOfStream => {
-                            Ok(RunloopExit::Ok(()))
-                        }
-                        aria_compiler::bc_reader::DecodeError::InsufficientData => {
-                            Err(VmErrorReason::IncompleteInstruction.into())
-                        }
-                        aria_compiler::bc_reader::DecodeError::UnknownOpcode(n) => {
-                            Err(VmErrorReason::UnknownOpcode(n).into())
-                        }
-                        aria_compiler::bc_reader::DecodeError::UnknownOperand(a, b) => {
-                            Err(VmErrorReason::InvalidVmOperand(a, b).into())
-                        }
-                    };
+
+            let next = match bc.get(op_counter) {
+                Some(op) => *op,
+                None => {
+                    return Err(VmErrorReason::UnterminatedBytecode.into());
                 }
             };
+
             if self.options.tracing {
                 let poa = PrintoutAccumulator::default();
-                let next = opcode_prettyprint(&next, module, poa).value();
-                let wrote_lt = if let Some(lt) = frame.get_line_entry_at_pos(op_idx as u16) {
-                    println!("{op_idx:05}: {next} --> {lt}");
+                let next = opcode_prettyprint(next, module, poa).value();
+                let wrote_lt = if let Some(lt) = frame.get_line_entry_at_pos(op_counter as u16) {
+                    println!("{op_counter:05}: {next} --> {lt}");
                     true
                 } else {
                     false
                 };
                 if !wrote_lt {
-                    println!("{op_idx:05}: {next}");
+                    println!("{op_counter:05}: {next}");
                 }
             }
+
+            // we save the original counter (the current instruction) for two reasons:
+            // - if an exception occurs, we need to figure out where we came from to build the backtrace
+            // - run_opcode does not advance the counter unless it's jumping, so we need to know if it changed
+            //   and if not advance it ourselves
+            let current_op_counter = op_counter;
 
             // some errors can be converted into exceptions, so reserve the right to postpone exception handling
             let mut need_handle_exception: Option<VmException> = None;
 
-            match self.run_opcode(next, op_idx, reader, module, frame) {
+            match self.run_opcode(next, &mut op_counter, module, frame) {
                 Ok(OpcodeRunExit::Continue) => {}
                 Ok(OpcodeRunExit::Return) => {
                     return Ok(RunloopExit::Ok(()));
@@ -1852,7 +1859,9 @@ impl VirtualMachine {
                         need_handle_exception = Some(exception);
                     }
                     Err(err) => {
-                        let err = if let Some(lt) = frame.get_line_entry_at_pos(op_idx as u16) {
+                        let err = if let Some(lt) =
+                            frame.get_line_entry_at_pos(current_op_counter as u16)
+                        {
                             let mut new_err = err.clone();
                             new_err.backtrace.push(lt);
                             new_err
@@ -1864,20 +1873,25 @@ impl VirtualMachine {
                 },
             }
 
+            if op_counter == current_op_counter {
+                op_counter += 1;
+            }
+
             if let Some(except) = need_handle_exception {
                 except.fill_in_backtrace();
                 match frame.drop_to_first_try(self) {
                     Some(o) => {
-                        reader.jump_to_index(o as usize);
+                        op_counter = o as usize;
                         frame.stack.push(except.value);
                     }
                     None => {
-                        let new_except =
-                            if let Some(lt) = frame.get_line_entry_at_pos(op_idx as u16) {
-                                except.thrown_at(lt)
-                            } else {
-                                except
-                            };
+                        let new_except = if let Some(lt) =
+                            frame.get_line_entry_at_pos(current_op_counter as u16)
+                        {
+                            except.thrown_at(lt)
+                        } else {
+                            except
+                        };
                         return Ok(RunloopExit::Exception(new_except));
                     }
                 }

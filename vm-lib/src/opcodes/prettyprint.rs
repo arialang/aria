@@ -5,7 +5,7 @@ use haxby_opcodes::Opcode;
 use crate::runtime_module::RuntimeModule;
 
 pub(crate) fn opcode_prettyprint(
-    opcode: &Opcode,
+    opcode: Opcode,
     module: &RuntimeModule,
     buffer: PrintoutAccumulator,
 ) -> PrintoutAccumulator {

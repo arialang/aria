@@ -63,7 +63,12 @@ fn eval_buffer(
         println!("Module dump:\n{output}\n");
     }
 
-    let r_module = RuntimeModule::new(c_module);
+    let r_module = match RuntimeModule::new(c_module) {
+        Ok(m) => m,
+        Err(err) => {
+            return Err(print_report_from_vm_error(&err.into()));
+        }
+    };
 
     let r_module = match vm.load_into_module("", r_module) {
         Ok(rle) => match rle {

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+
+use aria_compiler::bc_reader::DecodeError;
 use aria_parser::ast::{SourcePointer, prettyprint::printout_accumulator::PrintoutAccumulator};
 use haxby_opcodes::Opcode;
 use thiserror::Error;
@@ -34,6 +36,9 @@ pub enum VmErrorReason {
     #[error("instruction cannot be fully decoded")]
     IncompleteInstruction,
 
+    #[error("bytecode ended without an explicit terminal instruction")]
+    UnterminatedBytecode,
+
     #[error("invalid binding")]
     InvalidBinding,
 
@@ -45,6 +50,9 @@ pub enum VmErrorReason {
 
     #[error("unknown named identifier: '{0}'")]
     NoSuchIdentifier(String),
+
+    #[error("unknown module constant value: '{0}'")]
+    NoSuchModuleConstant(u16),
 
     #[error("'{0}' is not a valid case for this enum")]
     NoSuchCase(String),
@@ -74,6 +82,17 @@ pub enum VmErrorReason {
     VmHalted,
 }
 
+impl From<DecodeError> for VmErrorReason {
+    fn from(value: DecodeError) -> Self {
+        match value {
+            DecodeError::EndOfStream => VmErrorReason::UnterminatedBytecode,
+            DecodeError::InsufficientData => VmErrorReason::IncompleteInstruction,
+            DecodeError::UnknownOpcode(n) => VmErrorReason::UnknownOpcode(n),
+            DecodeError::UnknownOperand(n, m) => VmErrorReason::InvalidVmOperand(n, m),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct VmError {
     pub reason: VmErrorReason,
@@ -86,7 +105,7 @@ impl VmError {
     pub fn prettyprint(&self, module: Option<RuntimeModule>) -> String {
         let mut poa = PrintoutAccumulator::default();
         poa = poa << "vm error: " << self.reason.to_string();
-        if let Some(opcode) = &self.opcode
+        if let Some(opcode) = self.opcode
             && let Some(m) = module
         {
             poa = opcode_prettyprint(opcode, &m, poa << " opcode: ");

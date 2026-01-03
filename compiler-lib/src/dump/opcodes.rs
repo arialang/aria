@@ -20,13 +20,13 @@ fn try_protocol_mode_to_str(id: u8) -> &'static str {
 }
 
 pub fn opcode_prettyprint(
-    opcode: &Opcode,
+    opcode: Opcode,
     module: &CompiledModule,
     buffer: PrintoutAccumulator,
 ) -> PrintoutAccumulator {
     match opcode {
         Opcode::Push(idx) => {
-            buffer << "PUSH(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "PUSH(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::PushBuiltinTy(n) => {
             buffer << "PUSH_BUILTIN_TY(" << n.to_u8() << ") [" << n.name() << "]"
@@ -35,69 +35,64 @@ pub fn opcode_prettyprint(
             buffer << "PUSH_RUNTIME_VAL(" << n.to_u8() << ") [" << n.name() << "]"
         }
         Opcode::ReadNamed(idx) => {
-            buffer << "READ_NAMED(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "READ_NAMED(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::WriteNamed(idx) => {
-            buffer << "WRITE_NAMED(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "WRITE_NAMED(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::TypedefNamed(idx) => {
-            buffer << "TYPEDEF_NAMED(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "TYPEDEF_NAMED(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::ReadAttribute(idx) => {
-            buffer << "READ_ATTRIB(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "READ_ATTRIB(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::WriteAttribute(idx) => {
-            buffer << "WRITE_ATTRIB(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "WRITE_ATTRIB(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::BindMethod(arg, idx) => {
             buffer
                 << "BIND_METHOD("
-                << *arg
+                << arg
                 << ",@"
-                << *idx
+                << idx
                 << ") ["
-                << const_best_repr(module, *idx)
+                << const_best_repr(module, idx)
                 << "]"
         }
         Opcode::BindCase(arg, idx) => {
             buffer
                 << "BIND_CASE("
-                << *arg
+                << arg
                 << ",@"
-                << *idx
+                << idx
                 << ") ["
-                << const_best_repr(module, *idx)
+                << const_best_repr(module, idx)
                 << "]"
         }
         Opcode::NewEnumVal(flag, idx) => {
             buffer
                 << "NEW_ENUM_VAL("
-                << *flag
+                << flag
                 << ",@"
-                << *idx
+                << idx
                 << ") ["
-                << const_best_repr(module, *idx)
+                << const_best_repr(module, idx)
                 << "]"
         }
         Opcode::EnumCheckIsCase(idx) => {
-            buffer
-                << "ENUM_CHECK_IS_CASE(@"
-                << *idx
-                << ") ["
-                << const_best_repr(module, *idx)
-                << "]"
+            buffer << "ENUM_CHECK_IS_CASE(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::Import(idx) => {
-            buffer << "IMPORT(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "IMPORT(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::LoadDylib(idx) => {
-            buffer << "LOAD_DYLIB(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "LOAD_DYLIB(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::Assert(idx) => {
-            buffer << "ASSERT(@" << *idx << ") [" << const_best_repr(module, *idx) << "]"
+            buffer << "ASSERT(@" << idx << ") [" << const_best_repr(module, idx) << "]"
         }
         Opcode::TryUnwrapProtocol(mode) => {
-            buffer << "TRY_UNWRAP_PROTOCOL " << try_protocol_mode_to_str(*mode)
+            buffer << "TRY_UNWRAP_PROTOCOL " << try_protocol_mode_to_str(mode)
         }
         Opcode::Nop
         | Opcode::Push0

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
-use aria_compiler::{constant_value::ConstantValue, module::CompiledModule};
+use aria_compiler::{bc_reader::DecodeError, module::CompiledModule};
 use rustc_data_structures::fx::FxHashMap;
 
 use crate::{
@@ -22,15 +22,32 @@ pub struct NamedValue {
 
 struct RuntimeModuleImpl {
     compiled_module: CompiledModule,
+    indexed_constants: Vec<RuntimeValue>,
     values: RefCell<FxHashMap<String, NamedValue>>,
 }
 
 impl RuntimeModuleImpl {
-    fn new(cm: CompiledModule) -> Self {
-        Self {
+    fn new(cm: CompiledModule) -> Result<Self, DecodeError> {
+        let mut this = Self {
             compiled_module: cm,
+            indexed_constants: Vec::new(),
             values: Default::default(),
+        };
+
+        let mut i = 0;
+        while i < this.compiled_module.constants.len() {
+            let c = this
+                .compiled_module
+                .load_indexed_const(i as u16)
+                .expect("module has missing constant data");
+
+            let r = RuntimeValue::try_from(&c)?;
+            this.indexed_constants.push(r);
+
+            i += 1;
         }
+
+        Ok(this)
     }
 
     fn named_values_of_this(&self) -> Vec<(String, NamedValue)> {
@@ -96,8 +113,8 @@ impl RuntimeModuleImpl {
         }
     }
 
-    fn load_indexed_const(&self, idx: u16) -> Option<ConstantValue> {
-        self.compiled_module.load_indexed_const(idx)
+    fn load_indexed_const(&self, idx: u16) -> Option<&RuntimeValue> {
+        self.indexed_constants.get(idx as usize)
     }
 
     fn list_named_values(&self) -> HashSet<String> {
@@ -111,10 +128,10 @@ pub struct RuntimeModule {
 }
 
 impl RuntimeModule {
-    pub fn new(cm: CompiledModule) -> Self {
-        Self {
-            imp: Rc::new(RuntimeModuleImpl::new(cm)),
-        }
+    pub fn new(cm: CompiledModule) -> Result<Self, VmErrorReason> {
+        Ok(Self {
+            imp: Rc::new(RuntimeModuleImpl::new(cm)?),
+        })
     }
 
     pub(crate) fn named_values_of_this(&self) -> Vec<(String, NamedValue)> {
@@ -150,7 +167,7 @@ impl RuntimeModule {
         self.imp.store_typechecked_named_value(name, val, builtins)
     }
 
-    pub fn load_indexed_const(&self, idx: u16) -> Option<ConstantValue> {
+    pub fn load_indexed_const(&self, idx: u16) -> Option<&RuntimeValue> {
         self.imp.load_indexed_const(idx)
     }
 

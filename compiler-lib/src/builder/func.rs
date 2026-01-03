@@ -107,13 +107,13 @@ impl FunctionBuilder {
         self.current.clone()
     }
 
-    pub fn offset_of_block(&self, blk: &BasicBlock) -> Option<u16> {
+    pub fn position_of_block_instructions(&self, blk: &BasicBlock) -> Option<u16> {
         let mut count = 0;
         for next in &self.blocks {
             if next == blk {
-                return Some((count + 1) as u16);
+                return Some(count as u16);
             } else {
-                count += next.byte_size();
+                count += next.len()
             }
         }
         None
@@ -217,7 +217,10 @@ impl FunctionBuilder {
 
     pub fn write_line_table(&self) -> &LineTable {
         for blk in &self.blocks {
-            blk.write_line_table(self, self.offset_of_block(blk).unwrap(), &self.line_table);
+            blk.write_line_table(
+                self.position_of_block_instructions(blk).unwrap(),
+                &self.line_table,
+            );
         }
 
         &self.line_table

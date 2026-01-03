@@ -190,7 +190,12 @@ impl<'a> Repl<'a> {
             }
         };
 
-        let r_module = RuntimeModule::new(c_module);
+        let r_module = match RuntimeModule::new(c_module) {
+            Ok(m) => m,
+            Err(err) => {
+                return Err(print_report_from_vm_error(&err.into()));
+            }
+        };
 
         let r_module = match vm.load_into_module("repl", r_module) {
             Ok(rle) => match rle {
@@ -273,13 +278,20 @@ impl<'a> Repl<'a> {
             println!("Module dump:\n{output}\n");
         }
 
-        let r_module = RuntimeModule::new(c_module);
+        let r_module = match RuntimeModule::new(c_module) {
+            Ok(m) => m,
+            Err(err) => {
+                return Err(self.print_error_report(build_report_from_vm_error(&err.into())));
+            }
+        };
+
         if r_module
             .lift_all_symbols_from_other(&self.module, &self.vm)
             .is_err()
         {
             return Err(());
         }
+
         let load_result = self.vm.load_into_module("repl", r_module);
         match load_result {
             Ok(rle) => match rle {

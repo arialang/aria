@@ -17,10 +17,6 @@ pub(crate) struct BasicBlockEntry {
 }
 
 impl BasicBlockEntry {
-    fn byte_size(&self) -> usize {
-        self.op.byte_size()
-    }
-
     fn to_vm_opcode(&self, parent: &FunctionBuilder) -> haxby_opcodes::Opcode {
         self.op.to_vm_opcode(parent)
     }
@@ -97,15 +93,6 @@ impl BasicBlock {
 
     pub fn len(&self) -> usize {
         self.imp.writer.borrow().len()
-    }
-
-    pub fn byte_size(&self) -> usize {
-        self.imp
-            .writer
-            .borrow()
-            .iter()
-            .map(|o| o.byte_size())
-            .sum::<usize>()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -381,20 +368,14 @@ impl BasicBlock {
         }
     }
 
-    pub(crate) fn write_line_table(
-        &self,
-        parent: &FunctionBuilder,
-        offset: u16,
-        line_table: &LineTable,
-    ) {
+    pub(crate) fn write_line_table(&self, offset: u16, line_table: &LineTable) {
         let mut cur_offset = offset;
         let br = self.imp.writer.borrow();
         for src_op in br.as_slice() {
-            let dst_op = src_op.to_vm_opcode(parent);
             if let Some(src) = &src_op.src {
-                line_table.insert(cur_offset - 1_u16, src.clone());
+                line_table.insert(cur_offset, src.clone());
             }
-            cur_offset += dst_op.byte_size() as u16;
+            cur_offset += 1;
         }
     }
 }

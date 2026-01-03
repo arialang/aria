@@ -202,7 +202,7 @@ pub mod try_unwrap_protocol_mode {
 #[allow(unused_imports)]
 use try_unwrap_protocol_mode::*;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub enum Opcode {
     Nop,
     Push(u16),
@@ -351,84 +351,6 @@ impl std::fmt::Display for Opcode {
             Self::LoadDylib(arg0) => write!(f, "LOAD_DYLIB @{arg0}"),
             Self::Assert(arg0) => write!(f, "ASSERT @{arg0}"),
             Self::Halt => write!(f, "HALT"),
-        }
-    }
-}
-
-impl Opcode {
-    pub fn byte_size(&self) -> usize {
-        match self {
-            Self::Nop => 1,
-            Self::Push(_) => 3,
-            Self::Push0 => 1,
-            Self::Push1 => 1,
-            Self::PushTrue => 1,
-            Self::PushFalse => 1,
-            Self::PushBuiltinTy(_) => 2,
-            Self::PushRuntimeValue(_) => 2,
-            Self::Pop => 1,
-            Self::Dup => 1,
-            Self::Swap => 1,
-            Self::Copy(_) => 2,
-            Self::Add => 1,
-            Self::Sub => 1,
-            Self::Mul => 1,
-            Self::Div => 1,
-            Self::Rem => 1,
-            Self::Equal => 1,
-            Self::Neg => 1,
-            Self::ShiftLeft => 1,
-            Self::ShiftRight => 1,
-            Self::Not => 1,
-            Self::ReadLocal(_) => 2,
-            Self::WriteLocal(_) => 2,
-            Self::TypedefLocal(_) => 2,
-            Self::ReadNamed(_) => 3,
-            Self::WriteNamed(_) => 3,
-            Self::TypedefNamed(_) => 3,
-            Self::ReadIndex(_) => 2,
-            Self::WriteIndex(_) => 2,
-            Self::ReadAttribute(_) => 3,
-            Self::WriteAttribute(_) => 3,
-            Self::ReadUplevel(_) => 2,
-            Self::LogicalAnd => 1,
-            Self::LogicalOr => 1,
-            Self::Xor => 1,
-            Self::BitwiseAnd => 1,
-            Self::BitwiseOr => 1,
-            Self::GreaterThan => 1,
-            Self::LessThan => 1,
-            Self::GreaterThanEqual => 1,
-            Self::LessThanEqual => 1,
-            Self::JumpTrue(_) => 3,
-            Self::JumpFalse(_) => 3,
-            Self::JumpIfArgSupplied(..) => 4,
-            Self::Jump(_) => 3,
-            Self::Call(_) => 2,
-            Self::Return => 1,
-            Self::ReturnUnit => 1,
-            Self::TryEnter(_) => 3,
-            Self::TryExit => 1,
-            Self::Throw => 1,
-            Self::BuildList(_) => 5,
-            Self::BuildFunction(_) => 2,
-            Self::StoreUplevel(_) => 2,
-            Self::BuildStruct => 1,
-            Self::BuildEnum => 1,
-            Self::BuildMixin => 1,
-            Self::BindMethod(..) => 4,
-            Self::BindCase(..) => 4,
-            Self::IncludeMixin => 1,
-            Self::NewEnumVal(..) => 4,
-            Self::EnumCheckIsCase(_) => 3,
-            Self::EnumTryExtractPayload => 1,
-            Self::TryUnwrapProtocol(_) => 2,
-            Self::Isa => 1,
-            Self::Import(_) => 3,
-            Self::LiftModule => 1,
-            Self::LoadDylib(_) => 3,
-            Self::Assert(_) => 3,
-            Self::Halt => 1,
         }
     }
 }

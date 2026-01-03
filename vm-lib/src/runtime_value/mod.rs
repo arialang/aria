@@ -423,13 +423,17 @@ impl std::fmt::Display for RuntimeValue {
     }
 }
 
-impl From<&ConstantValue> for RuntimeValue {
-    fn from(value: &ConstantValue) -> Self {
+impl TryFrom<&ConstantValue> for RuntimeValue {
+    type Error = aria_compiler::bc_reader::DecodeError;
+
+    fn try_from(value: &ConstantValue) -> Result<Self, Self::Error> {
         match value {
-            ConstantValue::Integer(n) => RuntimeValue::Integer(From::from(*n)),
-            ConstantValue::String(s) => RuntimeValue::String(s.to_owned().into()),
-            ConstantValue::CompiledCodeObject(s) => RuntimeValue::CodeObject(From::from(s)),
-            ConstantValue::Float(f) => RuntimeValue::Float(f.raw_value().into()),
+            ConstantValue::Integer(n) => Ok(RuntimeValue::Integer(From::from(*n))),
+            ConstantValue::String(s) => Ok(RuntimeValue::String(s.to_owned().into())),
+            ConstantValue::CompiledCodeObject(s) => {
+                Ok(RuntimeValue::CodeObject(TryFrom::try_from(s)?))
+            }
+            ConstantValue::Float(f) => Ok(RuntimeValue::Float(f.raw_value().into())),
         }
     }
 }

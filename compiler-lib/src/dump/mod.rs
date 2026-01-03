@@ -51,17 +51,18 @@ impl ModuleDump for CompiledCodeObject {
             << ") bc=\n";
 
         let mut bcr = BytecodeReader::from(self.body.as_slice());
+        let mut op_idx = 0;
         loop {
-            let idx_num = bcr.get_index();
-            let idx_str = format!("    {idx_num:05}: ");
+            let idx_str = format!("    {op_idx:05}: ");
             match bcr.read_opcode() {
                 Ok(op) => {
-                    dest = opcode_prettyprint(&op, module, dest << idx_str);
-                    if let Some(lte) = self.line_table.get(idx_num as u16) {
+                    dest = opcode_prettyprint(op, module, dest << idx_str);
+                    if let Some(lte) = self.line_table.get(op_idx as u16) {
                         dest = dest << format!(" --> {lte}") << "\n";
                     } else {
                         dest = dest << "\n";
                     }
+                    op_idx += 1;
                 }
                 Err(_) => {
                     break;

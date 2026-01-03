@@ -3,7 +3,10 @@ use std::{collections::HashMap, rc::Rc};
 
 use aria_compiler::line_table::LineTable;
 use aria_parser::ast::SourcePointer;
-use haxby_opcodes::function_attribs::{FUNC_ACCEPTS_VARARG, FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
+use haxby_opcodes::{
+    Opcode,
+    function_attribs::{FUNC_ACCEPTS_VARARG, FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE},
+};
 use rustc_data_structures::fx::FxHashSet;
 
 use crate::{
@@ -42,7 +45,7 @@ impl BuiltinFunction {
 
 pub struct BytecodeFunction {
     pub name: String,
-    pub body: Rc<[u8]>,
+    pub body: Rc<[Opcode]>,
     pub arity: Arity,
     pub frame_size: u8,
     pub line_table: Rc<LineTable>,
