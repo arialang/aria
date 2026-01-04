@@ -68,6 +68,18 @@ fn replace_attribute_access_with_interned(
                 Err(_) => return Err(VmErrorReason::UnexpectedVmState),
             };
             *opcode = Opcode::ReadAttributeInterned(sym.0);
+        } else if let Opcode::WriteAttribute(x) = opcode {
+            let x_str = cm
+                .load_indexed_const(*x)
+                .expect("missing constant")
+                .as_string()
+                .expect("expected string constant")
+                .clone();
+            let sym = match vm.globals.intern_symbol(&x_str) {
+                Ok(s) => s,
+                Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+            };
+            *opcode = Opcode::WriteAttributeInterned(sym.0);
         }
     }
 

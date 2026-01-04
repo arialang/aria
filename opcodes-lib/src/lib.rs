@@ -33,6 +33,7 @@ pub const OPCODE_READ_ATTRIBUTE: u8 = 38;
 pub const OPCODE_WRITE_ATTRIBUTE: u8 = 39;
 pub const OPCODE_READ_UPLEVEL: u8 = 40;
 pub const OPCODE_READ_ATTRIBUTE_INTERNED: u8 = 41;
+pub const OPCODE_WRITE_ATTRIBUTE_INTERNED: u8 = 42;
 // ...
 pub const OPCODE_EQ: u8 = 50;
 pub const OPCODE_LT: u8 = 51;
@@ -242,6 +243,7 @@ pub enum Opcode {
     ReadAttribute(u16),
     ReadAttributeInterned(u32),
     WriteAttribute(u16),
+    WriteAttributeInterned(u32),
     ReadUplevel(u8),
     LogicalAnd,
     LogicalOr,
@@ -315,6 +317,7 @@ impl std::fmt::Display for Opcode {
             Self::ReadAttribute(arg0) => write!(f, "READ_ATTRIB @{arg0}"),
             Self::ReadAttributeInterned(arg0) => write!(f, "READ_ATTRIB_INTERNED @{arg0}"),
             Self::WriteAttribute(arg0) => write!(f, "WRITE_ATTRIB @{arg0}"),
+            Self::WriteAttributeInterned(arg0) => write!(f, "WRITE_ATTRIB_INTERNED @{arg0}"),
             Self::ReadUplevel(arg0) => write!(f, "READ_UPLEVEL {arg0}"),
             Self::LogicalAnd => write!(f, "ANDL"),
             Self::LogicalOr => write!(f, "ORL"),

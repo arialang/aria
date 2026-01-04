@@ -1019,6 +1019,9 @@ impl VirtualMachine {
             Opcode::ReadAttribute(_) => {
                 panic!("ReadAttributeInterned should be used instead");
             }
+            Opcode::WriteAttribute(_) => {
+                panic!("WriteAttributeInterned should be used instead");
+            }
             Opcode::ReadAttributeInterned(n) => {
                 let attrib_name = match self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
                     Some(s) => s,
@@ -1026,6 +1029,7 @@ impl VirtualMachine {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
                 };
+
                 let val_obj = pop_or_err!(next, frame, op_idx);
                 match val_obj.read_attribute(attrib_name, &self.globals) {
                     Ok(val) => {
@@ -1051,25 +1055,23 @@ impl VirtualMachine {
                     }
                 }
             }
-            Opcode::WriteAttribute(n) => {
-                let val = pop_or_err!(next, frame, op_idx);
-                let obj = pop_or_err!(next, frame, op_idx);
-                let attr_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
-                    } else {
+            Opcode::WriteAttributeInterned(n) => {
+                let attrib_name = match self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
+                    Some(s) => s,
+                    None => {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
-                match obj.write_attribute(&attr_name, val) {
+
+                let val = pop_or_err!(next, frame, op_idx);
+                let obj = pop_or_err!(next, frame, op_idx);
+                match obj.write_attribute(attrib_name, val) {
                     Ok(_) => {}
                     Err(err) => {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchIdentifier(attr_name)
+                                    VmErrorReason::NoSuchIdentifier(attrib_name.to_string())
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
