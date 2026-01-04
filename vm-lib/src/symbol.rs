@@ -3,7 +3,7 @@
 use rustc_data_structures::fx::FxHashMap;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Symbol(u32);
+pub struct Symbol(pub u32);
 
 #[derive(Default)]
 pub struct Interner {

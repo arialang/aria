@@ -2,7 +2,6 @@
 
 use std::rc::Rc;
 
-use aria_compiler::constant_value::ConstantValue;
 use boolean::BooleanValue;
 use bound_function::BoundFunction;
 use enum_as_inner::EnumAsInner;
@@ -419,21 +418,6 @@ impl std::fmt::Display for RuntimeValue {
         match self {
             RuntimeValue::String(s) => write!(f, "{}", s.raw_value()),
             _ => (self as &dyn std::fmt::Debug).fmt(f),
-        }
-    }
-}
-
-impl TryFrom<&ConstantValue> for RuntimeValue {
-    type Error = aria_compiler::bc_reader::DecodeError;
-
-    fn try_from(value: &ConstantValue) -> Result<Self, Self::Error> {
-        match value {
-            ConstantValue::Integer(n) => Ok(RuntimeValue::Integer(From::from(*n))),
-            ConstantValue::String(s) => Ok(RuntimeValue::String(s.to_owned().into())),
-            ConstantValue::CompiledCodeObject(s) => {
-                Ok(RuntimeValue::CodeObject(TryFrom::try_from(s)?))
-            }
-            ConstantValue::Float(f) => Ok(RuntimeValue::Float(f.raw_value().into())),
         }
     }
 }

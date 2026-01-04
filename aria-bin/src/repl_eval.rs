@@ -190,7 +190,7 @@ impl<'a> Repl<'a> {
             }
         };
 
-        let r_module = match RuntimeModule::new(c_module) {
+        let r_module = match RuntimeModule::new(&mut vm, c_module) {
             Ok(m) => m,
             Err(err) => {
                 return Err(print_report_from_vm_error(&err.into()));
@@ -278,7 +278,7 @@ impl<'a> Repl<'a> {
             println!("Module dump:\n{output}\n");
         }
 
-        let r_module = match RuntimeModule::new(c_module) {
+        let r_module = match RuntimeModule::new(&mut self.vm, c_module) {
             Ok(m) => m,
             Err(err) => {
                 return Err(self.print_error_report(build_report_from_vm_error(&err.into())));

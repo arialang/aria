@@ -119,6 +119,7 @@ pub fn opcode_prettyprint(
         | Opcode::ReadIndex(_)
         | Opcode::WriteIndex(_)
         | Opcode::ReadUplevel(_)
+        | Opcode::ReadAttributeInterned(_)
         | Opcode::LogicalAnd
         | Opcode::LogicalOr
         | Opcode::Xor
