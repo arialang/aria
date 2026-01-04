@@ -12,6 +12,7 @@ use crate::{
         kind::RuntimeValueType,
         object::ObjectBox,
     },
+    symbol::Interner,
 };
 
 mod alloc;
@@ -70,6 +71,7 @@ impl AriaBuiltinTypes {
 pub struct VmGlobals {
     values: Rc<ObjectBox>,
     builtin_types: AriaBuiltinTypes,
+    interner: Interner,
 }
 
 impl VmGlobals {
@@ -119,6 +121,7 @@ impl Default for VmGlobals {
         let mut this = Self {
             values: Default::default(),
             builtin_types: Default::default(),
+            interner: Default::default(),
         };
 
         this.register_builtin_type(BuiltinTypeId::Any, RuntimeValueType::Any); // Most anything needs Any
@@ -162,6 +165,17 @@ impl Default for VmGlobals {
 }
 
 impl VmGlobals {
+    pub fn intern_symbol(
+        &mut self,
+        s: &str,
+    ) -> Result<crate::symbol::Symbol, crate::symbol::InternError> {
+        self.interner.intern(s)
+    }
+
+    pub fn resolve_symbol(&self, sym: crate::symbol::Symbol) -> Option<&str> {
+        self.interner.resolve(sym)
+    }
+
     pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
         self.values.read(name)
     }

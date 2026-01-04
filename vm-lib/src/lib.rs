@@ -12,6 +12,7 @@ pub mod opcodes;
 pub mod runtime_module;
 pub mod runtime_value;
 pub mod stack;
+pub mod symbol;
 pub mod vm;
 
 #[cfg(test)]
