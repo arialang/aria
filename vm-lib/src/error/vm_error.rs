@@ -51,6 +51,9 @@ pub enum VmErrorReason {
     #[error("unknown named identifier: '{0}'")]
     NoSuchIdentifier(String),
 
+    #[error("unknown symbol: '{0}'")]
+    NoSuchSymbol(crate::symbol::Symbol),
+
     #[error("unknown module constant value: '{0}'")]
     NoSuchModuleConstant(u16),
 

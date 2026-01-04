@@ -124,6 +124,16 @@ impl VmException {
                 case: some_or_err!(rt_err.get_idx_of_case("NoSuchIdentifier"), err),
                 payload: Some(RuntimeValue::String(s.clone().into())),
             },
+            VmErrorReason::NoSuchSymbol(sym) => {
+                if let Some(sym_str) = builtins.resolve_symbol(*sym) {
+                    ExceptionData {
+                        case: some_or_err!(rt_err.get_idx_of_case("NoSuchIdentifier"), err),
+                        payload: Some(RuntimeValue::String(sym_str.to_owned().into())),
+                    }
+                } else {
+                    return Err(err);
+                }
+            }
             VmErrorReason::OperationFailed(s) => ExceptionData {
                 case: some_or_err!(rt_err.get_idx_of_case("OperationFailed"), err),
                 payload: Some(RuntimeValue::String(s.clone().into())),

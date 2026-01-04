@@ -6,6 +6,12 @@ use thiserror::Error;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Symbol(pub u32);
 
+impl std::fmt::Display for Symbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Symbol({})", self.0)
+    }
+}
+
 pub const INTERNED_OP_IMPL_CALL: Symbol = Symbol(0);
 
 pub const INTERNED_OP_IMPL_EQUALS: Symbol = Symbol(1);
