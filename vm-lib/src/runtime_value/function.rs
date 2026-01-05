@@ -230,14 +230,6 @@ impl FunctionImpl {
         Self::BytecodeFunction(bcf)
     }
 
-    fn write(&self, name: &str, val: RuntimeValue) {
-        match self {
-            FunctionImpl::BytecodeFunction(b) => &b.boxx,
-            FunctionImpl::BuiltinFunction(b) => &b.boxx,
-        }
-        .write(name, val)
-    }
-
     fn read(&self, name: &str) -> Option<RuntimeValue> {
         match self {
             FunctionImpl::BytecodeFunction(b) => &b.boxx,
@@ -386,10 +378,6 @@ impl Function {
             },
             RunloopExit::Exception(e) => Ok(CallResult::Exception(e)),
         }
-    }
-
-    pub fn write(&self, name: &str, val: RuntimeValue) {
-        self.imp.write(name, val)
     }
 
     pub fn read(&self, name: &str) -> Option<RuntimeValue> {

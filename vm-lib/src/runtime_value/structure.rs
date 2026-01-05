@@ -73,7 +73,7 @@ impl Struct {
         self.imp.load_named_value(name)
     }
 
-    pub fn store_named_value(&self, name: &str, val: RuntimeValue) {
+    pub(crate) fn store_named_value(&self, name: &str, val: RuntimeValue) {
         self.imp.store_named_value(name, val);
     }
 

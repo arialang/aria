@@ -25,10 +25,10 @@ fn create_regex_error(
         .as_struct()
         .ok_or(VmErrorReason::UnexpectedType)?;
 
-    let regex_error = Object::new(regex_error);
-    regex_error.write("msg", RuntimeValue::String(message.into()));
+    let regex_error = RuntimeValue::Object(Object::new(regex_error));
+    let _ = regex_error.write_attribute("msg", RuntimeValue::String(message.into()));
 
-    Ok(RuntimeValue::Object(regex_error))
+    Ok(regex_error)
 }
 
 #[derive(Default)]
@@ -51,11 +51,11 @@ impl BuiltinFunctionImpl for New {
 
         let rust_regex_obj = OpaqueValue::new(rust_regex_obj);
 
-        let aria_regex_obj = Object::new(&the_struct);
-        aria_regex_obj.write("__pattern", RuntimeValue::Opaque(rust_regex_obj));
-        aria_regex_obj.write("pattern", RuntimeValue::String(the_pattern));
+        let aria_regex_obj = RuntimeValue::Object(Object::new(&the_struct));
+        let _ = aria_regex_obj.write_attribute("__pattern", RuntimeValue::Opaque(rust_regex_obj));
+        let _ = aria_regex_obj.write_attribute("pattern", RuntimeValue::String(the_pattern));
 
-        frame.stack.push(RuntimeValue::Object(aria_regex_obj));
+        frame.stack.push(aria_regex_obj);
         Ok(RunloopExit::Ok(()))
     }
 
@@ -134,11 +134,11 @@ impl BuiltinFunctionImpl for Matches {
 
         let matches_list = List::default();
         for m in matches {
-            let match_obj = Object::new(&match_struct_type);
-            match_obj.write("start", RuntimeValue::Integer(m.0.into()));
-            match_obj.write("len", RuntimeValue::Integer(m.1.into()));
-            match_obj.write("value", RuntimeValue::String(m.2.into()));
-            matches_list.append(RuntimeValue::Object(match_obj));
+            let match_obj = RuntimeValue::Object(Object::new(&match_struct_type));
+            let _ = match_obj.write_attribute("start", RuntimeValue::Integer(m.0.into()));
+            let _ = match_obj.write_attribute("len", RuntimeValue::Integer(m.1.into()));
+            let _ = match_obj.write_attribute("value", RuntimeValue::String(m.2.into()));
+            matches_list.append(match_obj);
         }
 
         frame.stack.push(RuntimeValue::List(matches_list));

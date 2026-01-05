@@ -78,7 +78,7 @@ impl RustNativeType {
         &self.imp.boxx
     }
 
-    pub fn write(&self, name: &str, val: RuntimeValue) {
+    pub(crate) fn write(&self, name: &str, val: RuntimeValue) {
         self.imp.write(name, val);
     }
 

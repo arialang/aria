@@ -60,10 +60,6 @@ impl ListImpl {
         }
     }
 
-    fn write(&self, name: &str, val: RuntimeValue) {
-        self.boxx.write(name, val)
-    }
-
     fn read(&self, name: &str) -> Option<RuntimeValue> {
         self.boxx.read(name)
     }
@@ -158,10 +154,6 @@ impl List {
         } else {
             Err(VmErrorReason::UnexpectedType.into())
         }
-    }
-
-    pub fn write(&self, name: &str, val: RuntimeValue) {
-        self.imp.write(name, val)
     }
 
     pub fn read(&self, name: &str) -> Option<RuntimeValue> {

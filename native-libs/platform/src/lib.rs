@@ -31,8 +31,8 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
         let linux_info = linux_info
             .as_struct()
             .ok_or(VmErrorReason::UnexpectedVmState)?;
-        let linux_info = Object::new(linux_info);
-        linux_info.write(
+        let linux_info = RuntimeValue::Object(Object::new(linux_info));
+        let _ = linux_info.write_attribute(
             "kernel_version",
             RuntimeValue::String(kernel_version.into()),
         );
@@ -42,7 +42,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         let linux_enum_instance = platform_enum
-            .make_value(linux_case, Some(RuntimeValue::Object(linux_info)))
+            .make_value(linux_case, Some(linux_info))
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         frame

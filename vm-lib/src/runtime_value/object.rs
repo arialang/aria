@@ -80,10 +80,6 @@ impl Object {
         }
     }
 
-    pub fn write(&self, name: &str, val: RuntimeValue) {
-        self.imp.write(name, val);
-    }
-
     pub fn read(&self, name: &str) -> Option<RuntimeValue> {
         self.imp.read(name)
     }
@@ -101,7 +97,7 @@ impl Object {
     }
 
     pub fn with_value(self, name: &str, val: RuntimeValue) -> Self {
-        self.write(name, val);
+        self.imp.write(name, val);
         self
     }
 }

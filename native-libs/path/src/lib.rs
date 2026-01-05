@@ -31,9 +31,9 @@ fn new_from_path<P: AsRef<std::path::Path>>(
     };
 
     let path_obj = OpaqueValue::new(pb);
-    let aria_obj = Object::new(the_struct);
-    aria_obj.write("__path", RuntimeValue::Opaque(path_obj));
-    RuntimeValue::Object(aria_obj)
+    let aria_obj = RuntimeValue::Object(Object::new(the_struct));
+    let _ = aria_obj.write_attribute("__path", RuntimeValue::Opaque(path_obj));
+    aria_obj
 }
 
 fn create_path_result_err(
@@ -43,11 +43,10 @@ fn create_path_result_err(
 ) -> Result<RuntimeValue, VmErrorReason> {
     let path_error = path_struct.extract_field("Error", |field| field.as_struct().cloned())?;
 
-    let path_error = Object::new(&path_error);
-    path_error.write("msg", RuntimeValue::String(message.into()));
+    let path_error = RuntimeValue::Object(Object::new(&path_error));
+    let _ = path_error.write_attribute("msg", RuntimeValue::String(message.into()));
 
-    vm.globals
-        .create_result_err(RuntimeValue::Object(path_error))
+    vm.globals.create_result_err(path_error)
 }
 
 fn mut_path_from_aria(aria_object: &Object) -> Result<Rc<MutablePath>, VmErrorReason> {

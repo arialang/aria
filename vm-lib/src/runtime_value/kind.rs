@@ -206,25 +206,6 @@ impl RuntimeValueType {
         }
     }
 
-    pub fn write_attribute(
-        &self,
-        attr_name: &str,
-        val: RuntimeValue,
-    ) -> Result<(), AttributeError> {
-        if let Some(struk) = self.as_struct() {
-            struk.store_named_value(attr_name, val);
-            Ok(())
-        } else if let Some(enumm) = self.as_enum() {
-            enumm.store_named_value(attr_name, val);
-            Ok(())
-        } else if let Some(bt) = self.as_rust_native() {
-            bt.write(attr_name, val);
-            Ok(())
-        } else {
-            Err(AttributeError::ValueHasNoAttributes)
-        }
-    }
-
     pub fn list_attributes(&self) -> FxHashSet<String> {
         if let Some(struk) = self.as_struct() {
             struk.list_attributes()

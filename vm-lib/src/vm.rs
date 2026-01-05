@@ -142,17 +142,17 @@ pub enum RunloopExit<T = ()> {
 }
 
 impl RunloopExit {
-    pub fn throw_object(value: Object) -> Self {
+    pub fn throw_object(value: RuntimeValue) -> Self {
         Self::Exception(VmException {
-            value: RuntimeValue::Object(value),
+            value,
             backtrace: Default::default(),
         })
     }
 
     pub fn throw_struct(struk: &Struct, values: &[(&str, RuntimeValue)]) -> Self {
-        let object = Object::new(struk);
+        let object = RuntimeValue::Object(Object::new(struk));
         for value in values {
-            object.write(value.0, value.1.clone());
+            let _ = object.write_attribute(value.0, value.1.clone());
         }
 
         Self::throw_object(object)
@@ -1343,21 +1343,20 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
 
-                if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_struct()) {
-                    let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
-                } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_enum()) {
-                    let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
-                } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_mixin()) {
-                    let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
-                } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_rust_native())
-                {
-                    let new_f = Function::from_code_object(x, a, this_module);
-                    y.write(&new_name, RuntimeValue::Function(new_f));
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                if let Some(x) = method.as_code_object() {
+                    let new_f =
+                        RuntimeValue::Function(Function::from_code_object(x, a, this_module));
+                    if let Some(y) = struk.as_struct() {
+                        y.store_named_value(&new_name, new_f);
+                    } else if let Some(y) = struk.as_enum() {
+                        y.store_named_value(&new_name, new_f);
+                    } else if let Some(y) = struk.as_mixin() {
+                        y.store_named_value(&new_name, new_f);
+                    } else if let Some(y) = struk.as_rust_native() {
+                        y.write(&new_name, new_f);
+                    } else {
+                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                    }
                 }
             }
             Opcode::BindCase(a, n) => {

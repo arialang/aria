@@ -107,13 +107,14 @@ impl VmException {
             VmErrorReason::MismatchedArgumentCount(expected, actual) => {
                 let argc_mismatch = some_or_err!(rt_err.load_named_value("ArgcMismatch"), err);
                 let argc_mismatch = some_or_err!(argc_mismatch.as_struct(), err);
-                let argc_mismatch_obj = Object::new(argc_mismatch);
-                argc_mismatch_obj
-                    .write("expected", RuntimeValue::Integer((*expected as i64).into()));
-                argc_mismatch_obj.write("actual", RuntimeValue::Integer((*actual as i64).into()));
+                let argc_mismatch_obj = RuntimeValue::Object(Object::new(argc_mismatch));
+                let _ = argc_mismatch_obj
+                    .write_attribute("expected", RuntimeValue::Integer((*expected as i64).into()));
+                let _ = argc_mismatch_obj
+                    .write_attribute("actual", RuntimeValue::Integer((*actual as i64).into()));
                 ExceptionData {
                     case: some_or_err!(rt_err.get_idx_of_case("MismatchedArgumentCount"), err),
-                    payload: Some(RuntimeValue::Object(argc_mismatch_obj)),
+                    payload: Some(argc_mismatch_obj),
                 }
             }
             VmErrorReason::NoSuchCase(s) => ExceptionData {

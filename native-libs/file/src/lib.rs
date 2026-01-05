@@ -64,11 +64,10 @@ struct MutableFile {
 }
 
 fn throw_io_error(the_struct: &Struct, message: String) -> crate::vm::ExecutionResult<RunloopExit> {
-    let io_error = the_struct.extract_field("IOError", |f| f.as_object().cloned())?;
-    io_error.write("message", RuntimeValue::String(message.into()));
-    Ok(RunloopExit::Exception(VmException::from_value(
-        RuntimeValue::Object(io_error),
-    )))
+    let io_error = the_struct.extract_field("IOError", |f| f.as_struct().cloned())?;
+    let io_error = RuntimeValue::Object(Object::new(&io_error));
+    let _ = io_error.write_attribute("message", RuntimeValue::String(message.into()));
+    Ok(RunloopExit::Exception(VmException::from_value(io_error)))
 }
 
 #[derive(Default)]
@@ -92,9 +91,9 @@ impl BuiltinFunctionImpl for New {
                     file: RefCell::new(file),
                 };
                 let file_obj = OpaqueValue::new(file);
-                let aria_file_obj = Object::new(&the_struct);
-                aria_file_obj.write("__file", RuntimeValue::Opaque(file_obj));
-                frame.stack.push(RuntimeValue::Object(aria_file_obj));
+                let aria_file_obj = RuntimeValue::Object(Object::new(&the_struct));
+                let _ = aria_file_obj.write_attribute("__file", RuntimeValue::Opaque(file_obj));
+                frame.stack.push(aria_file_obj);
                 Ok(RunloopExit::Ok(()))
             }
             Err(e) => throw_io_error(&the_struct, format!("Failed to open file: {e}")),

@@ -33,20 +33,22 @@ impl BuiltinFunctionImpl for System {
 
         match output {
             Ok(output) => {
-                let result = IntegerValue::from(output.status.code().unwrap_or(-1) as i64);
-                result.write(
+                let result = RuntimeValue::Integer(IntegerValue::from(
+                    output.status.code().unwrap_or(-1) as i64,
+                ));
+                let _ = result.write_attribute(
                     "stdout",
                     RuntimeValue::String(
                         String::from_utf8_lossy(&output.stdout).to_string().into(),
                     ),
                 );
-                result.write(
+                let _ = result.write_attribute(
                     "stderr",
                     RuntimeValue::String(
                         String::from_utf8_lossy(&output.stderr).to_string().into(),
                     ),
                 );
-                cur_frame.stack.push(RuntimeValue::Integer(result));
+                cur_frame.stack.push(result);
                 Ok(RunloopExit::Ok(()))
             }
             Err(e) => Err(VmErrorReason::OperationFailed(e.to_string()).into()),

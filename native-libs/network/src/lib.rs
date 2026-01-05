@@ -42,8 +42,8 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
 
         match client.send() {
             Ok(r) => {
-                let response_obj = Object::new(&this_response);
-                response_obj.write(
+                let response_obj = RuntimeValue::Object(Object::new(&this_response));
+                let _ = response_obj.write_attribute(
                     "status_code",
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
@@ -57,38 +57,34 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                     ]);
                     header_list.append(RuntimeValue::List(header_kvp));
                 }
-                response_obj.write("headers", RuntimeValue::List(header_list));
+                let _ = response_obj.write_attribute("headers", RuntimeValue::List(header_list));
                 match r.text() {
                     Ok(content) => {
-                        response_obj.write("content", RuntimeValue::String(content.into()));
+                        let _ = response_obj
+                            .write_attribute("content", RuntimeValue::String(content.into()));
                     }
                     _ => {
-                        let error_obj = Object::new(&this_error);
-                        error_obj.write(
+                        let error_obj = RuntimeValue::Object(Object::new(&this_error));
+                        let _ = error_obj.write_attribute(
                             "msg",
                             RuntimeValue::String("content is not a valid String".into()),
                         );
-                        let result_err = vm
-                            .globals
-                            .create_result_err(RuntimeValue::Object(error_obj))?;
+                        let result_err = vm.globals.create_result_err(error_obj)?;
                         frame.stack.push(result_err);
                         return ExecutionResult::Ok(haxby_vm::vm::RunloopExit::Ok(()));
                     }
                 }
 
-                let result_ok = vm
-                    .globals
-                    .create_result_ok(RuntimeValue::Object(response_obj.clone()))?;
+                let result_ok = vm.globals.create_result_ok(response_obj.clone())?;
 
                 frame.stack.push(result_ok);
                 Ok(haxby_vm::vm::RunloopExit::Ok(()))
             }
             Err(e) => {
-                let error_obj = Object::new(&this_error);
-                error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
-                let result_err = vm
-                    .globals
-                    .create_result_err(RuntimeValue::Object(error_obj))?;
+                let error_obj = RuntimeValue::Object(Object::new(&this_error));
+                let _ =
+                    error_obj.write_attribute("msg", RuntimeValue::String(e.to_string().into()));
+                let result_err = vm.globals.create_result_err(error_obj)?;
 
                 frame.stack.push(result_err);
                 ExecutionResult::Ok(haxby_vm::vm::RunloopExit::Ok(()))
@@ -148,8 +144,8 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
 
         match client.send() {
             Ok(r) => {
-                let response_obj = Object::new(&this_response);
-                response_obj.write(
+                let response_obj = RuntimeValue::Object(Object::new(&this_response));
+                let _ = response_obj.write_attribute(
                     "status_code",
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
@@ -163,39 +159,35 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                     ]);
                     header_list.append(RuntimeValue::List(header_kvp));
                 }
-                response_obj.write("headers", RuntimeValue::List(header_list));
+                let _ = response_obj.write_attribute("headers", RuntimeValue::List(header_list));
                 match r.text() {
                     Ok(content) => {
-                        response_obj.write("content", RuntimeValue::String(content.into()));
+                        let _ = response_obj
+                            .write_attribute("content", RuntimeValue::String(content.into()));
                     }
                     _ => {
-                        let error_obj = Object::new(&this_error);
-                        error_obj.write(
+                        let error_obj = RuntimeValue::Object(Object::new(&this_error));
+                        let _ = error_obj.write_attribute(
                             "msg",
                             RuntimeValue::String("content is not a valid String".into()),
                         );
-                        let result_err = vm
-                            .globals
-                            .create_result_err(RuntimeValue::Object(error_obj))?;
+                        let result_err = vm.globals.create_result_err(error_obj)?;
 
                         frame.stack.push(result_err);
                         return ExecutionResult::Ok(haxby_vm::vm::RunloopExit::Ok(()));
                     }
                 }
 
-                let result_ok = vm
-                    .globals
-                    .create_result_ok(RuntimeValue::Object(response_obj.clone()))?;
+                let result_ok = vm.globals.create_result_ok(response_obj.clone())?;
 
                 frame.stack.push(result_ok);
                 Ok(haxby_vm::vm::RunloopExit::Ok(()))
             }
             Err(e) => {
-                let error_obj = Object::new(&this_error);
-                error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
-                let result_err = vm
-                    .globals
-                    .create_result_err(RuntimeValue::Object(error_obj))?;
+                let error_obj = RuntimeValue::Object(Object::new(&this_error));
+                let _ =
+                    error_obj.write_attribute("msg", RuntimeValue::String(e.to_string().into()));
+                let result_err = vm.globals.create_result_err(error_obj)?;
 
                 frame.stack.push(result_err);
                 ExecutionResult::Ok(haxby_vm::vm::RunloopExit::Ok(()))
