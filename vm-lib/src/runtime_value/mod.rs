@@ -489,6 +489,43 @@ impl RuntimeValue {
         self.as_opaque().and_then(|c| c.as_concrete_object::<T>())
     }
 
+    pub fn is_builtin_type(&self) -> bool {
+        match self {
+            Self::Integer(_) | Self::String(_) | Self::Float(_) | Self::Boolean(_) => true,
+            Self::Object(_)
+            | Self::EnumValue(_)
+            | Self::CodeObject(_)
+            | Self::Function(_)
+            | Self::BoundFunction(_)
+            | Self::List(_)
+            | Self::Mixin(_)
+            | Self::Type(_)
+            | Self::Module(_)
+            | Self::Opaque(_)
+            | Self::TypeCheck(_) => false,
+        }
+    }
+
+    pub fn get_builtin_type_id(&self) -> Option<BuiltinTypeId> {
+        match self {
+            Self::Integer(x) => Some(x.builtin_type_id()),
+            Self::String(x) => Some(x.builtin_type_id()),
+            Self::Float(x) => Some(x.builtin_type_id()),
+            Self::Boolean(x) => Some(x.builtin_type_id()),
+            Self::Object(_)
+            | Self::EnumValue(_)
+            | Self::CodeObject(_)
+            | Self::Function(_)
+            | Self::BoundFunction(_)
+            | Self::List(_)
+            | Self::Mixin(_)
+            | Self::Type(_)
+            | Self::Module(_)
+            | Self::Opaque(_)
+            | Self::TypeCheck(_) => None,
+        }
+    }
+
     pub fn eval(
         &self,
         argc: u8,
@@ -634,30 +671,18 @@ impl RuntimeValue {
                 }
                 _ => Err(AttributeError::NoSuchAttribute),
             }
-        } else if let Some(i) = self.as_integer() {
-            match i.read(attrib_name) {
-                Some(val) => Ok(val),
-                _ => {
-                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
-                    match bt.read_attribute(attrib_name) {
-                        Ok(val) => {
-                            val_or_bound_func!(val, self)
-                        }
-                        _ => Err(AttributeError::NoSuchAttribute),
+        } else if let Some(bt_id) = self.get_builtin_type_id() {
+            if let Some(attr_store) = self.get_attribute_store()
+                && let Some(val) = attr_store.read(attrib_name)
+            {
+                val_or_bound_func!(val, self)
+            } else {
+                let bt = builtins.get_builtin_type_by_id(bt_id);
+                match bt.read_attribute(attrib_name) {
+                    Ok(val) => {
+                        val_or_bound_func!(val, self)
                     }
-                }
-            }
-        } else if let Some(i) = self.as_float() {
-            match i.read(attrib_name) {
-                Some(val) => Ok(val),
-                _ => {
-                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Float);
-                    match bt.read_attribute(attrib_name) {
-                        Ok(val) => {
-                            val_or_bound_func!(val, self)
-                        }
-                        _ => Err(AttributeError::NoSuchAttribute),
-                    }
+                    _ => Err(AttributeError::NoSuchAttribute),
                 }
             }
         } else if let Some(f) = self.as_function() {
@@ -670,32 +695,6 @@ impl RuntimeValue {
                 Some(val) => Ok(val),
                 _ => {
                     let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::List);
-                    match bt.read_attribute(attrib_name) {
-                        Ok(val) => {
-                            val_or_bound_func!(val, self)
-                        }
-                        _ => Err(AttributeError::NoSuchAttribute),
-                    }
-                }
-            }
-        } else if let Some(i) = self.as_string() {
-            match i.read(attrib_name) {
-                Some(val) => Ok(val),
-                _ => {
-                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
-                    match bt.read_attribute(attrib_name) {
-                        Ok(val) => {
-                            val_or_bound_func!(val, self)
-                        }
-                        _ => Err(AttributeError::NoSuchAttribute),
-                    }
-                }
-            }
-        } else if let Some(i) = self.as_boolean() {
-            match i.read(attrib_name) {
-                Some(val) => Ok(val),
-                _ => {
-                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Bool);
                     match bt.read_attribute(attrib_name) {
                         Ok(val) => {
                             val_or_bound_func!(val, self)

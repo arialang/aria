@@ -8,7 +8,7 @@ func for_int() {
     val n = 3;
     n.foo = x_and_then_some;
 
-    assert n.foo(n,4) == 7;
+    assert n.foo(4) == 7;
     assert n.bar(4) == 7;
 }
 
@@ -17,7 +17,7 @@ func for_float() {
     val n = 3.0f;
     n.foo = x_and_then_some;
 
-    assert n.foo(n,4) == 7.0f;
+    assert n.foo(4) == 7.0f;
     assert n.bar(4) == 7.0f;
 }
 
@@ -26,7 +26,7 @@ func for_string() {
     val n = "hello ";
     n.foo = x_and_then_some;
 
-    assert n.foo(n,"world") == "hello world";
+    assert n.foo("world") == "hello world";
     assert n.bar("world") == "hello world";
 }
 
@@ -39,7 +39,7 @@ func for_bool() {
     val n = false;
     n.foo = negate_and;
 
-    assert n.foo(n, true) == true;
+    assert n.foo(true) == true;
     assert n.bar(true) == true;
 }
 
