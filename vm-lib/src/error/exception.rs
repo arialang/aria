@@ -10,6 +10,7 @@ use crate::{
         vm_error::{VmError, VmErrorReason},
     },
     runtime_value::{RuntimeValue, list::List, object::Object},
+    symbol::INTERNED_ATTR_BACKTRACE,
     vm::VirtualMachine,
 };
 
@@ -54,7 +55,7 @@ impl VmException {
 }
 
 impl VmException {
-    pub(crate) fn fill_in_backtrace(&self) {
+    pub(crate) fn fill_in_backtrace(&self, builtins: &VmGlobals) {
         let bt_list = List::from(&[]);
         for bt_entry in self.backtrace.entries_iter() {
             let buf_name = bt_entry.buffer.name.clone();
@@ -65,9 +66,11 @@ impl VmException {
             let buf_line = RuntimeValue::Integer((buf_line as i64).into());
             bt_list.append(RuntimeValue::List(List::from(&[buf_name, buf_line])));
         }
-        let _ = self
-            .value
-            .write_attribute("backtrace", RuntimeValue::List(bt_list));
+        let _ = self.value.write_attribute(
+            INTERNED_ATTR_BACKTRACE,
+            RuntimeValue::List(bt_list),
+            builtins,
+        );
     }
 }
 
@@ -105,12 +108,21 @@ impl VmException {
                 payload: Some(RuntimeValue::Integer((*idx as i64).into())),
             },
             VmErrorReason::MismatchedArgumentCount(expected, actual) => {
-                let argc_mismatch = some_or_err!(rt_err.load_named_value("ArgcMismatch"), err);
+                let argc_mismatch_sym = builtins
+                    .intern_symbol("ArgcMismatch")
+                    .map_err(|_| err.clone())?;
+                let argc_mismatch = some_or_err!(rt_err.load_named_value(argc_mismatch_sym), err);
                 let argc_mismatch = some_or_err!(argc_mismatch.as_struct(), err);
                 let argc_mismatch_obj = Object::new(argc_mismatch);
-                argc_mismatch_obj
-                    .write("expected", RuntimeValue::Integer((*expected as i64).into()));
-                argc_mismatch_obj.write("actual", RuntimeValue::Integer((*actual as i64).into()));
+                let expected_sym = builtins
+                    .intern_symbol("expected")
+                    .map_err(|_| err.clone())?;
+                let actual_sym = builtins.intern_symbol("actual").map_err(|_| err.clone())?;
+                argc_mismatch_obj.write(
+                    expected_sym,
+                    RuntimeValue::Integer((*expected as i64).into()),
+                );
+                argc_mismatch_obj.write(actual_sym, RuntimeValue::Integer((*actual as i64).into()));
                 ExceptionData {
                     case: some_or_err!(rt_err.get_idx_of_case("MismatchedArgumentCount"), err),
                     payload: Some(RuntimeValue::Object(argc_mismatch_obj)),
@@ -128,7 +140,7 @@ impl VmException {
                 if let Some(sym_str) = builtins.resolve_symbol(*sym) {
                     ExceptionData {
                         case: some_or_err!(rt_err.get_idx_of_case("NoSuchIdentifier"), err),
-                        payload: Some(RuntimeValue::String(sym_str.to_owned().into())),
+                        payload: Some(RuntimeValue::String(sym_str.into())),
                     }
                 } else {
                     return Err(err);

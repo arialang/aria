@@ -17,6 +17,7 @@ use std::{
     cell::RefCell,
     fs::{File, OpenOptions},
     io::{Read, Seek, Write},
+    rc::Rc,
 };
 
 const FILE_MODE_READ: i64 = 1;
@@ -24,6 +25,15 @@ const FILE_MODE_WRITE: i64 = 2;
 const FILE_MODE_APPEND: i64 = 4;
 const FILE_MODE_TRUNCATE: i64 = 8;
 const FILE_MODE_NEED_NEW: i64 = 16;
+
+fn intern_symbol(
+    builtins: &VmGlobals,
+    name: &str,
+) -> Result<haxby_vm::symbol::Symbol, VmErrorReason> {
+    builtins
+        .intern_symbol(name)
+        .map_err(|_| VmErrorReason::UnexpectedVmState)
+}
 
 fn open_options_from_int(n: i64) -> OpenOptions {
     let mut opts = OpenOptions::new();
@@ -63,9 +73,29 @@ struct MutableFile {
     file: RefCell<File>,
 }
 
-fn throw_io_error(the_struct: &Struct, message: String) -> crate::vm::ExecutionResult<RunloopExit> {
-    let io_error = the_struct.extract_field("IOError", |f| f.as_object().cloned())?;
-    io_error.write("message", RuntimeValue::String(message.into()));
+fn mut_file_from_aria(
+    aria_file: &Object,
+    builtins: &VmGlobals,
+) -> Result<Rc<MutableFile>, VmErrorReason> {
+    let file_sym = intern_symbol(builtins, "__file")?;
+    let rust_file_obj = match aria_file.read(file_sym) {
+        Some(s) => s,
+        None => return Err(VmErrorReason::UnexpectedVmState),
+    };
+    rust_file_obj
+        .as_opaque_concrete::<MutableFile>()
+        .ok_or(VmErrorReason::UnexpectedVmState)
+}
+
+fn throw_io_error(
+    the_struct: &Struct,
+    message: String,
+    builtins: &VmGlobals,
+) -> crate::vm::ExecutionResult<RunloopExit> {
+    let io_error_sym = intern_symbol(builtins, "IOError")?;
+    let io_error = the_struct.extract_field(io_error_sym, builtins, |f| f.as_object().cloned())?;
+    let message_sym = intern_symbol(builtins, "message")?;
+    io_error.write(message_sym, RuntimeValue::String(message.into()));
     Ok(RunloopExit::Exception(VmException::from_value(
         RuntimeValue::Object(io_error),
     )))
@@ -77,7 +107,7 @@ impl BuiltinFunctionImpl for New {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
         let the_path =
@@ -93,11 +123,16 @@ impl BuiltinFunctionImpl for New {
                 };
                 let file_obj = OpaqueValue::new(file);
                 let aria_file_obj = Object::new(&the_struct);
-                aria_file_obj.write("__file", RuntimeValue::Opaque(file_obj));
+                let file_sym = intern_symbol(&vm.globals, "__file")?;
+                aria_file_obj.write(file_sym, RuntimeValue::Opaque(file_obj));
                 frame.stack.push(RuntimeValue::Object(aria_file_obj));
                 Ok(RunloopExit::Ok(()))
             }
-            Err(e) => throw_io_error(&the_struct, format!("Failed to open file: {e}")),
+            Err(e) => throw_io_error(
+                &the_struct,
+                format!("Failed to open file: {e}"),
+                &vm.globals,
+            ),
         }
     }
 
@@ -120,20 +155,14 @@ impl BuiltinFunctionImpl for Close {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
         let _ = rust_file_obj.file.borrow_mut().flush();
-        aria_file.delete("__file");
+        let file_sym = intern_symbol(&vm.globals, "__file")?;
+        aria_file.delete(file_sym);
         Ok(RunloopExit::Ok(()))
     }
 
@@ -156,18 +185,11 @@ impl BuiltinFunctionImpl for ReadAll {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
         let mut dest = String::new();
         {
             let mut file_ref = rust_file_obj.file.borrow_mut();
@@ -176,9 +198,11 @@ impl BuiltinFunctionImpl for ReadAll {
                     frame.stack.push(RuntimeValue::String(dest.into()));
                     Ok(RunloopExit::Ok(()))
                 }
-                Err(e) => {
-                    throw_io_error(aria_file.get_struct(), format!("Failed to read file: {e}"))
-                }
+                Err(e) => throw_io_error(
+                    aria_file.get_struct(),
+                    format!("Failed to read file: {e}"),
+                    &vm.globals,
+                ),
             }
         }
     }
@@ -202,20 +226,13 @@ impl BuiltinFunctionImpl for ReadCount {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let count =
             VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut bytes = vec![0u8; count as usize];
         {
@@ -232,9 +249,11 @@ impl BuiltinFunctionImpl for ReadCount {
                     frame.stack.push(RuntimeValue::List(result));
                     Ok(RunloopExit::Ok(()))
                 }
-                Err(e) => {
-                    throw_io_error(aria_file.get_struct(), format!("Failed to read file: {e}"))
-                }
+                Err(e) => throw_io_error(
+                    aria_file.get_struct(),
+                    format!("Failed to read file: {e}"),
+                    &vm.globals,
+                ),
             }
         }
     }
@@ -258,20 +277,13 @@ impl BuiltinFunctionImpl for WriteStr {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let text =
             VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
         match rfo.write(text.as_bytes()) {
@@ -279,7 +291,11 @@ impl BuiltinFunctionImpl for WriteStr {
                 frame.stack.push(RuntimeValue::Integer((n as i64).into()));
                 Ok(RunloopExit::Ok(()))
             }
-            Err(e) => throw_io_error(aria_file.get_struct(), format!("Failed to write file: {e}")),
+            Err(e) => throw_io_error(
+                aria_file.get_struct(),
+                format!("Failed to write file: {e}"),
+                &vm.globals,
+            ),
         }
     }
 
@@ -302,18 +318,11 @@ impl BuiltinFunctionImpl for GetPos {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
 
@@ -325,6 +334,7 @@ impl BuiltinFunctionImpl for GetPos {
             Err(e) => throw_io_error(
                 aria_file.get_struct(),
                 format!("Failed to get file position: {e}"),
+                &vm.globals,
             ),
         }
     }
@@ -348,20 +358,13 @@ impl BuiltinFunctionImpl for SetPos {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let offset =
             VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
 
@@ -373,6 +376,7 @@ impl BuiltinFunctionImpl for SetPos {
             Err(e) => throw_io_error(
                 aria_file.get_struct(),
                 format!("Failed to set file position: {e}"),
+                &vm.globals,
             ),
         }
     }
@@ -396,18 +400,11 @@ impl BuiltinFunctionImpl for GetSize {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let rfo = rust_file_obj.file.borrow_mut();
 
@@ -418,7 +415,11 @@ impl BuiltinFunctionImpl for GetSize {
                     .push(RuntimeValue::Integer((m.len() as i64).into()));
                 Ok(RunloopExit::Ok(()))
             }
-            Err(e) => throw_io_error(aria_file.get_struct(), format!("Failed to flush file: {e}")),
+            Err(e) => throw_io_error(
+                aria_file.get_struct(),
+                format!("Failed to flush file: {e}"),
+                &vm.globals,
+            ),
         }
     }
 
@@ -441,24 +442,21 @@ impl BuiltinFunctionImpl for Flush {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut crate::vm::VirtualMachine,
+        vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let rust_file_obj = match aria_file.read("__file") {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
-        let rust_file_obj = match rust_file_obj.as_opaque_concrete::<MutableFile>() {
-            Some(s) => s,
-            None => return Err(VmErrorReason::UnexpectedVmState.into()),
-        };
+        let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
 
         match rfo.flush() {
             Ok(_) => Ok(RunloopExit::Ok(())),
-            Err(e) => throw_io_error(aria_file.get_struct(), format!("Failed to flush file: {e}")),
+            Err(e) => throw_io_error(
+                aria_file.get_struct(),
+                format!("Failed to flush file: {e}"),
+                &vm.globals,
+            ),
         }
     }
 
@@ -478,9 +476,15 @@ impl BuiltinFunctionImpl for Flush {
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    _: *const haxby_vm::vm::VirtualMachine,
+    vm: *const haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
+    let vm = match unsafe { vm.as_ref() } {
+        Some(vm) => vm,
+        None => {
+            return LoadResult::error("invalid vm");
+        }
+    };
     match unsafe { module.as_ref() } {
         Some(module) => {
             let file = match module.load_named_value("File") {
@@ -497,15 +501,15 @@ pub extern "C" fn dylib_haxby_inject(
                 }
             };
 
-            file_struct.insert_builtin::<New>();
-            file_struct.insert_builtin::<Close>();
-            file_struct.insert_builtin::<ReadAll>();
-            file_struct.insert_builtin::<ReadCount>();
-            file_struct.insert_builtin::<WriteStr>();
-            file_struct.insert_builtin::<GetPos>();
-            file_struct.insert_builtin::<SetPos>();
-            file_struct.insert_builtin::<Flush>();
-            file_struct.insert_builtin::<GetSize>();
+            file_struct.insert_builtin::<New>(&vm.globals);
+            file_struct.insert_builtin::<Close>(&vm.globals);
+            file_struct.insert_builtin::<ReadAll>(&vm.globals);
+            file_struct.insert_builtin::<ReadCount>(&vm.globals);
+            file_struct.insert_builtin::<WriteStr>(&vm.globals);
+            file_struct.insert_builtin::<GetPos>(&vm.globals);
+            file_struct.insert_builtin::<SetPos>(&vm.globals);
+            file_struct.insert_builtin::<Flush>(&vm.globals);
+            file_struct.insert_builtin::<GetSize>(&vm.globals);
 
             LoadResult::success()
         }

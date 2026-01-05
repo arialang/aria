@@ -56,8 +56,11 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
         ],
     );
 
+    let argc_sym = builtins
+        .intern_symbol("ArgcMismatch")
+        .expect("failed to intern builtin name");
     rt_err_enum.store_named_value(
-        "ArgcMismatch",
+        argc_sym,
         RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch)),
     );
 

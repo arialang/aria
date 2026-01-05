@@ -71,7 +71,7 @@ impl VirtualMachine {
         &self.options.console
     }
 
-    fn load_version_into_globals(self) -> Self {
+    fn load_version_into_globals(mut self) -> Self {
         let aria_version = env!("CARGO_PKG_VERSION");
         assert!(!aria_version.is_empty());
         self.globals
@@ -146,7 +146,7 @@ impl RunloopExit {
         })
     }
 
-    pub fn throw_struct(struk: &Struct, values: &[(&str, RuntimeValue)]) -> Self {
+    pub fn throw_struct(struk: &Struct, values: &[(crate::symbol::Symbol, RuntimeValue)]) -> Self {
         let object = Object::new(struk);
         for value in values {
             object.write(value.0, value.1.clone());
@@ -373,6 +373,7 @@ impl VirtualMachine {
     }
 
     fn create_import_model_from_path(
+        &mut self,
         module: &RuntimeModule,
         ipath: &str,
         leaf: RuntimeValue,
@@ -407,8 +408,9 @@ impl VirtualMachine {
         fn get_or_create_empty_enum(
             current_struct: &Enum,
             name: &str,
+            name_sym: crate::symbol::Symbol,
         ) -> Result<Enum, VmErrorReason> {
-            match current_struct.load_named_value(name) {
+            match current_struct.load_named_value(name_sym) {
                 Some(existing_val) => match existing_val.as_enum() {
                     Some(s) => Ok(s.clone()),
                     _ => Err(VmErrorReason::UnexpectedType),
@@ -416,18 +418,26 @@ impl VirtualMachine {
                 None => {
                     let new_struct = Enum::new(name);
                     let new_val = RuntimeValue::Type(RuntimeValueType::Enum(new_struct.clone()));
-                    current_struct.store_named_value(name, new_val);
+                    current_struct.store_named_value(name_sym, new_val);
                     Ok(new_struct)
                 }
             }
         }
 
         for cmp in components.iter().take(components.len() - 1).skip(1) {
-            current_struct = get_or_create_empty_enum(&current_struct, cmp)?;
+            let cmp_sym = self
+                .globals
+                .intern_symbol(cmp)
+                .map_err(|_| VmErrorReason::UnexpectedVmState)?;
+            current_struct = get_or_create_empty_enum(&current_struct, cmp, cmp_sym)?;
         }
 
         let cmp_last = components.last().unwrap();
-        current_struct.store_named_value(cmp_last, leaf.clone());
+        let cmp_last_sym = self
+            .globals
+            .intern_symbol(cmp_last)
+            .map_err(|_| VmErrorReason::UnexpectedVmState)?;
+        current_struct.store_named_value(cmp_last_sym, leaf.clone());
 
         Ok(RuntimeValue::Type(RuntimeValueType::Enum(root)))
     }
@@ -1023,13 +1033,9 @@ impl VirtualMachine {
                 panic!("WriteAttributeInterned should be used instead");
             }
             Opcode::ReadAttributeInterned(n) => {
-                let attrib_name = self
-                    .globals
-                    .resolve_symbol(crate::symbol::Symbol(n))
-                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
-
+                let attrib_sym = crate::symbol::Symbol(n);
                 let val_obj = pop_or_err!(next, frame, op_idx);
-                match val_obj.read_attribute(attrib_name, &self.globals) {
+                match val_obj.read_attribute(attrib_sym, &self.globals) {
                     Ok(val) => {
                         frame.stack.push(val);
                     }
@@ -1037,7 +1043,10 @@ impl VirtualMachine {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchIdentifier(attrib_name.to_string())
+                                    match self.globals.resolve_symbol(attrib_sym) {
+                                        Some(name) => VmErrorReason::NoSuchIdentifier(name),
+                                        None => VmErrorReason::NoSuchSymbol(attrib_sym),
+                                    }
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1054,20 +1063,19 @@ impl VirtualMachine {
                 }
             }
             Opcode::WriteAttributeInterned(n) => {
-                let attrib_name = self
-                    .globals
-                    .resolve_symbol(crate::symbol::Symbol(n))
-                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
-
+                let attrib_sym = crate::symbol::Symbol(n);
                 let val = pop_or_err!(next, frame, op_idx);
                 let obj = pop_or_err!(next, frame, op_idx);
-                match obj.write_attribute(attrib_name, val) {
+                match obj.write_attribute(attrib_sym, val, &self.globals) {
                     Ok(_) => {}
                     Err(err) => {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchIdentifier(attrib_name.to_string())
+                                    match self.globals.resolve_symbol(attrib_sym) {
+                                        Some(name) => VmErrorReason::NoSuchIdentifier(name),
+                                        None => VmErrorReason::NoSuchSymbol(attrib_sym),
+                                    }
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1319,10 +1327,7 @@ impl VirtualMachine {
             Opcode::BindMethodInterned(a, n) => {
                 let method = pop_or_err!(next, frame, op_idx);
                 let struk = pop_or_err!(next, frame, op_idx);
-                let new_name = self
-                    .globals
-                    .resolve_symbol(crate::symbol::Symbol(n))
-                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
+                let new_name = crate::symbol::Symbol(n);
 
                 if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_struct()) {
                     let new_f = Function::from_code_object(x, a, this_module);
@@ -1361,8 +1366,7 @@ impl VirtualMachine {
                 let new_name = self
                     .globals
                     .resolve_symbol(crate::symbol::Symbol(n))
-                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?
-                    .to_owned();
+                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
 
                 match enumm.as_enum() {
                     Some(enumm) => {
@@ -1706,14 +1710,18 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
 
-                if let Some(mli) = self.imported_modules.get(&ipath) {
-                    Self::create_import_model_from_path(
+                if let Some(module) = self
+                    .imported_modules
+                    .get(&ipath)
+                    .map(|mli| mli.module.clone())
+                {
+                    self.create_import_model_from_path(
                         this_module,
                         &ipath,
-                        RuntimeValue::Module(mli.module.clone()),
+                        RuntimeValue::Module(module.clone()),
                     )?;
 
-                    frame.stack.push(RuntimeValue::Module(mli.module.clone()));
+                    frame.stack.push(RuntimeValue::Module(module));
                 } else {
                     let import_path = match Self::resolve_import_path_to_path(
                         &ipath,
@@ -1776,7 +1784,7 @@ impl VirtualMachine {
                         }
                     };
 
-                    Self::create_import_model_from_path(
+                    self.create_import_model_from_path(
                         this_module,
                         &ipath,
                         RuntimeValue::Module(mli.module.clone()),
@@ -1868,7 +1876,7 @@ impl VirtualMachine {
             }
 
             if let Some(except) = need_handle_exception {
-                except.fill_in_backtrace();
+                except.fill_in_backtrace(&self.globals);
                 match frame.drop_to_first_try(self) {
                     Some(o) => {
                         op_counter = o as usize;

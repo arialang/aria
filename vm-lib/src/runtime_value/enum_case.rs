@@ -2,7 +2,7 @@
 
 use std::rc::Rc;
 
-use crate::{frame::Frame, vm::VirtualMachine};
+use crate::{frame::Frame, symbol::Symbol, vm::VirtualMachine};
 
 use super::{RuntimeValue, enumeration::Enum};
 
@@ -30,7 +30,7 @@ impl EnumValue {
         self.imp.payload.as_ref()
     }
 
-    pub fn read(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.enumm.load_named_value(name)
     }
 }

@@ -7,6 +7,15 @@ use haxby_vm::{
     runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
 
+fn intern_symbol(
+    builtins: &VmGlobals,
+    name: &str,
+) -> Result<haxby_vm::symbol::Symbol, haxby_vm::error::vm_error::VmErrorReason> {
+    builtins
+        .intern_symbol(name)
+        .map_err(|_| haxby_vm::error::vm_error::VmErrorReason::UnexpectedVmState)
+}
+
 #[derive(Default)]
 struct GetPlatformInfo {}
 impl BuiltinFunctionImpl for GetPlatformInfo {
@@ -14,7 +23,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut haxby_vm::vm::VirtualMachine,
+        vm: &mut haxby_vm::vm::VirtualMachine,
     ) -> haxby_vm::vm::ExecutionResult<RunloopExit> {
         use haxby_vm::{error::vm_error::VmErrorReason, runtime_value::object::Object};
 
@@ -25,15 +34,17 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
 
         let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
 
+        let linux_platform_sym = intern_symbol(&vm.globals, "LinuxPlatform")?;
         let linux_info = platform_enum
-            .load_named_value("LinuxPlatform")
+            .load_named_value(linux_platform_sym)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let linux_info = linux_info
             .as_struct()
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let linux_info = Object::new(linux_info);
+        let kernel_version_sym = intern_symbol(&vm.globals, "kernel_version")?;
         linux_info.write(
-            "kernel_version",
+            kernel_version_sym,
             RuntimeValue::String(kernel_version.into()),
         );
 
@@ -55,7 +66,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
     fn eval(
         &self,
         frame: &mut Frame,
-        _: &mut haxby_vm::vm::VirtualMachine,
+        vm: &mut haxby_vm::vm::VirtualMachine,
     ) -> haxby_vm::vm::ExecutionResult<RunloopExit> {
         use haxby_vm::{error::vm_error::VmErrorReason, runtime_value::object::Object};
 
@@ -72,14 +83,16 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
 
         let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().cloned())?;
 
+        let mac_platform_sym = intern_symbol(&vm.globals, "macOSPlatform")?;
         let mac_info = platform_enum
-            .load_named_value("macOSPlatform")
+            .load_named_value(mac_platform_sym)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let mac_info = mac_info
             .as_struct()
             .ok_or(VmErrorReason::UnexpectedVmState)?;
         let mac_info = Object::new(mac_info);
-        mac_info.write("os_build", RuntimeValue::String(mac_version.into()));
+        let os_build_sym = intern_symbol(&vm.globals, "os_build")?;
+        mac_info.write(os_build_sym, RuntimeValue::String(mac_version.into()));
 
         let mac_case = platform_enum
             .get_idx_of_case("macOS")
@@ -133,9 +146,15 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    _: *const haxby_vm::vm::VirtualMachine,
+    vm: *const haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
+    let vm = match unsafe { vm.as_ref() } {
+        Some(vm) => vm,
+        None => {
+            return LoadResult::error("invalid vm");
+        }
+    };
     match unsafe { module.as_ref() } {
         Some(module) => {
             let platform = match module.load_named_value("Platform") {
@@ -152,7 +171,7 @@ pub extern "C" fn dylib_haxby_inject(
                 }
             };
 
-            platform_enum.insert_builtin::<GetPlatformInfo>();
+            platform_enum.insert_builtin::<GetPlatformInfo>(&vm.globals);
 
             LoadResult::success()
         }

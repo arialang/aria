@@ -14,7 +14,12 @@ impl BuiltinFunctionImpl for ReadAttr {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
         let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
-        let result = the_value.read_attribute(&the_string.raw_value(), &vm.globals);
+        let attr_name = the_string.raw_value();
+        let attr_sym = vm
+            .globals
+            .intern_symbol(&attr_name)
+            .map_err(|_| VmErrorReason::UnexpectedVmState)?;
+        let result = the_value.read_attribute(attr_sym, &vm.globals);
         match result {
             Ok(val) => {
                 frame.stack.push(val);
@@ -23,7 +28,7 @@ impl BuiltinFunctionImpl for ReadAttr {
             Err(e) => {
                 let er = match e {
                     crate::runtime_value::AttributeError::NoSuchAttribute => {
-                        VmErrorReason::NoSuchIdentifier(the_string.raw_value())
+                        VmErrorReason::NoSuchIdentifier(attr_name)
                     }
                     crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                         VmErrorReason::InvalidBinding

@@ -2,7 +2,10 @@
 
 use std::collections::HashSet;
 
-use crate::runtime_value::{RuntimeValue, mixin::Mixin};
+use crate::{
+    runtime_value::{RuntimeValue, mixin::Mixin},
+    symbol::Symbol,
+};
 
 #[derive(Default)]
 pub struct MixinIncluder {
@@ -10,7 +13,7 @@ pub struct MixinIncluder {
 }
 
 impl MixinIncluder {
-    pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn load_named_value(&self, name: Symbol) -> Option<RuntimeValue> {
         self.mixins
             .iter()
             .rev()
@@ -30,7 +33,7 @@ impl MixinIncluder {
         false
     }
 
-    pub fn list_attributes(&self) -> HashSet<String> {
+    pub fn list_attributes(&self) -> HashSet<Symbol> {
         let mut attrs = HashSet::new();
         for mixin in &self.mixins {
             attrs.extend(mixin.list_attributes());

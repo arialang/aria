@@ -72,7 +72,7 @@ pub(super) fn insert_integer_builtins(builtins: &mut VmGlobals) {
     let int_builtin =
         RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Integer);
 
-    int_builtin.insert_builtin::<Prettyprint>();
+    int_builtin.insert_builtin::<Prettyprint>(builtins);
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::Int,

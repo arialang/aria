@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use haxby_opcodes::BuiltinTypeId;
 
@@ -71,7 +71,7 @@ impl AriaBuiltinTypes {
 pub struct VmGlobals {
     values: Rc<ObjectBox>,
     builtin_types: AriaBuiltinTypes,
-    interner: Interner,
+    interner: RefCell<Interner>,
 }
 
 impl VmGlobals {
@@ -121,7 +121,7 @@ impl Default for VmGlobals {
         let mut this = Self {
             values: Default::default(),
             builtin_types: Default::default(),
-            interner: Default::default(),
+            interner: RefCell::new(Default::default()),
         };
 
         this.register_builtin_type(BuiltinTypeId::Any, RuntimeValueType::Any); // Most anything needs Any
@@ -166,26 +166,34 @@ impl Default for VmGlobals {
 
 impl VmGlobals {
     pub fn intern_symbol(
-        &mut self,
+        &self,
         s: &str,
     ) -> Result<crate::symbol::Symbol, crate::symbol::InternError> {
-        self.interner.intern(s)
+        self.interner.borrow_mut().intern(s)
     }
 
-    pub fn resolve_symbol(&self, sym: crate::symbol::Symbol) -> Option<&str> {
-        self.interner.resolve(sym)
+    pub fn lookup_symbol(&self, s: &str) -> Option<crate::symbol::Symbol> {
+        self.interner.borrow().lookup(s)
+    }
+
+    pub fn resolve_symbol(&self, sym: crate::symbol::Symbol) -> Option<String> {
+        self.interner.borrow().resolve(sym).map(|s| s.to_owned())
     }
 
     pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
-        self.values.read(name)
+        self.lookup_symbol(name)
+            .and_then(|sym| self.values.read(sym))
     }
 
-    pub fn insert(&self, name: &str, val: RuntimeValue) {
-        if self.values.contains(name) {
+    pub fn insert(&mut self, name: &str, val: RuntimeValue) {
+        let name_sym = self
+            .intern_symbol(name)
+            .expect("failed to intern builtin name");
+        if self.values.contains(name_sym) {
             panic!("duplicate builtin {name}");
         }
 
-        self.values.write(name, val);
+        self.values.write(name_sym, val);
     }
 
     #[deprecated(note = "use get_builtin_type_by_id instead")]

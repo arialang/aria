@@ -1,11 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 use haxby_opcodes::function_attribs::FUNC_IS_METHOD;
 use haxby_vm::{
-    error::dylib_load::LoadResult,
+    error::{dylib_load::LoadResult, vm_error::VmErrorReason},
     runtime_module::RuntimeModule,
     runtime_value::{RuntimeValue, list::List, object::Object},
     vm::ExecutionResult,
 };
+
+fn intern_symbol(
+    builtins: &haxby_vm::builtins::VmGlobals,
+    name: &str,
+) -> Result<haxby_vm::symbol::Symbol, VmErrorReason> {
+    builtins
+        .intern_symbol(name)
+        .map_err(|_| VmErrorReason::UnexpectedVmState)
+}
 
 #[derive(Default)]
 struct RequestGet {}
@@ -17,12 +26,18 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
     ) -> haxby_vm::vm::ExecutionResult<haxby_vm::vm::RunloopExit> {
         let this = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_object().cloned())?;
         let headers = haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
-        let this_url = this.extract_field("url", |field| field.as_string().cloned())?;
-        let this_timeout = this.extract_field("timeout", |field| field.as_float().cloned())?;
+        let url_sym = intern_symbol(&vm.globals, "url")?;
+        let timeout_sym = intern_symbol(&vm.globals, "timeout")?;
+        let this_url = this.extract_field(url_sym, |field| field.as_string().cloned())?;
+        let this_timeout = this.extract_field(timeout_sym, |field| field.as_float().cloned())?;
         let as_struct = this.get_struct();
-        let this_response =
-            as_struct.extract_field("Response", |field| field.as_struct().cloned())?;
-        let this_error = as_struct.extract_field("Error", |field| field.as_struct().cloned())?;
+        let response_sym = intern_symbol(&vm.globals, "Response")?;
+        let error_sym = intern_symbol(&vm.globals, "Error")?;
+        let this_response = as_struct.extract_field(response_sym, &vm.globals, |field| {
+            field.as_struct().cloned()
+        })?;
+        let this_error =
+            as_struct.extract_field(error_sym, &vm.globals, |field| field.as_struct().cloned())?;
 
         let mut client = reqwest::blocking::Client::new()
             .get(this_url.raw_value())
@@ -43,8 +58,11 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
         match client.send() {
             Ok(r) => {
                 let response_obj = Object::new(&this_response);
+                let status_code_sym = intern_symbol(&vm.globals, "status_code")?;
+                let headers_sym = intern_symbol(&vm.globals, "headers")?;
+                let content_sym = intern_symbol(&vm.globals, "content")?;
                 response_obj.write(
-                    "status_code",
+                    status_code_sym,
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
                     ),
@@ -57,15 +75,16 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                     ]);
                     header_list.append(RuntimeValue::List(header_kvp));
                 }
-                response_obj.write("headers", RuntimeValue::List(header_list));
+                response_obj.write(headers_sym, RuntimeValue::List(header_list));
                 match r.text() {
                     Ok(content) => {
-                        response_obj.write("content", RuntimeValue::String(content.into()));
+                        response_obj.write(content_sym, RuntimeValue::String(content.into()));
                     }
                     _ => {
                         let error_obj = Object::new(&this_error);
+                        let msg_sym = intern_symbol(&vm.globals, "msg")?;
                         error_obj.write(
-                            "msg",
+                            msg_sym,
                             RuntimeValue::String("content is not a valid String".into()),
                         );
                         let result_err = vm
@@ -85,7 +104,8 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
             }
             Err(e) => {
                 let error_obj = Object::new(&this_error);
-                error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
+                let msg_sym = intern_symbol(&vm.globals, "msg")?;
+                error_obj.write(msg_sym, RuntimeValue::String(e.to_string().into()));
                 let result_err = vm
                     .globals
                     .create_result_err(RuntimeValue::Object(error_obj))?;
@@ -122,12 +142,18 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
         let payload =
             haxby_vm::builtins::VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
 
-        let this_url = this.extract_field("url", |field| field.as_string().cloned())?;
-        let this_timeout = this.extract_field("timeout", |field| field.as_float().cloned())?;
+        let url_sym = intern_symbol(&vm.globals, "url")?;
+        let timeout_sym = intern_symbol(&vm.globals, "timeout")?;
+        let this_url = this.extract_field(url_sym, |field| field.as_string().cloned())?;
+        let this_timeout = this.extract_field(timeout_sym, |field| field.as_float().cloned())?;
         let as_struct = this.get_struct();
-        let this_response =
-            as_struct.extract_field("Response", |field| field.as_struct().cloned())?;
-        let this_error = as_struct.extract_field("Error", |field| field.as_struct().cloned())?;
+        let response_sym = intern_symbol(&vm.globals, "Response")?;
+        let error_sym = intern_symbol(&vm.globals, "Error")?;
+        let this_response = as_struct.extract_field(response_sym, &vm.globals, |field| {
+            field.as_struct().cloned()
+        })?;
+        let this_error =
+            as_struct.extract_field(error_sym, &vm.globals, |field| field.as_struct().cloned())?;
 
         let mut client = reqwest::blocking::Client::new()
             .post(this_url.raw_value())
@@ -149,8 +175,11 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
         match client.send() {
             Ok(r) => {
                 let response_obj = Object::new(&this_response);
+                let status_code_sym = intern_symbol(&vm.globals, "status_code")?;
+                let headers_sym = intern_symbol(&vm.globals, "headers")?;
+                let content_sym = intern_symbol(&vm.globals, "content")?;
                 response_obj.write(
-                    "status_code",
+                    status_code_sym,
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
                     ),
@@ -163,15 +192,16 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                     ]);
                     header_list.append(RuntimeValue::List(header_kvp));
                 }
-                response_obj.write("headers", RuntimeValue::List(header_list));
+                response_obj.write(headers_sym, RuntimeValue::List(header_list));
                 match r.text() {
                     Ok(content) => {
-                        response_obj.write("content", RuntimeValue::String(content.into()));
+                        response_obj.write(content_sym, RuntimeValue::String(content.into()));
                     }
                     _ => {
                         let error_obj = Object::new(&this_error);
+                        let msg_sym = intern_symbol(&vm.globals, "msg")?;
                         error_obj.write(
-                            "msg",
+                            msg_sym,
                             RuntimeValue::String("content is not a valid String".into()),
                         );
                         let result_err = vm
@@ -192,7 +222,8 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
             }
             Err(e) => {
                 let error_obj = Object::new(&this_error);
-                error_obj.write("msg", RuntimeValue::String(e.to_string().into()));
+                let msg_sym = intern_symbol(&vm.globals, "msg")?;
+                error_obj.write(msg_sym, RuntimeValue::String(e.to_string().into()));
                 let result_err = vm
                     .globals
                     .create_result_err(RuntimeValue::Object(error_obj))?;
@@ -219,9 +250,15 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    _: *const haxby_vm::vm::VirtualMachine,
+    vm: *const haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
+    let vm = match unsafe { vm.as_ref() } {
+        Some(vm) => vm,
+        None => {
+            return LoadResult::error("invalid vm");
+        }
+    };
     match unsafe { module.as_ref() } {
         Some(module) => {
             let request = match module.load_named_value("Request") {
@@ -238,8 +275,8 @@ pub extern "C" fn dylib_haxby_inject(
                 }
             };
 
-            request.insert_builtin::<RequestGet>();
-            request.insert_builtin::<RequestPost>();
+            request.insert_builtin::<RequestGet>(&vm.globals);
+            request.insert_builtin::<RequestPost>(&vm.globals);
 
             LoadResult::success()
         }

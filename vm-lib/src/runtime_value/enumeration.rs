@@ -9,6 +9,7 @@ use crate::runtime_value::{
     isa::IsaCheckable,
     object::ObjectBox,
 };
+use crate::symbol::Symbol;
 
 use super::{
     RuntimeValue,
@@ -68,7 +69,7 @@ impl EnumImpl {
         None
     }
 
-    fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
+    fn load_named_value(&self, name: Symbol) -> Option<RuntimeValue> {
         if let Some(nv) = self.entries.read(name) {
             Some(nv.clone())
         } else {
@@ -76,7 +77,7 @@ impl EnumImpl {
         }
     }
 
-    fn store_named_value(&self, name: &str, val: RuntimeValue) {
+    fn store_named_value(&self, name: Symbol, val: RuntimeValue) {
         self.entries.write(name, val);
     }
 
@@ -88,7 +89,7 @@ impl EnumImpl {
         self.mixins.borrow().contains(mixin)
     }
 
-    fn list_attributes(&self) -> FxHashSet<String> {
+    fn list_attributes(&self) -> FxHashSet<Symbol> {
         let mut attrs = self.entries.keys();
         attrs.extend(self.mixins.borrow().list_attributes());
         attrs
@@ -129,11 +130,11 @@ impl Enum {
         self.imp.get_case_by_idx(idx)
     }
 
-    pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn load_named_value(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.load_named_value(name)
     }
 
-    pub fn store_named_value(&self, name: &str, val: RuntimeValue) {
+    pub fn store_named_value(&self, name: Symbol, val: RuntimeValue) {
         self.imp.store_named_value(name, val);
     }
 
@@ -164,17 +165,19 @@ impl Enum {
         }
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.imp.list_attributes()
     }
 
-    pub fn insert_builtin<T>(&self)
+    pub fn insert_builtin<T>(&self, builtins: &crate::builtins::VmGlobals)
     where
         T: 'static + Default + BuiltinFunctionImpl,
     {
         let t = T::default();
-        let name = t.name().to_owned();
-        self.store_named_value(&name, RuntimeValue::Function(Function::builtin_from(t)));
+        let name_sym = builtins
+            .intern_symbol(t.name())
+            .expect("failed to intern builtin name");
+        self.store_named_value(name_sym, RuntimeValue::Function(Function::builtin_from(t)));
     }
 }
 

@@ -4,6 +4,7 @@ use std::rc::Rc;
 use rustc_data_structures::fx::FxHashSet;
 
 use super::{RuntimeValue, object::ObjectBox};
+use crate::symbol::Symbol;
 
 pub(crate) struct BuiltinValueImpl<T>
 where
@@ -17,15 +18,15 @@ impl<T> BuiltinValueImpl<T>
 where
     T: Clone,
 {
-    fn write(&self, name: &str, val: RuntimeValue) {
+    fn write(&self, name: Symbol, val: RuntimeValue) {
         self.boxx.write(name, val)
     }
 
-    fn read(&self, name: &str) -> Option<RuntimeValue> {
+    fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.boxx.read(name)
     }
 
-    fn list_attributes(&self) -> FxHashSet<String> {
+    fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.boxx.list_attributes()
     }
 }
@@ -69,15 +70,15 @@ where
         self.imp.val.clone()
     }
 
-    pub fn write(&self, name: &str, val: RuntimeValue) {
+    pub fn write(&self, name: Symbol, val: RuntimeValue) {
         self.imp.write(name, val)
     }
 
-    pub fn read(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.read(name)
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.imp.list_attributes()
     }
 }

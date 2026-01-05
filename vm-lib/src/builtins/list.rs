@@ -275,14 +275,14 @@ pub(super) fn insert_list_builtins(builtins: &mut VmGlobals) {
     let list_builtin =
         RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::List);
 
-    list_builtin.insert_builtin::<ListLen>();
-    list_builtin.insert_builtin::<ListAppend>();
-    list_builtin.insert_builtin::<Drop>();
-    list_builtin.insert_builtin::<GetAt>();
-    list_builtin.insert_builtin::<OpReadIndex>();
-    list_builtin.insert_builtin::<SetAt>();
-    list_builtin.insert_builtin::<OpWriteIndex>();
-    list_builtin.insert_builtin::<NewWithCapacity>();
+    list_builtin.insert_builtin::<ListLen>(builtins);
+    list_builtin.insert_builtin::<ListAppend>(builtins);
+    list_builtin.insert_builtin::<Drop>(builtins);
+    list_builtin.insert_builtin::<GetAt>(builtins);
+    list_builtin.insert_builtin::<OpReadIndex>(builtins);
+    list_builtin.insert_builtin::<SetAt>(builtins);
+    list_builtin.insert_builtin::<OpWriteIndex>(builtins);
+    list_builtin.insert_builtin::<NewWithCapacity>(builtins);
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::List,

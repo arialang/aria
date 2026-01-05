@@ -10,6 +10,7 @@ use super::{
     mixin::Mixin,
     object::ObjectBox,
 };
+use crate::symbol::Symbol;
 
 #[derive(EnumAsInner, Clone, PartialEq, Eq)]
 pub enum RustNativeValueKind {
@@ -28,11 +29,11 @@ struct RustNativeTypeImpl {
 }
 
 impl RustNativeTypeImpl {
-    fn write(&self, name: &str, val: RuntimeValue) {
+    fn write(&self, name: Symbol, val: RuntimeValue) {
         self.boxx.write(name, val)
     }
 
-    fn read(&self, name: &str) -> Option<RuntimeValue> {
+    fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         match self.boxx.read(name) {
             Some(nv) => Some(nv),
             _ => self.mixins.borrow().load_named_value(name),
@@ -47,7 +48,7 @@ impl RustNativeTypeImpl {
         self.mixins.borrow().contains(mixin)
     }
 
-    fn list_attributes(&self) -> FxHashSet<String> {
+    fn list_attributes(&self) -> FxHashSet<Symbol> {
         let mut attrs = self.boxx.list_attributes();
         attrs.extend(self.mixins.borrow().list_attributes());
         attrs
@@ -78,11 +79,11 @@ impl RustNativeType {
         &self.imp.boxx
     }
 
-    pub fn write(&self, name: &str, val: RuntimeValue) {
+    pub fn write(&self, name: Symbol, val: RuntimeValue) {
         self.imp.write(name, val);
     }
 
-    pub fn read(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.read(name)
     }
 
@@ -94,17 +95,19 @@ impl RustNativeType {
         self.imp.isa_mixin(mixin)
     }
 
-    pub fn insert_builtin<T>(&self)
+    pub fn insert_builtin<T>(&self, builtins: &crate::builtins::VmGlobals)
     where
         T: 'static + Default + BuiltinFunctionImpl,
     {
         let t = T::default();
-        let name = t.name().to_owned();
+        let name_sym = builtins
+            .intern_symbol(t.name())
+            .expect("failed to intern builtin name");
         self.get_boxx()
-            .write(&name, RuntimeValue::Function(Function::builtin_from(t)));
+            .write(name_sym, RuntimeValue::Function(Function::builtin_from(t)));
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.imp.list_attributes()
     }
 }

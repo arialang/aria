@@ -177,15 +177,24 @@ pub(super) fn insert_float_builtins(builtins: &mut VmGlobals) {
     let fp_builtin =
         RustNativeType::new(crate::runtime_value::rust_native_type::RustNativeValueKind::Float);
 
-    fp_builtin.insert_builtin::<FpHash>();
-    fp_builtin.insert_builtin::<FpFloor>();
-    fp_builtin.insert_builtin::<FpCeil>();
-    fp_builtin.insert_builtin::<FpInt>();
-    fp_builtin.insert_builtin::<FpPrettyprint>();
+    fp_builtin.insert_builtin::<FpHash>(builtins);
+    fp_builtin.insert_builtin::<FpFloor>(builtins);
+    fp_builtin.insert_builtin::<FpCeil>(builtins);
+    fp_builtin.insert_builtin::<FpInt>(builtins);
+    fp_builtin.insert_builtin::<FpPrettyprint>(builtins);
 
-    fp_builtin.write("inf", RuntimeValue::Float(f64::INFINITY.into()));
-    fp_builtin.write("nan", RuntimeValue::Float(f64::NAN.into()));
-    fp_builtin.write("epsilon", RuntimeValue::Float(f64::EPSILON.into()));
+    let inf = builtins
+        .intern_symbol("inf")
+        .expect("failed to intern builtin name");
+    let nan = builtins
+        .intern_symbol("nan")
+        .expect("failed to intern builtin name");
+    let epsilon = builtins
+        .intern_symbol("epsilon")
+        .expect("failed to intern builtin name");
+    fp_builtin.write(inf, RuntimeValue::Float(f64::INFINITY.into()));
+    fp_builtin.write(nan, RuntimeValue::Float(f64::NAN.into()));
+    fp_builtin.write(epsilon, RuntimeValue::Float(f64::EPSILON.into()));
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::Float,

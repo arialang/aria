@@ -56,6 +56,11 @@ pub const INTERNED_OP_IMPL_LTEQ: Symbol = Symbol(26);
 pub const INTERNED_OP_IMPL_GTEQ: Symbol = Symbol(27);
 
 pub const INTERNED_OP_PRETTYPRINT: Symbol = Symbol(28);
+pub const INTERNED_OP_IMPL_NEG: Symbol = Symbol(29);
+
+pub const INTERNED_ATTR_BACKTRACE: Symbol = Symbol(30);
+pub const INTERNED_ATTR_IMPL: Symbol = Symbol(31);
+pub const INTERNED_ATTR_NEXT: Symbol = Symbol(32);
 
 pub struct Interner {
     map: FxHashMap<String, Symbol>,
@@ -106,6 +111,10 @@ impl Default for Interner {
         assert!(this.intern("_op_impl_lteq").unwrap() == INTERNED_OP_IMPL_LTEQ);
         assert!(this.intern("_op_impl_gteq").unwrap() == INTERNED_OP_IMPL_GTEQ);
         assert!(this.intern("prettyprint").unwrap() == INTERNED_OP_PRETTYPRINT);
+        assert!(this.intern("_op_impl_neg").unwrap() == INTERNED_OP_IMPL_NEG);
+        assert!(this.intern("backtrace").unwrap() == INTERNED_ATTR_BACKTRACE);
+        assert!(this.intern("__impl").unwrap() == INTERNED_ATTR_IMPL);
+        assert!(this.intern("next").unwrap() == INTERNED_ATTR_NEXT);
 
         this
     }
@@ -126,6 +135,10 @@ impl Interner {
         self.map.insert(self.strings[sym.0 as usize].clone(), sym);
 
         Ok(sym)
+    }
+
+    pub fn lookup(&self, s: &str) -> Option<Symbol> {
+        self.map.get(s).copied()
     }
 
     pub fn resolve(&self, sym: Symbol) -> Option<&str> {

@@ -4,6 +4,7 @@ use enum_as_inner::EnumAsInner;
 use haxby_opcodes::BuiltinTypeId;
 use rustc_data_structures::fx::FxHashSet;
 
+use crate::symbol::Symbol;
 use crate::{arity::Arity, builtins::VmGlobals};
 
 use super::{
@@ -168,7 +169,7 @@ impl std::ops::BitOr<&RuntimeValueType> for &RuntimeValueType {
 }
 
 impl RuntimeValueType {
-    pub fn read_attribute(&self, attr_name: &str) -> Result<RuntimeValue, AttributeError> {
+    pub fn read_attribute(&self, attr_name: Symbol) -> Result<RuntimeValue, AttributeError> {
         if let Some(struk) = self.as_struct() {
             match struk.load_named_value(attr_name) {
                 Some(x) => Ok(x),
@@ -191,7 +192,7 @@ impl RuntimeValueType {
 
     pub fn write_attribute(
         &self,
-        attr_name: &str,
+        attr_name: Symbol,
         val: RuntimeValue,
     ) -> Result<(), AttributeError> {
         if let Some(struk) = self.as_struct() {
@@ -208,7 +209,7 @@ impl RuntimeValueType {
         }
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         if let Some(struk) = self.as_struct() {
             struk.list_attributes()
         } else if let Some(enumm) = self.as_enum() {

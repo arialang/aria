@@ -92,10 +92,10 @@ pub extern "C" fn dylib_haxby_inject(
             .get_builtin_type_by_id(BuiltinTypeId::String)
             .as_rust_native()
     {
-        string.insert_builtin::<CharBuiltinFunction<is_lowercase_letter>>();
-        string.insert_builtin::<CharBuiltinFunction<is_uppercase_letter>>();
-        string.insert_builtin::<CharBuiltinFunction<is_digit>>();
-        string.insert_builtin::<CharBuiltinFunction<is_whitespace>>();
+        string.insert_builtin::<CharBuiltinFunction<is_lowercase_letter>>(&vm.globals);
+        string.insert_builtin::<CharBuiltinFunction<is_uppercase_letter>>(&vm.globals);
+        string.insert_builtin::<CharBuiltinFunction<is_digit>>(&vm.globals);
+        string.insert_builtin::<CharBuiltinFunction<is_whitespace>>(&vm.globals);
         return LoadResult::success();
     }
 

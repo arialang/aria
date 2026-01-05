@@ -6,6 +6,7 @@ use crate::{
     error::vm_error::{VmError, VmErrorReason},
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, object::Object},
+    symbol::INTERNED_OP_IMPL_CALL,
     vm::RunloopExit,
 };
 
@@ -37,10 +38,18 @@ impl Arity {
             let arity_struct = arity_struct
                 .as_struct()
                 .ok_or(VmErrorReason::UnexpectedType)?;
+            let upper_bound_sym = vm
+                .globals
+                .intern_symbol("UpperBound")
+                .map_err(|_| VmErrorReason::UnexpectedVmState)?;
             let upper_bound_enum =
-                arity_struct.load_named_value("UpperBound").ok_or_else(|| {
-                    VmErrorReason::NoSuchIdentifier("aria.core.arity.Arity.UpperBound".to_owned())
-                })?;
+                arity_struct
+                    .load_named_value(upper_bound_sym)
+                    .ok_or_else(|| {
+                        VmErrorReason::NoSuchIdentifier(
+                            "aria.core.arity.Arity.UpperBound".to_owned(),
+                        )
+                    })?;
             let upper_bound_enum = upper_bound_enum
                 .as_enum()
                 .ok_or(VmErrorReason::UnexpectedType)?;
@@ -74,7 +83,7 @@ fn get_to_function_for_callable(
         Some((f.clone(), false))
     } else if let Some(bf) = val.as_bound_function() {
         Some((bf.func().clone(), true))
-    } else if let Ok(call) = val.read_attribute("_op_impl_call", &vm.globals) {
+    } else if let Ok(call) = val.read_attribute(INTERNED_OP_IMPL_CALL, &vm.globals) {
         get_to_function_for_callable(&call, vm)
     } else {
         None
@@ -115,10 +124,22 @@ impl BuiltinFunctionImpl for Arity {
         let lower_bound_value =
             RuntimeValue::Integer(((f_arity.required - argc_offset) as i64).into());
 
+        let min_sym = vm
+            .globals
+            .intern_symbol("min")
+            .map_err(|_| VmErrorReason::UnexpectedVmState)?;
+        let max_sym = vm
+            .globals
+            .intern_symbol("max")
+            .map_err(|_| VmErrorReason::UnexpectedVmState)?;
+        let has_receiver_sym = vm
+            .globals
+            .intern_symbol("has_receiver")
+            .map_err(|_| VmErrorReason::UnexpectedVmState)?;
         let arity_object = Object::new(&arity_cache.arity_struct)
-            .with_value("min", lower_bound_value)
-            .with_value("max", upper_bound_value)
-            .with_value("has_receiver", RuntimeValue::Boolean(has_receiver.into()));
+            .with_value(min_sym, lower_bound_value)
+            .with_value(max_sym, upper_bound_value)
+            .with_value(has_receiver_sym, RuntimeValue::Boolean(has_receiver.into()));
 
         frame.stack.push(RuntimeValue::Object(arity_object));
         Ok(RunloopExit::Ok(()))

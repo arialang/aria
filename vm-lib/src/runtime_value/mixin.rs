@@ -4,6 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 use rustc_data_structures::fx::FxHashSet;
 
 use crate::runtime_value::object::ObjectBox;
+use crate::symbol::Symbol;
 
 use super::RuntimeValue;
 
@@ -22,7 +23,7 @@ impl MixinImpl {
         }
     }
 
-    fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
+    fn load_named_value(&self, name: Symbol) -> Option<RuntimeValue> {
         if let Some(val) = self.entries.read(name) {
             Some(val.clone())
         } else {
@@ -30,11 +31,11 @@ impl MixinImpl {
         }
     }
 
-    fn store_named_value(&self, name: &str, val: RuntimeValue) {
+    fn store_named_value(&self, name: Symbol, val: RuntimeValue) {
         self.entries.write(name, val);
     }
 
-    fn named_values(&self) -> Vec<String> {
+    fn named_values(&self) -> Vec<Symbol> {
         self.entries.keys().into_iter().collect()
     }
 
@@ -46,7 +47,7 @@ impl MixinImpl {
         self.mixins.borrow().contains(mixin)
     }
 
-    fn list_attributes(&self) -> FxHashSet<String> {
+    fn list_attributes(&self) -> FxHashSet<Symbol> {
         let mut attrs = self.entries.keys();
         attrs.extend(self.mixins.borrow().list_attributes());
         attrs
@@ -69,15 +70,15 @@ impl Mixin {
         &self.imp.name
     }
 
-    pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn load_named_value(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.load_named_value(name)
     }
 
-    pub fn store_named_value(&self, name: &str, val: RuntimeValue) {
+    pub fn store_named_value(&self, name: Symbol, val: RuntimeValue) {
         self.imp.store_named_value(name, val);
     }
 
-    pub fn named_values(&self) -> Vec<String> {
+    pub fn named_values(&self) -> Vec<Symbol> {
         self.imp.named_values()
     }
 
@@ -89,7 +90,7 @@ impl Mixin {
         self == mixin || self.imp.isa_mixin(mixin)
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.imp.list_attributes()
     }
 }

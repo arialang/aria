@@ -4,36 +4,37 @@ use std::{cell::RefCell, rc::Rc};
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 
 use crate::error::vm_error::VmErrorReason;
+use crate::symbol::Symbol;
 
 use super::{RuntimeValue, structure::Struct};
 
 #[derive(Default)]
 pub struct ObjectBox {
-    values: RefCell<FxHashMap<String, RuntimeValue>>,
+    values: RefCell<FxHashMap<Symbol, RuntimeValue>>,
 }
 
 impl ObjectBox {
-    pub fn write(&self, name: &str, val: RuntimeValue) {
-        self.values.borrow_mut().insert(name.to_owned(), val);
+    pub fn write(&self, name: Symbol, val: RuntimeValue) {
+        self.values.borrow_mut().insert(name, val);
     }
 
-    pub fn read(&self, name: &str) -> Option<RuntimeValue> {
-        self.values.borrow().get(name).cloned()
+    pub fn read(&self, name: Symbol) -> Option<RuntimeValue> {
+        self.values.borrow().get(&name).cloned()
     }
 
-    fn delete(&self, name: &str) {
-        self.values.borrow_mut().remove(name);
+    fn delete(&self, name: Symbol) {
+        self.values.borrow_mut().remove(&name);
     }
 
-    pub(super) fn list_attributes(&self) -> FxHashSet<String> {
+    pub(super) fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.values.borrow().keys().cloned().collect()
     }
 
-    pub(crate) fn contains(&self, name: &str) -> bool {
-        self.values.borrow().contains_key(name)
+    pub(crate) fn contains(&self, name: Symbol) -> bool {
+        self.values.borrow().contains_key(&name)
     }
 
-    pub(crate) fn keys(&self) -> FxHashSet<String> {
+    pub(crate) fn keys(&self) -> FxHashSet<Symbol> {
         self.values.borrow().keys().cloned().collect()
     }
 }
@@ -56,19 +57,19 @@ impl ObjectImpl {
         }
     }
 
-    fn write(&self, name: &str, val: RuntimeValue) {
+    fn write(&self, name: Symbol, val: RuntimeValue) {
         self.boxx.write(name, val)
     }
 
-    fn read(&self, name: &str) -> Option<RuntimeValue> {
+    fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.boxx.read(name)
     }
 
-    fn delete(&self, name: &str) {
+    fn delete(&self, name: Symbol) {
         self.boxx.delete(name);
     }
 
-    fn list_attributes(&self) -> FxHashSet<String> {
+    fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.boxx.list_attributes()
     }
 }
@@ -80,19 +81,19 @@ impl Object {
         }
     }
 
-    pub fn write(&self, name: &str, val: RuntimeValue) {
+    pub fn write(&self, name: Symbol, val: RuntimeValue) {
         self.imp.write(name, val);
     }
 
-    pub fn read(&self, name: &str) -> Option<RuntimeValue> {
+    pub fn read(&self, name: Symbol) -> Option<RuntimeValue> {
         self.imp.read(name)
     }
 
-    pub fn list_attributes(&self) -> FxHashSet<String> {
+    pub fn list_attributes(&self) -> FxHashSet<Symbol> {
         self.imp.list_attributes()
     }
 
-    pub fn delete(&self, name: &str) {
+    pub fn delete(&self, name: Symbol) {
         self.imp.delete(name);
     }
 
@@ -100,7 +101,7 @@ impl Object {
         &self.imp.kind
     }
 
-    pub fn with_value(self, name: &str, val: RuntimeValue) -> Self {
+    pub fn with_value(self, name: Symbol, val: RuntimeValue) -> Self {
         self.write(name, val);
         self
     }
@@ -116,7 +117,7 @@ impl Eq for Object {}
 impl Object {
     pub fn extract_field<FnType, OkType>(
         &self,
-        name: &str,
+        name: Symbol,
         f: FnType,
     ) -> Result<OkType, VmErrorReason>
     where
@@ -125,7 +126,7 @@ impl Object {
         let val = match self.read(name) {
             Some(v) => v,
             None => {
-                return Err(VmErrorReason::NoSuchIdentifier(name.to_owned()));
+                return Err(VmErrorReason::NoSuchSymbol(name));
             }
         };
 
