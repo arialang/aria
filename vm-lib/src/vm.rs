@@ -377,62 +377,55 @@ impl VirtualMachine {
 
     fn create_import_model_from_path(
         module: &RuntimeModule,
+        builtins: &VmGlobals,
         ipath: &str,
         leaf: RuntimeValue,
-    ) -> Result<RuntimeValue, VmErrorReason> {
+    ) -> RuntimeValue {
         let components = ipath.split(".").collect::<Vec<_>>();
         if components.len() == 1 {
             let cmp_last = components[0];
             module.store_named_value(cmp_last, leaf.clone());
-            return Ok(leaf);
+            return leaf;
         }
 
         let cmp0 = components[0];
-        let root = {
-            match module.load_named_value(cmp0) {
-                Some(cmp0_obj) => match cmp0_obj.as_enum() {
-                    Some(s) => s.clone(),
-                    _ => {
-                        return Err(VmErrorReason::UnexpectedType);
-                    }
-                },
-                _ => {
-                    let cmp0_struct = Enum::new(cmp0);
-                    let cmp0_val = RuntimeValue::Type(RuntimeValueType::Enum(cmp0_struct.clone()));
-                    module.store_named_value(cmp0, cmp0_val);
-                    cmp0_struct
-                }
-            }
+        let root = if let Some(cmp0_obj) = module.load_named_value(cmp0)
+            && cmp0_obj.is_enum()
+        {
+            cmp0_obj
+        } else {
+            let cmp0_struct = Enum::new(cmp0);
+            let cmp0_val = RuntimeValue::Type(RuntimeValueType::Enum(cmp0_struct.clone()));
+            module.store_named_value(cmp0, cmp0_val);
+            RuntimeValue::Type(RuntimeValueType::Enum(cmp0_struct))
         };
 
         let mut current_struct = root.clone();
 
         fn get_or_create_empty_enum(
-            current_struct: &Enum,
+            current_struct: &RuntimeValue,
             name: &str,
-        ) -> Result<Enum, VmErrorReason> {
-            match current_struct.load_named_value(name) {
-                Some(existing_val) => match existing_val.as_enum() {
-                    Some(s) => Ok(s.clone()),
-                    _ => Err(VmErrorReason::UnexpectedType),
-                },
-                None => {
-                    let new_struct = Enum::new(name);
-                    let new_val = RuntimeValue::Type(RuntimeValueType::Enum(new_struct.clone()));
-                    current_struct.store_named_value(name, new_val);
-                    Ok(new_struct)
-                }
+            builtins: &VmGlobals,
+        ) -> RuntimeValue {
+            if let Ok(existing_val) = current_struct.read_attribute(name, builtins)
+                && existing_val.is_enum()
+            {
+                existing_val
+            } else {
+                let new_val = RuntimeValue::Type(RuntimeValueType::Enum(Enum::new(name)));
+                let _ = current_struct.write_attribute(name, new_val.clone());
+                new_val
             }
         }
 
         for cmp in components.iter().take(components.len() - 1).skip(1) {
-            current_struct = get_or_create_empty_enum(&current_struct, cmp)?;
+            current_struct = get_or_create_empty_enum(&current_struct, cmp, builtins)
         }
 
         let cmp_last = components.last().unwrap();
-        current_struct.store_named_value(cmp_last, leaf.clone());
+        let _ = current_struct.write_attribute(cmp_last, leaf.clone());
 
-        Ok(RuntimeValue::Type(RuntimeValueType::Enum(root)))
+        root
     }
 
     pub fn load_into_module(
@@ -1330,35 +1323,6 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
-            Opcode::BindMethod(a, n) => {
-                let method = pop_or_err!(next, frame, op_idx);
-                let struk = pop_or_err!(next, frame, op_idx);
-                let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
-
-                if let Some(x) = method.as_code_object() {
-                    let new_f =
-                        RuntimeValue::Function(Function::from_code_object(x, a, this_module));
-                    if let Some(y) = struk.as_struct() {
-                        y.store_named_value(&new_name, new_f);
-                    } else if let Some(y) = struk.as_enum() {
-                        y.store_named_value(&new_name, new_f);
-                    } else if let Some(y) = struk.as_mixin() {
-                        y.store_named_value(&new_name, new_f);
-                    } else if let Some(y) = struk.as_rust_native() {
-                        y.write(&new_name, new_f);
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                }
-            }
             Opcode::BindCase(a, n) => {
                 let payload_type = if (a & CASE_HAS_PAYLOAD) == CASE_HAS_PAYLOAD {
                     let t = pop_or_err!(next, frame, op_idx);
@@ -1728,9 +1692,10 @@ impl VirtualMachine {
                 if let Some(mli) = self.imported_modules.get(&ipath) {
                     Self::create_import_model_from_path(
                         this_module,
+                        &self.globals,
                         &ipath,
                         RuntimeValue::Module(mli.module.clone()),
-                    )?;
+                    );
 
                     frame.stack.push(RuntimeValue::Module(mli.module.clone()));
                 } else {
@@ -1797,9 +1762,10 @@ impl VirtualMachine {
 
                     Self::create_import_model_from_path(
                         this_module,
+                        &self.globals,
                         &ipath,
                         RuntimeValue::Module(mli.module.clone()),
-                    )?;
+                    );
 
                     assert!(ipath == self.import_stack.pop());
 

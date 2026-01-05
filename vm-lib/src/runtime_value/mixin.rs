@@ -30,10 +30,6 @@ impl MixinImpl {
         }
     }
 
-    fn store_named_value(&self, name: &str, val: RuntimeValue) {
-        self.entries.write(name, val);
-    }
-
     fn named_values(&self) -> Vec<String> {
         self.entries.keys().into_iter().collect()
     }
@@ -71,10 +67,6 @@ impl Mixin {
 
     pub fn load_named_value(&self, name: &str) -> Option<RuntimeValue> {
         self.imp.load_named_value(name)
-    }
-
-    pub(crate) fn store_named_value(&self, name: &str, val: RuntimeValue) {
-        self.imp.store_named_value(name, val);
     }
 
     pub fn named_values(&self) -> Vec<String> {

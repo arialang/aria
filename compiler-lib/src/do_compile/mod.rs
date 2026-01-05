@@ -339,7 +339,7 @@ fn emit_method_decl_compile(md: &MethodDecl, params: &mut CompileParams) -> Comp
         .writer
         .get_current_block()
         .write_opcode_and_source_info(
-            CompilerOpcode::BindMethod(
+            CompilerOpcode::BuildFunction(
                 if md.args.vararg {
                     FUNC_ACCEPTS_VARARG
                 } else {
@@ -350,10 +350,10 @@ fn emit_method_decl_compile(md: &MethodDecl, params: &mut CompileParams) -> Comp
                     } else {
                         0
                     },
-                name_idx,
             ),
             md.loc.clone(),
-        );
+        )
+        .write_opcode_and_source_info(CompilerOpcode::WriteAttribute(name_idx), md.loc.clone());
 
     Ok(())
 }

@@ -70,16 +70,6 @@ pub fn opcode_prettyprint(
                 << symbol_best_repr(resolver, idx)
                 << "]"
         }
-        Opcode::BindMethod(arg, idx) => {
-            buffer
-                << "BIND_METHOD("
-                << arg
-                << ",@"
-                << idx
-                << ") ["
-                << const_best_repr(resolver, idx)
-                << "]"
-        }
         Opcode::BindCase(arg, idx) => {
             buffer
                 << "BIND_CASE("

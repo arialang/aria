@@ -133,10 +133,6 @@ impl Enum {
         self.imp.load_named_value(name)
     }
 
-    pub(crate) fn store_named_value(&self, name: &str, val: RuntimeValue) {
-        self.imp.store_named_value(name, val);
-    }
-
     pub fn include_mixin(&self, mixin: &Mixin) {
         self.imp.include_mixin(mixin);
     }
@@ -174,7 +170,8 @@ impl Enum {
     {
         let t = T::default();
         let name = t.name().to_owned();
-        self.store_named_value(&name, RuntimeValue::Function(Function::builtin_from(t)));
+        self.imp
+            .store_named_value(&name, RuntimeValue::Function(Function::builtin_from(t)));
     }
 }
 

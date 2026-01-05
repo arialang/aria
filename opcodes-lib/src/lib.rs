@@ -63,7 +63,6 @@ pub const OPCODE_STORE_UPLEVEL: u8 = 82;
 pub const OPCODE_BUILD_STRUCT: u8 = 83;
 pub const OPCODE_BUILD_ENUM: u8 = 84;
 pub const OPCODE_BUILD_MIXIN: u8 = 85;
-pub const OPCODE_BIND_METHOD: u8 = 86;
 pub const OPCODE_BIND_CASE: u8 = 87;
 pub const OPCODE_INCLUDE_MIXIN: u8 = 88;
 pub const OPCODE_NEW_ENUM_VAL: u8 = 89;
@@ -267,7 +266,6 @@ pub enum Opcode {
     BuildStruct,
     BuildEnum,
     BuildMixin,
-    BindMethod(u8, u16),
     BindCase(u8, u16),
     IncludeMixin,
     NewEnumVal(u8, u16),
@@ -345,7 +343,6 @@ impl std::fmt::Display for Opcode {
             Self::BuildStruct => write!(f, "BUILD_STRUCT"),
             Self::BuildEnum => write!(f, "BUILD_ENUM"),
             Self::BuildMixin => write!(f, "BUILD_MIXIN"),
-            Self::BindMethod(arg0, arg1) => write!(f, "BIND_M {arg0} @{arg1}"),
             Self::BindCase(arg0, arg1) => write!(f, "BIND_C {arg0} @{arg1}"),
             Self::IncludeMixin => write!(f, "INCLUDE_MIXIN"),
             Self::NewEnumVal(arg0, arg1) => write!(f, "NEW_ENUM_VAL {arg0} @{arg1}"),

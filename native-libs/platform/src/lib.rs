@@ -78,15 +78,15 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
         let mac_info = mac_info
             .as_struct()
             .ok_or(VmErrorReason::UnexpectedVmState)?;
-        let mac_info = Object::new(mac_info);
-        mac_info.write("os_build", RuntimeValue::String(mac_version.into()));
+        let mac_info = RuntimeValue::Object(Object::new(mac_info));
+        let _ = mac_info.write_attribute("os_build", RuntimeValue::String(mac_version.into()));
 
         let mac_case = platform_enum
             .get_idx_of_case("macOS")
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         let mac_enum_instance = platform_enum
-            .make_value(mac_case, Some(RuntimeValue::Object(mac_info)))
+            .make_value(mac_case, Some(mac_info))
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         frame.stack.push(RuntimeValue::EnumValue(mac_enum_instance));

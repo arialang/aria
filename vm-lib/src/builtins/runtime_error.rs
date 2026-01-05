@@ -16,7 +16,7 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
     let int = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
     let str = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
 
-    let rt_err_enum = Enum::new_with_cases(
+    let rt_err_enum = RuntimeValue::Type(RuntimeValueType::Enum(Enum::new_with_cases(
         "RuntimeError",
         &[
             EnumCase {
@@ -54,15 +54,18 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
                 payload_type: None,
             },
         ],
-    );
+    )));
 
-    rt_err_enum.store_named_value(
+    let _ = rt_err_enum.write_attribute(
         "ArgcMismatch",
         RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch)),
     );
 
     builtins.register_builtin_type(
         haxby_opcodes::BuiltinTypeId::RuntimeError,
-        RuntimeValueType::Enum(rt_err_enum),
+        rt_err_enum
+            .as_type()
+            .expect("RuntimeError is a type")
+            .clone(),
     );
 }

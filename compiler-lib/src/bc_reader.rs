@@ -278,21 +278,6 @@ impl BytecodeReader {
             haxby_opcodes::OPCODE_BUILD_STRUCT => Ok(Opcode::BuildStruct),
             haxby_opcodes::OPCODE_BUILD_ENUM => Ok(Opcode::BuildEnum),
             haxby_opcodes::OPCODE_BUILD_MIXIN => Ok(Opcode::BuildMixin),
-            haxby_opcodes::OPCODE_BIND_METHOD => {
-                let b0 = match self.read_u8() {
-                    Ok(b) => b,
-                    Err(_) => {
-                        return Err(DecodeError::InsufficientData);
-                    }
-                };
-                let w1 = match self.read_u16() {
-                    Ok(w) => w,
-                    Err(_) => {
-                        return Err(DecodeError::InsufficientData);
-                    }
-                };
-                Ok(Opcode::BindMethod(b0, w1))
-            }
             haxby_opcodes::OPCODE_BIND_CASE => {
                 let b0 = match self.read_u8() {
                     Ok(b) => b,

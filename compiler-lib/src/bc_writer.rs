@@ -124,10 +124,6 @@ impl BytecodeWriter {
             Opcode::BuildStruct => self.write_u8(haxby_opcodes::OPCODE_BUILD_STRUCT),
             Opcode::BuildMixin => self.write_u8(haxby_opcodes::OPCODE_BUILD_MIXIN),
             Opcode::BuildEnum => self.write_u8(haxby_opcodes::OPCODE_BUILD_ENUM),
-            Opcode::BindMethod(a, n) => self
-                .write_u8(haxby_opcodes::OPCODE_BIND_METHOD)
-                .write_u8(*a)
-                .write_u16(*n),
             Opcode::BindCase(a, n) => self
                 .write_u8(haxby_opcodes::OPCODE_BIND_CASE)
                 .write_u8(*a)
