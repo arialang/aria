@@ -8,7 +8,7 @@ logos = "0.16.0"
 rowan = "0.16.1"
 line-index = "0.1.2"
 tower-lsp = "0.20.0"
-tokio = { version = "1.48.0", features = ["full"] }
+tokio = { version = "1.49.0", features = ["full"] }
 parking_lot = "0.12"
 
 [dev-dependencies]
