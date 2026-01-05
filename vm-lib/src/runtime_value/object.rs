@@ -38,14 +38,14 @@ impl ObjectBox {
     }
 }
 
-struct ObjectImpl {
-    boxx: ObjectBox,
+pub(super) struct ObjectImpl {
+    pub(super) boxx: ObjectBox,
     kind: Struct,
 }
 
 #[derive(Clone)]
 pub struct Object {
-    imp: Rc<ObjectImpl>,
+    pub(super) imp: Rc<ObjectImpl>,
 }
 
 impl ObjectImpl {

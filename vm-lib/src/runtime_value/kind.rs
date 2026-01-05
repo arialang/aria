@@ -189,6 +189,23 @@ impl RuntimeValueType {
         }
     }
 
+    pub(super) fn get_attribute_store(&self) -> Option<&super::object::ObjectBox> {
+        match self {
+            RuntimeValueType::RustNative(rt) => Some(rt.get_boxx().as_ref()),
+            RuntimeValueType::Struct(st) => Some(&st.imp.as_ref().entries),
+            RuntimeValueType::Enum(en) => Some(&en.imp.as_ref().entries),
+            RuntimeValueType::Union(_) => None,
+            RuntimeValueType::Function(_) => None,
+            RuntimeValueType::BoundFunction(_) => None,
+            RuntimeValueType::CodeObject => None,
+            RuntimeValueType::Module => None,
+            RuntimeValueType::Mixin => None,
+            RuntimeValueType::Opaque => None,
+            RuntimeValueType::TypeCheck => None,
+            RuntimeValueType::Any => None,
+        }
+    }
+
     pub fn write_attribute(
         &self,
         attr_name: &str,

@@ -15,7 +15,7 @@ use super::RuntimeValue;
 #[derive(Default)]
 pub(super) struct ListImpl {
     values: RefCell<Vec<RuntimeValue>>,
-    boxx: ObjectBox,
+    pub(super) boxx: ObjectBox,
 }
 
 impl ListImpl {

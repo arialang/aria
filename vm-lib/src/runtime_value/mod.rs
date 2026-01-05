@@ -523,39 +523,36 @@ impl RuntimeValue {
         format!("{self}")
     }
 
+    fn get_attribute_store(&self) -> Option<&object::ObjectBox> {
+        match self {
+            RuntimeValue::Integer(bv) => Some(&bv.imp.as_ref().boxx),
+            RuntimeValue::String(bv) => Some(&bv.imp.as_ref().boxx),
+            RuntimeValue::Float(bv) => Some(&bv.imp.as_ref().boxx),
+            RuntimeValue::Boolean(bv) => Some(&bv.imp.as_ref().boxx),
+            RuntimeValue::Object(obj) => Some(&obj.imp.as_ref().boxx),
+            RuntimeValue::EnumValue(_) => None,
+            RuntimeValue::CodeObject(_) => None,
+            RuntimeValue::Function(f) => Some(f.get_attribute_store()),
+            RuntimeValue::BoundFunction(_) => None,
+            RuntimeValue::List(l) => Some(&l.imp.as_ref().boxx),
+            RuntimeValue::Mixin(m) => Some(&m.imp.as_ref().entries),
+            RuntimeValue::Type(t) => t.get_attribute_store(),
+            RuntimeValue::Module(_) => None,
+            RuntimeValue::Opaque(_) => None,
+            RuntimeValue::TypeCheck(_) => None,
+        }
+    }
+
     pub fn write_attribute(
         &self,
         attr_name: &str,
         val: RuntimeValue,
     ) -> Result<(), AttributeError> {
-        if let Some(obj) = self.as_object() {
-            obj.write(attr_name, val);
+        if let Some(rm) = self.as_module() {
+            rm.store_named_value(attr_name, val);
             Ok(())
-        } else if let Some(i) = self.as_integer() {
-            i.write(attr_name, val);
-            Ok(())
-        } else if let Some(i) = self.as_float() {
-            i.write(attr_name, val);
-            Ok(())
-        } else if let Some(i) = self.as_string() {
-            i.write(attr_name, val);
-            Ok(())
-        } else if let Some(i) = self.as_boolean() {
-            i.write(attr_name, val);
-            Ok(())
-        } else if let Some(i) = self.as_function() {
-            i.write(attr_name, val);
-            Ok(())
-        } else if let Some(l) = self.as_list() {
-            l.write(attr_name, val);
-            Ok(())
-        } else if let Some(t) = self.as_type() {
-            t.write_attribute(attr_name, val)
-        } else if let Some(m) = self.as_mixin() {
-            m.store_named_value(attr_name, val);
-            Ok(())
-        } else if let Some(m) = self.as_module() {
-            m.store_named_value(attr_name, val);
+        } else if let Some(ob) = self.get_attribute_store() {
+            ob.write(attr_name, val);
             Ok(())
         } else {
             Err(AttributeError::ValueHasNoAttributes)

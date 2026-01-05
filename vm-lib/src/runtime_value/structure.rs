@@ -11,9 +11,9 @@ use super::{
     mixin::Mixin,
 };
 
-struct StructImpl {
+pub(super) struct StructImpl {
     name: String,
-    entries: ObjectBox,
+    pub(super) entries: ObjectBox,
     mixins: RefCell<crate::mixin_includer::MixinIncluder>,
 }
 
@@ -55,7 +55,7 @@ impl StructImpl {
 
 #[derive(Clone)]
 pub struct Struct {
-    imp: Rc<StructImpl>,
+    pub(super) imp: Rc<StructImpl>,
 }
 
 impl Struct {

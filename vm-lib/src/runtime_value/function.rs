@@ -119,6 +119,13 @@ impl FunctionImpl {
             Self::BuiltinFunction(_) => None,
         }
     }
+
+    fn get_attribute_store(&self) -> &ObjectBox {
+        match self {
+            Self::BytecodeFunction(bc) => &bc.boxx,
+            Self::BuiltinFunction(bf) => &bf.boxx,
+        }
+    }
 }
 
 impl Function {
@@ -148,6 +155,10 @@ impl Function {
 
     pub fn loc(&self) -> Option<&SourcePointer> {
         self.imp.loc()
+    }
+
+    pub(super) fn get_attribute_store(&self) -> &ObjectBox {
+        self.imp.get_attribute_store()
     }
 }
 

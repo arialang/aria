@@ -7,9 +7,9 @@ use crate::runtime_value::object::ObjectBox;
 
 use super::RuntimeValue;
 
-struct MixinImpl {
+pub(super) struct MixinImpl {
     name: String,
-    entries: ObjectBox,
+    pub(super) entries: ObjectBox,
     mixins: RefCell<crate::mixin_includer::MixinIncluder>,
 }
 
@@ -55,7 +55,7 @@ impl MixinImpl {
 
 #[derive(Clone)]
 pub struct Mixin {
-    imp: Rc<MixinImpl>,
+    pub(super) imp: Rc<MixinImpl>,
 }
 
 impl Mixin {

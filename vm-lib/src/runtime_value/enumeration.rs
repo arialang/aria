@@ -26,7 +26,7 @@ pub struct EnumCase {
 pub struct EnumImpl {
     name: String,
     cases: RefCell<Vec<EnumCase>>,
-    entries: ObjectBox,
+    pub(super) entries: ObjectBox,
     mixins: RefCell<crate::mixin_includer::MixinIncluder>,
 }
 
@@ -97,7 +97,7 @@ impl EnumImpl {
 
 #[derive(Clone)]
 pub struct Enum {
-    imp: Rc<EnumImpl>,
+    pub(super) imp: Rc<EnumImpl>,
 }
 
 impl Enum {
