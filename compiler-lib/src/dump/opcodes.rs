@@ -145,6 +145,8 @@ pub fn opcode_prettyprint(
         | Opcode::StoreUplevel(_)
         | Opcode::BuildStruct
         | Opcode::BuildEnum
+        | Opcode::BindCaseInterned(..)
+        | Opcode::BindMethodInterned(..)
         | Opcode::BuildMixin
         | Opcode::IncludeMixin
         | Opcode::EnumTryExtractPayload

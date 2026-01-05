@@ -132,6 +132,14 @@ impl BytecodeWriter {
                 .write_u8(haxby_opcodes::OPCODE_BIND_CASE)
                 .write_u8(*a)
                 .write_u16(*n),
+            Opcode::BindMethodInterned(a, n) => self
+                .write_u8(haxby_opcodes::OPCODE_BIND_METHOD_INTERNED)
+                .write_u8(*a)
+                .write_u32(*n),
+            Opcode::BindCaseInterned(a, n) => self
+                .write_u8(haxby_opcodes::OPCODE_BIND_CASE_INTERNED)
+                .write_u8(*a)
+                .write_u32(*n),
             Opcode::IncludeMixin => self.write_u8(haxby_opcodes::OPCODE_INCLUDE_MIXIN),
             Opcode::NewEnumVal(a, n) => self
                 .write_u8(haxby_opcodes::OPCODE_NEW_ENUM_VAL)

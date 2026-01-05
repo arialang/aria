@@ -32,8 +32,6 @@ pub const OPCODE_WRITE_INDEX: u8 = 37;
 pub const OPCODE_READ_ATTRIBUTE: u8 = 38;
 pub const OPCODE_WRITE_ATTRIBUTE: u8 = 39;
 pub const OPCODE_READ_UPLEVEL: u8 = 40;
-pub const OPCODE_READ_ATTRIBUTE_INTERNED: u8 = 41;
-pub const OPCODE_WRITE_ATTRIBUTE_INTERNED: u8 = 42;
 // ...
 pub const OPCODE_EQ: u8 = 50;
 pub const OPCODE_LT: u8 = 51;
@@ -72,6 +70,11 @@ pub const OPCODE_NEW_ENUM_VAL: u8 = 89;
 pub const OPCODE_ENUM_CHECK_IS_CASE: u8 = 90;
 pub const OPCODE_ENUM_TRY_EXTRACT_PAYLOAD: u8 = 91;
 pub const OPCODE_TRY_UNWRAP_PROTOCOL: u8 = 92;
+// ...
+pub const OPCODE_READ_ATTRIBUTE_INTERNED: u8 = 101;
+pub const OPCODE_WRITE_ATTRIBUTE_INTERNED: u8 = 102;
+pub const OPCODE_BIND_METHOD_INTERNED: u8 = 103;
+pub const OPCODE_BIND_CASE_INTERNED: u8 = 104;
 // ...
 pub const OPCODE_IMPORT: u8 = 250;
 pub const OPCODE_LIFT_MODULE: u8 = 251;
@@ -267,7 +270,9 @@ pub enum Opcode {
     BuildEnum,
     BuildMixin,
     BindMethod(u8, u16),
+    BindMethodInterned(u8, u32),
     BindCase(u8, u16),
+    BindCaseInterned(u8, u32),
     IncludeMixin,
     NewEnumVal(u8, u16),
     EnumCheckIsCase(u16),
@@ -344,8 +349,12 @@ impl std::fmt::Display for Opcode {
             Self::BuildStruct => write!(f, "BUILD_STRUCT"),
             Self::BuildEnum => write!(f, "BUILD_ENUM"),
             Self::BuildMixin => write!(f, "BUILD_MIXIN"),
-            Self::BindMethod(arg0, arg1) => write!(f, "BIND_M {arg0} @{arg1}"),
-            Self::BindCase(arg0, arg1) => write!(f, "BIND_C {arg0} @{arg1}"),
+            Self::BindMethod(arg0, arg1) => write!(f, "BIND_METHOD {arg0} @{arg1}"),
+            Self::BindCase(arg0, arg1) => write!(f, "BIND_CASE {arg0} @{arg1}"),
+            Self::BindMethodInterned(arg0, arg1) => {
+                write!(f, "BIND_METHOD_INTERNED {arg0} @{arg1}")
+            }
+            Self::BindCaseInterned(arg0, arg1) => write!(f, "BIND_CASE_INTERNED {arg0} @{arg1}"),
             Self::IncludeMixin => write!(f, "INCLUDE_MIXIN"),
             Self::NewEnumVal(arg0, arg1) => write!(f, "NEW_ENUM_VAL {arg0} @{arg1}"),
             Self::EnumCheckIsCase(arg0) => write!(f, "ENUM_CHECK_IS_CASE @{arg0}"),

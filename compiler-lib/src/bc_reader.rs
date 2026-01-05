@@ -291,6 +291,16 @@ impl BytecodeReader {
                 };
                 Ok(Opcode::BindCase(b0, w1))
             }
+            haxby_opcodes::OPCODE_BIND_METHOD_INTERNED => {
+                let b0 = self.read_u8().map_err(|_| DecodeError::InsufficientData)?;
+                let w1 = self.read_u32().map_err(|_| DecodeError::InsufficientData)?;
+                Ok(Opcode::BindMethodInterned(b0, w1))
+            }
+            haxby_opcodes::OPCODE_BIND_CASE_INTERNED => {
+                let b0 = self.read_u8().map_err(|_| DecodeError::InsufficientData)?;
+                let w1 = self.read_u32().map_err(|_| DecodeError::InsufficientData)?;
+                Ok(Opcode::BindCaseInterned(b0, w1))
+            }
             haxby_opcodes::OPCODE_INCLUDE_MIXIN => Ok(Opcode::IncludeMixin),
             haxby_opcodes::OPCODE_NEW_ENUM_VAL => {
                 let b0 = match self.read_u8() {

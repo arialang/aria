@@ -80,6 +80,30 @@ fn replace_attribute_access_with_interned(
                 Err(_) => return Err(VmErrorReason::UnexpectedVmState),
             };
             *opcode = Opcode::WriteAttributeInterned(sym.0);
+        } else if let Opcode::BindMethod(a, x) = opcode {
+            let x_str = cm
+                .load_indexed_const(*x)
+                .expect("missing constant")
+                .as_string()
+                .expect("expected string constant")
+                .clone();
+            let sym = match vm.globals.intern_symbol(&x_str) {
+                Ok(s) => s,
+                Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+            };
+            *opcode = Opcode::BindMethodInterned(*a, sym.0);
+        } else if let Opcode::BindCase(a, x) = opcode {
+            let x_str = cm
+                .load_indexed_const(*x)
+                .expect("missing constant")
+                .as_string()
+                .expect("expected string constant")
+                .clone();
+            let sym = match vm.globals.intern_symbol(&x_str) {
+                Ok(s) => s,
+                Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+            };
+            *opcode = Opcode::BindCaseInterned(*a, sym.0);
         }
     }
 

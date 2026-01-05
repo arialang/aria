@@ -1023,12 +1023,10 @@ impl VirtualMachine {
                 panic!("WriteAttributeInterned should be used instead");
             }
             Opcode::ReadAttributeInterned(n) => {
-                let attrib_name = match self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
-                    Some(s) => s,
-                    None => {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                };
+                let attrib_name = self
+                    .globals
+                    .resolve_symbol(crate::symbol::Symbol(n))
+                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
 
                 let val_obj = pop_or_err!(next, frame, op_idx);
                 match val_obj.read_attribute(attrib_name, &self.globals) {
@@ -1056,12 +1054,10 @@ impl VirtualMachine {
                 }
             }
             Opcode::WriteAttributeInterned(n) => {
-                let attrib_name = match self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
-                    Some(s) => s,
-                    None => {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                };
+                let attrib_name = self
+                    .globals
+                    .resolve_symbol(crate::symbol::Symbol(n))
+                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
 
                 let val = pop_or_err!(next, frame, op_idx);
                 let obj = pop_or_err!(next, frame, op_idx);
@@ -1317,37 +1313,38 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
-            Opcode::BindMethod(a, n) => {
+            Opcode::BindMethod(..) => {
+                panic!("BindMethodInterned should be used instead");
+            }
+            Opcode::BindMethodInterned(a, n) => {
                 let method = pop_or_err!(next, frame, op_idx);
                 let struk = pop_or_err!(next, frame, op_idx);
-                let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
+                let new_name = self
+                    .globals
+                    .resolve_symbol(crate::symbol::Symbol(n))
+                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?;
 
                 if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_struct()) {
                     let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
+                    y.store_named_value(new_name, RuntimeValue::Function(new_f));
                 } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_enum()) {
                     let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
+                    y.store_named_value(new_name, RuntimeValue::Function(new_f));
                 } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_mixin()) {
                     let new_f = Function::from_code_object(x, a, this_module);
-                    y.store_named_value(&new_name, RuntimeValue::Function(new_f));
+                    y.store_named_value(new_name, RuntimeValue::Function(new_f));
                 } else if let (Some(x), Some(y)) = (method.as_code_object(), struk.as_rust_native())
                 {
                     let new_f = Function::from_code_object(x, a, this_module);
-                    y.write(&new_name, RuntimeValue::Function(new_f));
+                    y.write(new_name, RuntimeValue::Function(new_f));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
-            Opcode::BindCase(a, n) => {
+            Opcode::BindCase(..) => {
+                panic!("BindCaseInterned should be used instead");
+            }
+            Opcode::BindCaseInterned(a, n) => {
                 let payload_type = if (a & CASE_HAS_PAYLOAD) == CASE_HAS_PAYLOAD {
                     let t = pop_or_err!(next, frame, op_idx);
                     if let Ok(t) = IsaCheckable::try_from(&t) {
@@ -1361,15 +1358,11 @@ impl VirtualMachine {
 
                 let enumm = pop_or_err!(next, frame, op_idx);
 
-                let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
+                let new_name = self
+                    .globals
+                    .resolve_symbol(crate::symbol::Symbol(n))
+                    .ok_or::<VmError>(VmErrorReason::UnexpectedType.into())?
+                    .to_owned();
 
                 match enumm.as_enum() {
                     Some(enumm) => {
