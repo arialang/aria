@@ -78,6 +78,9 @@ pub enum VmErrorReason {
     #[error("{1} is not a valid operand for opcode {0}")]
     InvalidVmOperand(u8, u8),
 
+    #[error("bytecode exceeds maximum allowed size")]
+    BytecodeTooLarge,
+
     #[error("VM execution halted")]
     VmHalted,
 }
@@ -85,6 +88,7 @@ pub enum VmErrorReason {
 impl From<DecodeError> for VmErrorReason {
     fn from(value: DecodeError) -> Self {
         match value {
+            DecodeError::DataTooLarge => VmErrorReason::BytecodeTooLarge,
             DecodeError::EndOfStream => VmErrorReason::UnterminatedBytecode,
             DecodeError::InsufficientData => VmErrorReason::IncompleteInstruction,
             DecodeError::UnknownOpcode(n) => VmErrorReason::UnknownOpcode(n),

@@ -50,7 +50,12 @@ impl ModuleDump for CompiledCodeObject {
             << self.frame_size
             << ") bc=\n";
 
-        let mut bcr = BytecodeReader::from(self.body.as_slice());
+        let mut bcr = match BytecodeReader::try_from(self.body.as_slice()) {
+            Ok(bcr) => bcr,
+            Err(e) => {
+                return dest << "    <invalid bytecode: " << e.to_string() << ">\n";
+            }
+        };
         let mut op_idx = 0;
         loop {
             let idx_str = format!("    {op_idx:05}: ");

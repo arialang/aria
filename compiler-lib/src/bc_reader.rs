@@ -6,19 +6,36 @@ pub struct BytecodeReader {
     idx: usize,
 }
 
-impl From<&[u8]> for BytecodeReader {
-    fn from(value: &[u8]) -> Self {
-        Self {
-            data: value.to_vec(),
-            idx: 0,
+impl TryFrom<&[u8]> for BytecodeReader {
+    type Error = DecodeError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() > u16::MAX as usize {
+            Err(DecodeError::DataTooLarge)
+        } else {
+            Ok(Self {
+                data: value.to_vec(),
+                idx: 0,
+            })
         }
     }
 }
 
+#[derive(Clone, thiserror::Error, PartialEq, Eq, Debug)]
 pub enum DecodeError {
+    #[error("bytecode exceeds maximum allowed size")]
+    DataTooLarge,
+
+    #[error("reached end of stream")]
     EndOfStream,
+
+    #[error("insufficient data for decoding")]
     InsufficientData,
+
+    #[error("{0} is not a known opcode")]
     UnknownOpcode(u8),
+
+    #[error("{1} is not a valid operand for opcode {0}")]
     UnknownOperand(u8, u8),
 }
 

@@ -28,7 +28,7 @@ impl PartialEq for CodeObject {
 
 fn byte_array_to_opcode_array(bytes: &[u8]) -> DecodeResult<Vec<Opcode>> {
     let mut opcodes = Vec::new();
-    let mut decoder = BytecodeReader::from(bytes);
+    let mut decoder = BytecodeReader::try_from(bytes)?;
 
     loop {
         let next = decoder.read_opcode();
