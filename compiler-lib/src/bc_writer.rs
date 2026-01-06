@@ -79,6 +79,12 @@ impl BytecodeWriter {
             Opcode::WriteAttribute(n) => self
                 .write_u8(haxby_opcodes::OPCODE_WRITE_ATTRIBUTE)
                 .write_u16(*n),
+            Opcode::ReadAttributeSymbol(n) => self
+                .write_u8(haxby_opcodes::OPCODE_READ_ATTRIBUTE_SYMBOL)
+                .write_u32(*n),
+            Opcode::WriteAttributeSymbol(n) => self
+                .write_u8(haxby_opcodes::OPCODE_WRITE_ATTRIBUTE_SYMBOL)
+                .write_u32(*n),
             Opcode::ReadUplevel(n) => self
                 .write_u8(haxby_opcodes::OPCODE_READ_UPLEVEL)
                 .write_u8(*n),

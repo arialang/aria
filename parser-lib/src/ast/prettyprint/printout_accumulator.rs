@@ -125,6 +125,14 @@ impl std::ops::Shl<usize> for PrintoutAccumulator {
     }
 }
 
+impl std::ops::Shl<u32> for PrintoutAccumulator {
+    type Output = Self;
+
+    fn shl(self, n: u32) -> Self::Output {
+        self.write(&n.to_string())
+    }
+}
+
 impl std::ops::Shl<u16> for PrintoutAccumulator {
     type Output = Self;
 

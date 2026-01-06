@@ -70,6 +70,9 @@ pub const OPCODE_NEW_ENUM_VAL: u8 = 89;
 pub const OPCODE_ENUM_CHECK_IS_CASE: u8 = 90;
 pub const OPCODE_ENUM_TRY_EXTRACT_PAYLOAD: u8 = 91;
 pub const OPCODE_TRY_UNWRAP_PROTOCOL: u8 = 92;
+// ..
+pub const OPCODE_READ_ATTRIBUTE_SYMBOL: u8 = 100;
+pub const OPCODE_WRITE_ATTRIBUTE_SYMBOL: u8 = 101;
 // ...
 pub const OPCODE_IMPORT: u8 = 250;
 pub const OPCODE_LIFT_MODULE: u8 = 251;
@@ -240,6 +243,8 @@ pub enum Opcode {
     WriteIndex(u8),
     ReadAttribute(u16),
     WriteAttribute(u16),
+    ReadAttributeSymbol(u32),
+    WriteAttributeSymbol(u32),
     ReadUplevel(u8),
     LogicalAnd,
     LogicalOr,
@@ -312,6 +317,8 @@ impl std::fmt::Display for Opcode {
             Self::WriteIndex(arg0) => write!(f, "WRITE_INDEX {arg0}"),
             Self::ReadAttribute(arg0) => write!(f, "READ_ATTRIB @{arg0}"),
             Self::WriteAttribute(arg0) => write!(f, "WRITE_ATTRIB @{arg0}"),
+            Self::ReadAttributeSymbol(arg0) => write!(f, "READ_ATTRIB_SYM #{arg0}"),
+            Self::WriteAttributeSymbol(arg0) => write!(f, "WRITE_ATTRIB_SYM #{arg0}"),
             Self::ReadUplevel(arg0) => write!(f, "READ_UPLEVEL {arg0}"),
             Self::LogicalAnd => write!(f, "ANDL"),
             Self::LogicalOr => write!(f, "ORL"),

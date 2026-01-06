@@ -200,6 +200,16 @@ impl BytecodeReader {
                 .map_or(Err(DecodeError::InsufficientData), |b| {
                     Ok(Opcode::WriteAttribute(b))
                 }),
+            haxby_opcodes::OPCODE_READ_ATTRIBUTE_SYMBOL => self
+                .read_u32()
+                .map_or(Err(DecodeError::InsufficientData), |b| {
+                    Ok(Opcode::ReadAttributeSymbol(b))
+                }),
+            haxby_opcodes::OPCODE_WRITE_ATTRIBUTE_SYMBOL => self
+                .read_u32()
+                .map_or(Err(DecodeError::InsufficientData), |b| {
+                    Ok(Opcode::WriteAttributeSymbol(b))
+                }),
             haxby_opcodes::OPCODE_READ_UPLEVEL => self
                 .read_u8()
                 .map_or(Err(DecodeError::InsufficientData), |b| {

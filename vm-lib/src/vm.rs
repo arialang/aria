@@ -8,7 +8,10 @@ use std::{
 
 use aria_compiler::{compile_from_source, module::CompiledModule};
 use aria_parser::ast::{SourceBuffer, prettyprint::printout_accumulator::PrintoutAccumulator};
-use haxby_opcodes::{BuiltinTypeId, Opcode, enum_case_attribs::CASE_HAS_PAYLOAD};
+use haxby_opcodes::{
+    BuiltinTypeId, OPCODE_READ_ATTRIBUTE, OPCODE_WRITE_ATTRIBUTE, Opcode,
+    enum_case_attribs::CASE_HAS_PAYLOAD,
+};
 use std::sync::OnceLock;
 
 use crate::{
@@ -1016,18 +1019,32 @@ impl VirtualMachine {
                     }
                 }
             }
-            Opcode::ReadAttribute(n) => {
-                let attrib_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
+            Opcode::ReadAttribute(_) => {
+                return build_vm_error!(
+                    VmErrorReason::UnknownOpcode(OPCODE_READ_ATTRIBUTE),
+                    next,
+                    frame,
+                    op_idx
+                );
+            }
+            Opcode::WriteAttribute(_) => {
+                return build_vm_error!(
+                    VmErrorReason::UnknownOpcode(OPCODE_WRITE_ATTRIBUTE),
+                    next,
+                    frame,
+                    op_idx
+                );
+            }
+            Opcode::ReadAttributeSymbol(n) => {
+                let attrib_name =
+                    if let Some(sym) = self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
+                        sym
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
+                    };
+
                 let val_obj = pop_or_err!(next, frame, op_idx);
-                match val_obj.read_attribute(&attrib_name, &self.globals) {
+                match val_obj.read_attribute(attrib_name, &self.globals) {
                     Ok(val) => {
                         frame.stack.push(val);
                     }
@@ -1035,7 +1052,7 @@ impl VirtualMachine {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchIdentifier(attrib_name)
+                                    VmErrorReason::NoSuchIdentifier(attrib_name.to_owned())
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1051,25 +1068,23 @@ impl VirtualMachine {
                     }
                 }
             }
-            Opcode::WriteAttribute(n) => {
-                let val = pop_or_err!(next, frame, op_idx);
-                let obj = pop_or_err!(next, frame, op_idx);
-                let attr_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
+            Opcode::WriteAttributeSymbol(n) => {
+                let attrib_name =
+                    if let Some(sym) = self.globals.resolve_symbol(crate::symbol::Symbol(n)) {
+                        sym
                     } else {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
-                match obj.write_attribute(&attr_name, val) {
+                    };
+
+                let val = pop_or_err!(next, frame, op_idx);
+                let obj = pop_or_err!(next, frame, op_idx);
+                match obj.write_attribute(attrib_name, val) {
                     Ok(_) => {}
                     Err(err) => {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchIdentifier(attr_name)
+                                    VmErrorReason::NoSuchIdentifier(attrib_name.to_owned())
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1820,7 +1835,13 @@ impl VirtualMachine {
 
             if self.options.tracing {
                 let poa = PrintoutAccumulator::default();
-                let next = opcode_prettyprint(next, module, poa).value();
+                let next = {
+                    let ropc = crate::opcodes::prettyprint::RuntimeOpcodePrinter {
+                        globals: Some(&self.globals),
+                        module: Some(module),
+                    };
+                    opcode_prettyprint(next, &ropc, poa).value()
+                };
                 let wrote_lt = if let Some(lt) = frame.get_line_entry_at_pos(op_counter as u16) {
                     println!("{op_counter:05}: {next} --> {lt}");
                     true

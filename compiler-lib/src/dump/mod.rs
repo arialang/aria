@@ -10,27 +10,58 @@ use crate::{
 
 pub mod opcodes;
 
+pub trait StringResolver {
+    fn resolve_compile_time_constant(&self, _: u16) -> Option<&str> {
+        None
+    }
+
+    fn resolve_run_time_symbol(&self, _: u32) -> Option<&str> {
+        None
+    }
+}
+
+impl StringResolver for CompiledModule {
+    fn resolve_compile_time_constant(&self, idx: u16) -> Option<&str> {
+        match self.constants.values.get(idx as usize) {
+            Some(ConstantValue::String(s)) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+}
+
 trait ModuleDump {
-    fn dump(&self, module: &CompiledModule, buffer: PrintoutAccumulator) -> PrintoutAccumulator;
+    fn dump(
+        &self,
+        resolver: &dyn StringResolver,
+        buffer: PrintoutAccumulator,
+    ) -> PrintoutAccumulator;
 }
 
 impl ModuleDump for ConstantValue {
-    fn dump(&self, module: &CompiledModule, buffer: PrintoutAccumulator) -> PrintoutAccumulator {
+    fn dump(
+        &self,
+        resolver: &dyn StringResolver,
+        buffer: PrintoutAccumulator,
+    ) -> PrintoutAccumulator {
         match self {
             ConstantValue::Integer(n) => buffer << "int(" << n << ")",
             ConstantValue::String(s) => buffer << "str(\"" << s.as_str() << "\")",
             ConstantValue::Float(f) => buffer << "fp(" << f.raw_value() << ")",
-            ConstantValue::CompiledCodeObject(cco) => cco.dump(module, buffer),
+            ConstantValue::CompiledCodeObject(cco) => cco.dump(resolver, buffer),
         }
     }
 }
 
 impl ModuleDump for ConstantValues {
-    fn dump(&self, module: &CompiledModule, buffer: PrintoutAccumulator) -> PrintoutAccumulator {
+    fn dump(
+        &self,
+        resolver: &dyn StringResolver,
+        buffer: PrintoutAccumulator,
+    ) -> PrintoutAccumulator {
         let mut dest = buffer;
         for cv in self.values.iter().enumerate() {
             dest = dest << "cv @" << cv.0 << " -> ";
-            dest = cv.1.dump(module, dest) << "\n"
+            dest = cv.1.dump(resolver, dest) << "\n"
         }
 
         dest
@@ -38,7 +69,11 @@ impl ModuleDump for ConstantValues {
 }
 
 impl ModuleDump for CompiledCodeObject {
-    fn dump(&self, module: &CompiledModule, buffer: PrintoutAccumulator) -> PrintoutAccumulator {
+    fn dump(
+        &self,
+        resolver: &dyn StringResolver,
+        buffer: PrintoutAccumulator,
+    ) -> PrintoutAccumulator {
         let mut dest = buffer
             << "cco(name:\""
             << self.name.as_str()
@@ -61,7 +96,7 @@ impl ModuleDump for CompiledCodeObject {
             let idx_str = format!("    {op_idx:05}: ");
             match bcr.read_opcode() {
                 Ok(op) => {
-                    dest = opcode_prettyprint(op, module, dest << idx_str);
+                    dest = opcode_prettyprint(op, resolver, dest << idx_str);
                     if let Some(lte) = self.line_table.get(op_idx as u16) {
                         dest = dest << format!(" --> {lte}") << "\n";
                     } else {

@@ -47,6 +47,18 @@ fn byte_array_to_opcode_array(bytes: &[u8]) -> aria_compiler::bc_reader::DecodeR
     }
 }
 
+macro_rules! replace_const_with_symbol {
+    ($vm:expr, $cm:expr, $n:expr, $opcode:expr, $target_variant:ident) => {{
+        let n_const = $cm.load_indexed_const($n).expect("missing constant");
+        let n_as_str = n_const.as_string().expect("expected string constant");
+        let n_as_sym = match $vm.globals.intern_symbol(&n_as_str) {
+            Ok(s) => s,
+            Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+        };
+        *$opcode = Opcode::$target_variant(n_as_sym.0);
+    }};
+}
+
 fn replace_attribute_access_with_interned(
     vm: &mut VirtualMachine,
     cm: &CompiledModule,
@@ -54,17 +66,18 @@ fn replace_attribute_access_with_interned(
 ) -> Result<(), VmErrorReason> {
     for opcode in opcodes {
         match opcode {
-            Opcode::ReadAttribute(n) | Opcode::WriteAttribute(n) => {
-                let x_str = cm
-                    .load_indexed_const(*n)
-                    .expect("missing constant")
-                    .as_string()
-                    .expect("expected string constant")
-                    .clone();
-                let _ = match vm.globals.intern_symbol(&x_str) {
-                    Ok(s) => s,
-                    Err(_) => return Err(VmErrorReason::UnexpectedVmState),
-                };
+            Opcode::ReadAttribute(n) => {
+                replace_const_with_symbol!(vm, cm, *n, opcode, ReadAttributeSymbol)
+            }
+            Opcode::WriteAttribute(n) => {
+                replace_const_with_symbol!(vm, cm, *n, opcode, WriteAttributeSymbol)
+            }
+            Opcode::ReadAttributeSymbol(_) | Opcode::WriteAttributeSymbol(_) => {
+                // the compiler cannot generate these instructions because it does not know
+                // what the VM will intern at runtime in what order - so if we see them in
+                // the compiled module's byte stream, it's clearly bad and we should reject
+                // loading this module
+                return Err(VmErrorReason::UnexpectedVmState);
             }
             _ => {}
         }

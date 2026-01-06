@@ -115,7 +115,13 @@ impl VmError {
         if let Some(opcode) = self.opcode
             && let Some(m) = module
         {
-            poa = opcode_prettyprint(opcode, &m, poa << " opcode: ");
+            poa = {
+                let ropc = crate::opcodes::prettyprint::RuntimeOpcodePrinter {
+                    globals: None,
+                    module: Some(&m),
+                };
+                opcode_prettyprint(opcode, &ropc, poa)
+            };
         }
         if let Some(loc) = &self.loc {
             poa = poa << " at " << loc.to_string();
