@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 
-use aria_compiler::{bc_reader::DecodeError, module::CompiledModule};
+use aria_compiler::module::CompiledModule;
+use haxby_opcodes::Opcode;
 use rustc_data_structures::fx::FxHashMap;
 
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
         function::{BuiltinFunctionImpl, Function},
         isa::IsaCheckable,
     },
+    vm::VirtualMachine,
 };
 
 #[derive(Clone)]
@@ -24,14 +26,100 @@ struct RuntimeModuleImpl {
     compiled_module: CompiledModule,
     indexed_constants: Vec<RuntimeValue>,
     values: RefCell<FxHashMap<String, NamedValue>>,
+    entry_co: crate::runtime_value::runtime_code_object::CodeObject,
+}
+
+fn byte_array_to_opcode_array(bytes: &[u8]) -> aria_compiler::bc_reader::DecodeResult<Vec<Opcode>> {
+    let mut opcodes = Vec::new();
+    let mut decoder = aria_compiler::bc_reader::BytecodeReader::try_from(bytes)?;
+
+    loop {
+        let next = decoder.read_opcode();
+        match next {
+            Ok(op) => opcodes.push(op),
+            Err(err) => {
+                return match err {
+                    aria_compiler::bc_reader::DecodeError::EndOfStream => Ok(opcodes),
+                    _ => Err(err),
+                };
+            }
+        }
+    }
+}
+
+fn replace_attribute_access_with_interned(
+    vm: &mut VirtualMachine,
+    cm: &CompiledModule,
+    opcodes: &mut Vec<Opcode>,
+) -> Result<(), VmErrorReason> {
+    for opcode in opcodes {
+        match opcode {
+            Opcode::ReadAttribute(n) | Opcode::WriteAttribute(n) => {
+                let x_str = cm
+                    .load_indexed_const(*n)
+                    .expect("missing constant")
+                    .as_string()
+                    .expect("expected string constant")
+                    .clone();
+                let _ = match vm.globals.intern_symbol(&x_str) {
+                    Ok(s) => s,
+                    Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+                };
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn compiled_code_object_to_runtime_code_object(
+    vm: &mut VirtualMachine,
+    cm: &CompiledModule,
+    cco: aria_compiler::constant_value::CompiledCodeObject,
+) -> Result<crate::runtime_value::runtime_code_object::CodeObject, VmErrorReason> {
+    let mut ops = byte_array_to_opcode_array(cco.body.as_slice())?;
+    replace_attribute_access_with_interned(vm, cm, &mut ops)?;
+    let body: Rc<[Opcode]> = ops.into();
+
+    Ok(crate::runtime_value::runtime_code_object::CodeObject {
+        name: cco.name.clone(),
+        body,
+        required_argc: cco.required_argc,
+        default_argc: cco.default_argc,
+        frame_size: cco.frame_size,
+        loc: cco.loc.clone(),
+        line_table: Rc::from(cco.line_table.clone()),
+    })
+}
+
+fn compiled_constant_to_runtime_value(
+    vm: &mut VirtualMachine,
+    cm: &CompiledModule,
+    value: aria_compiler::constant_value::ConstantValue,
+) -> Result<RuntimeValue, VmErrorReason> {
+    use aria_compiler::constant_value::ConstantValue::{
+        CompiledCodeObject, Float, Integer, String,
+    };
+    match value {
+        Integer(n) => Ok(RuntimeValue::Integer(From::from(n))),
+        String(s) => Ok(RuntimeValue::String(s.into())),
+        CompiledCodeObject(cco) => Ok(RuntimeValue::CodeObject(
+            compiled_code_object_to_runtime_code_object(vm, cm, cco)?,
+        )),
+        Float(f) => Ok(RuntimeValue::Float(f.raw_value().into())),
+    }
 }
 
 impl RuntimeModuleImpl {
-    fn new(cm: CompiledModule) -> Result<Self, DecodeError> {
+    fn new(vm: &mut VirtualMachine, cm: CompiledModule) -> Result<Self, VmErrorReason> {
+        let entry_co =
+            compiled_code_object_to_runtime_code_object(vm, &cm, cm.load_entry_code_object())?;
+
         let mut this = Self {
             compiled_module: cm,
             indexed_constants: Vec::new(),
             values: Default::default(),
+            entry_co,
         };
 
         let mut i = 0;
@@ -41,7 +129,7 @@ impl RuntimeModuleImpl {
                 .load_indexed_const(i as u16)
                 .expect("module has missing constant data");
 
-            let r = RuntimeValue::try_from(&c)?;
+            let r = compiled_constant_to_runtime_value(vm, &this.compiled_module, c)?;
             this.indexed_constants.push(r);
 
             i += 1;
@@ -128,10 +216,14 @@ pub struct RuntimeModule {
 }
 
 impl RuntimeModule {
-    pub fn new(cm: CompiledModule) -> Result<Self, VmErrorReason> {
+    pub fn new(vm: &mut VirtualMachine, cm: CompiledModule) -> Result<Self, VmErrorReason> {
         Ok(Self {
-            imp: Rc::new(RuntimeModuleImpl::new(cm)?),
+            imp: Rc::new(RuntimeModuleImpl::new(vm, cm)?),
         })
+    }
+
+    pub fn load_entry_code_object(&self) -> &crate::runtime_value::runtime_code_object::CodeObject {
+        &self.imp.entry_co
     }
 
     pub(crate) fn named_values_of_this(&self) -> Vec<(String, NamedValue)> {

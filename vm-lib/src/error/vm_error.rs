@@ -81,6 +81,9 @@ pub enum VmErrorReason {
     #[error("bytecode exceeds maximum allowed size")]
     BytecodeTooLarge,
 
+    #[error("too many symbols have been interned")]
+    TooManyInternedSymbols,
+
     #[error("VM execution halted")]
     VmHalted,
 }

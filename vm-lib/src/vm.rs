@@ -31,7 +31,6 @@ use crate::{
         list::List,
         mixin::Mixin,
         object::Object,
-        runtime_code_object::CodeObject,
         structure::Struct,
     },
     stack::Stack,
@@ -442,13 +441,8 @@ impl VirtualMachine {
             self.modules.insert(name.to_owned(), r_mod.clone());
         }
 
-        let entry_cm = r_mod.get_compiled_module();
-        let entry_cco = entry_cm.load_entry_code_object();
-        let entry_co = match CodeObject::try_from(&entry_cco) {
-            Ok(co) => co,
-            Err(err) => return Err(VmErrorReason::from(err).into()),
-        };
-        let entry_f = Function::from_code_object(&entry_co, 0, &r_mod);
+        let entry_co = r_mod.load_entry_code_object();
+        let entry_f = Function::from_code_object(entry_co, 0, &r_mod);
         let mut entry_frame: Frame = Default::default();
 
         let entry_result = entry_f.eval(0, &mut entry_frame, self, &Default::default(), true);
@@ -466,7 +460,8 @@ impl VirtualMachine {
         name: &str,
         entry_cm: CompiledModule,
     ) -> ExecutionResult<RunloopExit<ModuleLoadInfo>> {
-        self.load_into_module(name, RuntimeModule::new(entry_cm)?)
+        let r_mod = RuntimeModule::new(self, entry_cm)?;
+        self.load_into_module(name, r_mod)
     }
 
     pub fn get_module_by_name(&self, name: &str) -> Option<RuntimeModule> {
