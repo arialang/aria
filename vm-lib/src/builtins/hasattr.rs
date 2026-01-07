@@ -15,11 +15,14 @@ impl BuiltinFunctionImpl for HasAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
-        let has_attr = the_value
-            .read_attribute_by_name(&the_string.raw_value(), &mut vm.globals)
-            .is_ok();
-        frame.stack.push(RuntimeValue::Boolean(has_attr.into()));
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
+        if let Some(symbol) = vm.globals.lookup_symbol(&the_string) {
+            let has_attr = the_value.read_attribute(symbol, &vm.globals).is_ok();
+            frame.stack.push(RuntimeValue::Boolean(has_attr.into()));
+        } else {
+            frame.stack.push(RuntimeValue::Boolean(false.into()));
+        }
+
         Ok(RunloopExit::Ok(()))
     }
 

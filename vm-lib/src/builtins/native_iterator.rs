@@ -16,6 +16,7 @@ use crate::{
         opaque::OpaqueValue,
         structure::Struct,
     },
+    symbol::{INTERNED_ATTR_IMPL, INTERNED_ATTR_NEXT},
     vm::RunloopExit,
 };
 
@@ -98,7 +99,6 @@ impl BuiltinFunctionImpl for Next {
     }
 }
 
-#[allow(unused)]
 pub fn create_iterator_struct(
     iter_struct: &Struct,
     imp: NativeIteratorImpl,
@@ -106,11 +106,15 @@ pub fn create_iterator_struct(
 ) -> RuntimeValue {
     let obj = RuntimeValue::Object(Object::new(iter_struct));
     let impl_attrib = OpaqueValue::new(RefCell::new(imp));
-    obj.write_attribute_by_name("__impl", RuntimeValue::Opaque(impl_attrib), builtins)
-        .expect("failed to write iterator impl");
+    obj.write_attribute(
+        INTERNED_ATTR_IMPL,
+        RuntimeValue::Opaque(impl_attrib),
+        builtins,
+    )
+    .expect("failed to write iterator impl");
     let next = Function::new_builtin::<Next>();
     let bound_next = obj.bind(next);
-    obj.write_attribute_by_name("next", bound_next, builtins)
+    obj.write_attribute(INTERNED_ATTR_NEXT, bound_next, builtins)
         .expect("failed to write iterator next");
     obj
 }

@@ -70,12 +70,12 @@ impl BuiltinFunctionImpl for New {
         let _ = aria_regex_obj.write_attribute(
             pattern_impl_sym,
             RuntimeValue::Opaque(rust_regex_obj),
-            &mut vm.globals,
+            &vm.globals,
         );
         let _ = aria_regex_obj.write_attribute(
             pattern_sym,
             RuntimeValue::String(the_pattern),
-            &mut vm.globals,
+            &vm.globals,
         );
 
         frame.stack.push(aria_regex_obj);
@@ -185,18 +185,12 @@ impl BuiltinFunctionImpl for Matches {
             let _ = match_obj.write_attribute(
                 start_sym,
                 RuntimeValue::Integer(m.0.into()),
-                &mut vm.globals,
+                &vm.globals,
             );
-            let _ = match_obj.write_attribute(
-                len_sym,
-                RuntimeValue::Integer(m.1.into()),
-                &mut vm.globals,
-            );
-            let _ = match_obj.write_attribute(
-                value_sym,
-                RuntimeValue::String(m.2.into()),
-                &mut vm.globals,
-            );
+            let _ =
+                match_obj.write_attribute(len_sym, RuntimeValue::Integer(m.1.into()), &vm.globals);
+            let _ =
+                match_obj.write_attribute(value_sym, RuntimeValue::String(m.2.into()), &vm.globals);
             matches_list.append(match_obj);
         }
 

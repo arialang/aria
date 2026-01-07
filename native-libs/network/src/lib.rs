@@ -81,7 +81,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
                     ),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 let header_list = List::from(&[]);
                 for header in r.headers() {
@@ -94,14 +94,14 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                 let _ = response_obj.write_attribute(
                     headers_sym,
                     RuntimeValue::List(header_list),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 match r.text() {
                     Ok(content) => {
                         let _ = response_obj.write_attribute(
                             content_sym,
                             RuntimeValue::String(content.into()),
-                            &mut vm.globals,
+                            &vm.globals,
                         );
                     }
                     _ => {
@@ -109,7 +109,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                         let _ = error_obj.write_attribute(
                             msg_sym,
                             RuntimeValue::String("content is not a valid String".into()),
-                            &mut vm.globals,
+                            &vm.globals,
                         );
                         let result_err = vm.globals.create_result_err(error_obj)?;
                         frame.stack.push(result_err);
@@ -127,7 +127,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
                 let _ = error_obj.write_attribute(
                     msg_sym,
                     RuntimeValue::String(e.to_string().into()),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 let result_err = vm.globals.create_result_err(error_obj)?;
 
@@ -228,7 +228,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                     haxby_vm::runtime_value::RuntimeValue::Integer(
                         (r.status().as_u16() as i64).into(),
                     ),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 let header_list = List::from(&[]);
                 for header in r.headers() {
@@ -241,14 +241,14 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                 let _ = response_obj.write_attribute(
                     headers_sym,
                     RuntimeValue::List(header_list),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 match r.text() {
                     Ok(content) => {
                         let _ = response_obj.write_attribute(
                             content_sym,
                             RuntimeValue::String(content.into()),
-                            &mut vm.globals,
+                            &vm.globals,
                         );
                     }
                     _ => {
@@ -256,7 +256,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                         let _ = error_obj.write_attribute(
                             msg_sym,
                             RuntimeValue::String("content is not a valid String".into()),
-                            &mut vm.globals,
+                            &vm.globals,
                         );
                         let result_err = vm.globals.create_result_err(error_obj)?;
 
@@ -275,7 +275,7 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
                 let _ = error_obj.write_attribute(
                     msg_sym,
                     RuntimeValue::String(e.to_string().into()),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 let result_err = vm.globals.create_result_err(error_obj)?;
 

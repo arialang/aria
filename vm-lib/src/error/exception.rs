@@ -10,7 +10,7 @@ use crate::{
         vm_error::{VmError, VmErrorReason},
     },
     runtime_value::{RuntimeValue, list::List, object::Object},
-    symbol::Symbol,
+    symbol::{INTERNED_ATTR_ACTUAL, INTERNED_ATTR_BACKTRACE, INTERNED_ATTR_EXPECTED, Symbol},
     vm::VirtualMachine,
 };
 
@@ -66,9 +66,11 @@ impl VmException {
             let buf_line = RuntimeValue::Integer((buf_line as i64).into());
             bt_list.append(RuntimeValue::List(List::from(&[buf_name, buf_line])));
         }
-        let _ =
-            self.value
-                .write_attribute_by_name("backtrace", RuntimeValue::List(bt_list), builtins);
+        let _ = self.value.write_attribute(
+            INTERNED_ATTR_BACKTRACE,
+            RuntimeValue::List(bt_list),
+            builtins,
+        );
     }
 }
 
@@ -116,13 +118,13 @@ impl VmException {
                 );
                 let argc_mismatch = some_or_err!(argc_mismatch.as_struct(), err);
                 let argc_mismatch_obj = RuntimeValue::Object(Object::new(argc_mismatch));
-                let _ = argc_mismatch_obj.write_attribute_by_name(
-                    "expected",
+                let _ = argc_mismatch_obj.write_attribute(
+                    INTERNED_ATTR_EXPECTED,
                     RuntimeValue::Integer((*expected as i64).into()),
                     builtins,
                 );
-                let _ = argc_mismatch_obj.write_attribute_by_name(
-                    "actual",
+                let _ = argc_mismatch_obj.write_attribute(
+                    INTERNED_ATTR_ACTUAL,
                     RuntimeValue::Integer((*actual as i64).into()),
                     builtins,
                 );

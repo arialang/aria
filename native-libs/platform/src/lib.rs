@@ -43,7 +43,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
         let _ = linux_info.write_attribute(
             kernel_version_sym,
             RuntimeValue::String(kernel_version.into()),
-            &mut vm.globals,
+            &vm.globals,
         );
 
         let linux_case = platform_enum
@@ -99,7 +99,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
         let _ = mac_info.write_attribute(
             os_build_sym,
             RuntimeValue::String(mac_version.into()),
-            &mut vm.globals,
+            &vm.globals,
         );
 
         let mac_case = platform_enum

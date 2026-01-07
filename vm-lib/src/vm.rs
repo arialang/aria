@@ -1063,7 +1063,7 @@ impl VirtualMachine {
             Opcode::WriteAttributeSymbol(n) => {
                 let val = pop_or_err!(next, frame, op_idx);
                 let obj = pop_or_err!(next, frame, op_idx);
-                match obj.write_attribute(crate::symbol::Symbol(n), val, &mut self.globals) {
+                match obj.write_attribute(crate::symbol::Symbol(n), val, &self.globals) {
                     Ok(_) => {}
                     Err(err) => {
                         return build_vm_error!(

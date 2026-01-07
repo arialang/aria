@@ -130,7 +130,7 @@ impl BuiltinFunctionImpl for New {
                 let _ = aria_file_obj.write_attribute(
                     file_sym,
                     RuntimeValue::Opaque(file_obj),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 frame.stack.push(aria_file_obj);
                 Ok(RunloopExit::Ok(()))

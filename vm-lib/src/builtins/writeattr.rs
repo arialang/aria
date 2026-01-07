@@ -13,9 +13,12 @@ impl BuiltinFunctionImpl for WriteAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_object = frame.stack.pop();
-        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
+        let the_symbol = vm.globals.intern_symbol(&the_string)?;
         let the_value = frame.stack.pop();
-        the_object.write_attribute_by_name(&the_string.raw_value(), the_value, &mut vm.globals)?;
+        the_object
+            .write_attribute(the_symbol, the_value, &vm.globals)
+            .map_err(|e| e.to_vm_error_reason(&the_string))?;
         frame.stack.push(vm.globals.create_unit_object()?);
         Ok(RunloopExit::Ok(()))
     }

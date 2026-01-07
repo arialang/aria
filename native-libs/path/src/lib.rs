@@ -54,11 +54,7 @@ fn create_path_result_err(
         .globals
         .intern_symbol("msg")
         .expect("too many symbols interned");
-    let _ = path_error.write_attribute(
-        msg_sym,
-        RuntimeValue::String(message.into()),
-        &mut vm.globals,
-    );
+    let _ = path_error.write_attribute(msg_sym, RuntimeValue::String(message.into()), &vm.globals);
 
     vm.globals.create_result_err(path_error)
 }

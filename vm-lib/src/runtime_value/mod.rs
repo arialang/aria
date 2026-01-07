@@ -28,7 +28,10 @@ use crate::{
     frame::Frame,
     runtime_module::RuntimeModule,
     runtime_value::isa::IsaCheckable,
-    symbol::Symbol,
+    symbol::{
+        INTERNED_OP_IMPL_CALL, INTERNED_OP_IMPL_EQUALS, INTERNED_OP_IMPL_READ_INDEX,
+        INTERNED_OP_IMPL_WRITE_INDEX, INTERNED_OP_PRETTYPRINT, Symbol,
+    },
     vm::{ExecutionResult, VirtualMachine},
 };
 
@@ -201,7 +204,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> bool {
-        if let Ok(op_equals) = lhs.read_attribute_by_name("_op_impl_equals", &mut vm.globals) {
+        if let Ok(op_equals) = lhs.read_attribute(INTERNED_OP_IMPL_EQUALS, &vm.globals) {
             match RuntimeValue::try_eval_rel_op(op_equals, rhs, cur_frame, vm) {
                 OperatorEvalAttemptOutcome::Ok(val) => {
                     return val;
@@ -222,7 +225,7 @@ impl RuntimeValue {
             return lhs.builtin_equals(rhs, cur_frame, vm);
         }
 
-        if let Ok(op_equals) = rhs.read_attribute_by_name("_op_impl_equals", &mut vm.globals) {
+        if let Ok(op_equals) = rhs.read_attribute(INTERNED_OP_IMPL_EQUALS, &vm.globals) {
             return match RuntimeValue::try_eval_rel_op(op_equals, lhs, cur_frame, vm) {
                 OperatorEvalAttemptOutcome::Ok(val) => val,
                 OperatorEvalAttemptOutcome::Exception(_)
@@ -238,7 +241,7 @@ impl RuntimeValue {
 }
 
 macro_rules! rel_op_impl {
-    ($rust_fn_name: ident for $aria_fwd_name: ident rev $aria_rev_name: ident) => {
+    ($rust_fn_name: ident, $aria_fwd_sym: expr, $aria_rev_sym: expr) => {
         impl RuntimeValue {
             pub(crate) fn $rust_fn_name(
                 lhs: &RuntimeValue,
@@ -246,8 +249,7 @@ macro_rules! rel_op_impl {
                 cur_frame: &mut Frame,
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
-                let func_name = concat!("_op_impl_", stringify!($aria_fwd_name));
-                if let Ok(op) = lhs.read_attribute_by_name(func_name, &mut vm.globals) {
+                if let Ok(op) = lhs.read_attribute($aria_fwd_sym, &vm.globals) {
                     match RuntimeValue::try_eval_rel_op(op, rhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(RuntimeValue::Boolean(rv.into()));
@@ -268,8 +270,7 @@ macro_rules! rel_op_impl {
                     return OperatorEvalOutcome::Error(VmErrorReason::UnexpectedType.into());
                 }
 
-                let func_name = concat!("_op_impl_", stringify!($aria_rev_name));
-                if let Ok(op) = rhs.read_attribute_by_name(func_name, &mut vm.globals) {
+                if let Ok(op) = rhs.read_attribute($aria_rev_sym, &vm.globals) {
                     match RuntimeValue::try_eval_rel_op(op, lhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(RuntimeValue::Boolean(rv.into()));
@@ -291,7 +292,7 @@ macro_rules! rel_op_impl {
 }
 
 macro_rules! bin_op_impl {
-    ($rust_fn_name: ident for $aria_fn_name: ident) => {
+    ($rust_fn_name: ident, $aria_fwd_sym: expr, $aria_rev_sym: expr) => {
         impl RuntimeValue {
             pub(crate) fn $rust_fn_name(
                 lhs: &RuntimeValue,
@@ -299,8 +300,7 @@ macro_rules! bin_op_impl {
                 cur_frame: &mut Frame,
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
-                let func_name = concat!("_op_impl_", stringify!($aria_fn_name));
-                if let Ok(op) = lhs.read_attribute_by_name(func_name, &mut vm.globals) {
+                if let Ok(op) = lhs.read_attribute($aria_fwd_sym, &vm.globals) {
                     match RuntimeValue::try_eval_bin_op(op, rhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => {
                             return OperatorEvalOutcome::Ok(rv);
@@ -321,8 +321,7 @@ macro_rules! bin_op_impl {
                     return OperatorEvalOutcome::Error(VmErrorReason::UnexpectedType.into());
                 }
 
-                let func_name = concat!("_op_impl_r", stringify!($aria_fn_name));
-                if let Ok(op) = rhs.read_attribute_by_name(func_name, &mut vm.globals) {
+                if let Ok(op) = rhs.read_attribute($aria_rev_sym, &vm.globals) {
                     match RuntimeValue::try_eval_bin_op(op, lhs, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => OperatorEvalOutcome::Ok(rv),
                         OperatorEvalAttemptOutcome::Exception(e) => {
@@ -342,17 +341,14 @@ macro_rules! bin_op_impl {
 }
 
 macro_rules! unary_op_impl {
-    ($rust_fn_name: ident for $aria_fn_name: ident) => {
+    ($rust_fn_name: ident, $aria_sym: expr) => {
         impl RuntimeValue {
             pub(crate) fn $rust_fn_name(
                 obj: &RuntimeValue,
                 cur_frame: &mut Frame,
                 vm: &mut VirtualMachine,
             ) -> OperatorEvalOutcome<RuntimeValue> {
-                if let Ok(op) = obj.read_attribute_by_name(
-                    concat!("_op_impl_", stringify!($aria_fn_name)),
-                    &mut vm.globals,
-                ) {
+                if let Ok(op) = obj.read_attribute($aria_sym, &vm.globals) {
                     match RuntimeValue::try_eval_unary_op(op, cur_frame, vm) {
                         OperatorEvalAttemptOutcome::Ok(rv) => OperatorEvalOutcome::Ok(rv),
                         OperatorEvalAttemptOutcome::Exception(e) => {
@@ -371,26 +367,80 @@ macro_rules! unary_op_impl {
     };
 }
 
-bin_op_impl!(add for add);
-bin_op_impl!(sub for sub);
-bin_op_impl!(mul for mul);
-bin_op_impl!(div for div);
-bin_op_impl!(rem for rem);
+bin_op_impl!(
+    add,
+    crate::symbol::INTERNED_OP_IMPL_ADD,
+    crate::symbol::INTERNED_OP_IMPL_RADD
+);
+bin_op_impl!(
+    sub,
+    crate::symbol::INTERNED_OP_IMPL_SUB,
+    crate::symbol::INTERNED_OP_IMPL_RSUB
+);
+bin_op_impl!(
+    mul,
+    crate::symbol::INTERNED_OP_IMPL_MUL,
+    crate::symbol::INTERNED_OP_IMPL_RMUL
+);
+bin_op_impl!(
+    div,
+    crate::symbol::INTERNED_OP_IMPL_DIV,
+    crate::symbol::INTERNED_OP_IMPL_RDIV
+);
+bin_op_impl!(
+    rem,
+    crate::symbol::INTERNED_OP_IMPL_REM,
+    crate::symbol::INTERNED_OP_IMPL_RREM
+);
+bin_op_impl!(
+    leftshift,
+    crate::symbol::INTERNED_OP_IMPL_LSHIFT,
+    crate::symbol::INTERNED_OP_IMPL_RLSHIFT
+);
+bin_op_impl!(
+    rightshift,
+    crate::symbol::INTERNED_OP_IMPL_RSHIFT,
+    crate::symbol::INTERNED_OP_IMPL_RRSHIFT
+);
+bin_op_impl!(
+    bitwise_and,
+    crate::symbol::INTERNED_OP_IMPL_BWAND,
+    crate::symbol::INTERNED_OP_IMPL_RBWAND
+);
+bin_op_impl!(
+    bitwise_or,
+    crate::symbol::INTERNED_OP_IMPL_BWOR,
+    crate::symbol::INTERNED_OP_IMPL_RBWOR
+);
+bin_op_impl!(
+    xor,
+    crate::symbol::INTERNED_OP_IMPL_XOR,
+    crate::symbol::INTERNED_OP_IMPL_RXOR
+);
 
-bin_op_impl!(leftshift for lshift);
-bin_op_impl!(rightshift for rshift);
+rel_op_impl!(
+    less_than,
+    crate::symbol::INTERNED_OP_IMPL_LT,
+    crate::symbol::INTERNED_OP_IMPL_GT
+);
+rel_op_impl!(
+    greater_than,
+    crate::symbol::INTERNED_OP_IMPL_GT,
+    crate::symbol::INTERNED_OP_IMPL_LT
+);
 
-bin_op_impl!(bitwise_and for bwand);
-bin_op_impl!(bitwise_or for bwor);
-bin_op_impl!(xor for xor);
+rel_op_impl!(
+    less_than_equal,
+    crate::symbol::INTERNED_OP_IMPL_LTEQ,
+    crate::symbol::INTERNED_OP_IMPL_GTEQ
+);
+rel_op_impl!(
+    greater_than_equal,
+    crate::symbol::INTERNED_OP_IMPL_GTEQ,
+    crate::symbol::INTERNED_OP_IMPL_LTEQ
+);
 
-rel_op_impl!(less_than for lt rev gt);
-rel_op_impl!(greater_than for gt rev lt);
-
-rel_op_impl!(less_than_equal for lteq rev gteq);
-rel_op_impl!(greater_than_equal for gteq rev lteq);
-
-unary_op_impl!(neg for neg);
+unary_op_impl!(neg, crate::symbol::INTERNED_OP_IMPL_NEG);
 
 impl std::fmt::Debug for RuntimeValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -445,6 +495,16 @@ pub enum AttributeError {
     NoSuchAttribute,
     InvalidFunctionBinding,
     ValueHasNoAttributes,
+}
+
+impl AttributeError {
+    pub fn to_vm_error_reason(&self, name: &str) -> VmErrorReason {
+        match self {
+            Self::NoSuchAttribute => VmErrorReason::NoSuchIdentifier(name.to_owned()),
+            Self::InvalidFunctionBinding => VmErrorReason::InvalidBinding,
+            Self::ValueHasNoAttributes => VmErrorReason::UnexpectedType,
+        }
+    }
 }
 
 macro_rules! val_or_bound_func {
@@ -541,7 +601,7 @@ impl RuntimeValue {
         } else if let Some(bf) = self.as_bound_function() {
             bf.eval(argc, cur_frame, vm, discard_result)
         } else {
-            match self.read_attribute_by_name("_op_impl_call", &mut vm.globals) {
+            match self.read_attribute(INTERNED_OP_IMPL_CALL, &vm.globals) {
                 Ok(op_call) => op_call.eval(argc, cur_frame, vm, discard_result),
                 _ => Err(crate::error::vm_error::VmErrorReason::UnexpectedType.into()),
             }
@@ -549,7 +609,7 @@ impl RuntimeValue {
     }
 
     pub fn prettyprint(&self, cur_frame: &mut Frame, vm: &mut VirtualMachine) -> String {
-        if let Ok(ppf) = self.read_attribute_by_name("prettyprint", &mut vm.globals)
+        if let Ok(ppf) = self.read_attribute(INTERNED_OP_PRETTYPRINT, &vm.globals)
             && ppf.eval(0, cur_frame, vm, false).is_ok()
         {
             // either check that the stack is doing ok - or have eval return the value
@@ -587,7 +647,7 @@ impl RuntimeValue {
         &self,
         attrib_sym: Symbol,
         val: RuntimeValue,
-        builtins: &mut VmGlobals,
+        builtins: &VmGlobals,
     ) -> Result<(), AttributeError> {
         if let Some(rm) = self.as_module()
             && let Some(attr_name) = builtins.resolve_symbol(attrib_sym)
@@ -654,37 +714,6 @@ impl RuntimeValue {
         }
 
         resolved.into_iter().collect()
-    }
-
-    pub(crate) fn read_attribute_by_name(
-        &self,
-        name: &str,
-        builtins: &mut VmGlobals,
-    ) -> Result<RuntimeValue, VmErrorReason> {
-        if let Ok(sym) = builtins.intern_symbol(name) {
-            match self.read_attribute(sym, builtins) {
-                Ok(val) => Ok(val),
-                Err(_) => Err(VmErrorReason::NoSuchIdentifier(name.to_owned())),
-            }
-        } else {
-            Err(VmErrorReason::NoSuchIdentifier(name.to_owned()))
-        }
-    }
-
-    pub(crate) fn write_attribute_by_name(
-        &self,
-        name: &str,
-        val: RuntimeValue,
-        builtins: &mut VmGlobals,
-    ) -> Result<(), VmErrorReason> {
-        if let Ok(sym) = builtins.intern_symbol(name) {
-            match self.write_attribute(sym, val, builtins) {
-                Ok(_) => Ok(()),
-                Err(_) => Err(VmErrorReason::NoSuchIdentifier(name.to_owned())),
-            }
-        } else {
-            Err(VmErrorReason::NoSuchIdentifier(name.to_owned()))
-        }
     }
 
     pub fn read_attribute(
@@ -777,7 +806,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> ExecutionResult<CallResult> {
-        match self.read_attribute_by_name("_op_impl_read_index", &mut vm.globals) {
+        match self.read_attribute(INTERNED_OP_IMPL_READ_INDEX, &vm.globals) {
             Ok(read_index) => {
                 for idx in indices.iter().rev() {
                     cur_frame.stack.push(idx.clone());
@@ -795,7 +824,7 @@ impl RuntimeValue {
         cur_frame: &mut Frame,
         vm: &mut VirtualMachine,
     ) -> ExecutionResult<CallResult> {
-        match self.read_attribute_by_name("_op_impl_write_index", &mut vm.globals) {
+        match self.read_attribute(INTERNED_OP_IMPL_WRITE_INDEX, &vm.globals) {
             Ok(write_index) => {
                 cur_frame.stack.push(val.clone());
                 for idx in indices.iter().rev() {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 use crate::{
-    builtins::VmGlobals, frame::Frame, runtime_value::function::BuiltinFunctionImpl,
-    vm::RunloopExit,
+    builtins::VmGlobals, error::vm_error::VmErrorReason, frame::Frame,
+    runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
 
 #[derive(Default)]
@@ -13,10 +13,15 @@ impl BuiltinFunctionImpl for ReadAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
-        let result = the_value.read_attribute_by_name(&the_string.raw_value(), &mut vm.globals)?;
-        frame.stack.push(result);
-        Ok(RunloopExit::Ok(()))
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
+        if let Some(symbol) = vm.globals.lookup_symbol(&the_string)
+            && let Ok(the_attr) = the_value.read_attribute(symbol, &vm.globals)
+        {
+            frame.stack.push(the_attr);
+            Ok(RunloopExit::Ok(()))
+        } else {
+            Err(VmErrorReason::NoSuchIdentifier(the_string).into())
+        }
     }
 
     fn arity(&self) -> crate::arity::Arity {

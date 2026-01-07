@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 use haxby_opcodes::BuiltinTypeId;
 
-use crate::runtime_value::{
-    RuntimeValue,
-    enumeration::{Enum, EnumCase},
-    isa::IsaCheckable,
-    kind::RuntimeValueType,
-    structure::Struct,
+use crate::{
+    runtime_value::{
+        RuntimeValue,
+        enumeration::{Enum, EnumCase},
+        isa::IsaCheckable,
+        kind::RuntimeValueType,
+        structure::Struct,
+    },
+    symbol::INTERNED_ATTR_ARGC_MISMATCH,
 };
 
 use super::VmGlobals;
@@ -56,8 +59,8 @@ pub(super) fn insert_runtime_error_builtins(builtins: &mut VmGlobals) {
         ],
     )));
 
-    let _ = rt_err_enum.write_attribute_by_name(
-        "ArgcMismatch",
+    let _ = rt_err_enum.write_attribute(
+        INTERNED_ATTR_ARGC_MISMATCH,
         RuntimeValue::Type(RuntimeValueType::Struct(argc_mismatch)),
         builtins,
     );

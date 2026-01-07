@@ -6,6 +6,7 @@ use crate::{
     error::vm_error::{VmError, VmErrorReason},
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, object::Object},
+    symbol::INTERNED_OP_IMPL_CALL,
     vm::RunloopExit,
 };
 
@@ -79,7 +80,7 @@ fn get_to_function_for_callable(
         Some((f.clone(), false))
     } else if let Some(bf) = val.as_bound_function() {
         Some((bf.func().clone(), true))
-    } else if let Ok(call) = val.read_attribute_by_name("_op_impl_call", &mut vm.globals) {
+    } else if let Ok(call) = val.read_attribute(INTERNED_OP_IMPL_CALL, &vm.globals) {
         get_to_function_for_callable(&call, vm)
     } else {
         None

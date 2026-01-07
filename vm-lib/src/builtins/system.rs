@@ -4,6 +4,7 @@ use crate::{
     error::vm_error::VmErrorReason,
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, integer::IntegerValue},
+    symbol::{INTERNED_ATTR_STDERR, INTERNED_ATTR_STDOUT},
     vm::RunloopExit,
 };
 use std::process::Command;
@@ -36,19 +37,19 @@ impl BuiltinFunctionImpl for System {
                 let result = RuntimeValue::Integer(IntegerValue::from(
                     output.status.code().unwrap_or(-1) as i64,
                 ));
-                let _ = result.write_attribute_by_name(
-                    "stdout",
+                let _ = result.write_attribute(
+                    INTERNED_ATTR_STDOUT,
                     RuntimeValue::String(
                         String::from_utf8_lossy(&output.stdout).to_string().into(),
                     ),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
-                let _ = result.write_attribute_by_name(
-                    "stderr",
+                let _ = result.write_attribute(
+                    INTERNED_ATTR_STDERR,
                     RuntimeValue::String(
                         String::from_utf8_lossy(&output.stderr).to_string().into(),
                     ),
-                    &mut vm.globals,
+                    &vm.globals,
                 );
                 cur_frame.stack.push(result);
                 Ok(RunloopExit::Ok(()))
