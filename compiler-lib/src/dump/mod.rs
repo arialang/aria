@@ -11,19 +11,23 @@ use crate::{
 pub mod opcodes;
 
 pub trait StringResolver {
-    fn resolve_compile_time_constant(&self, _: u16) -> Option<&str> {
+    fn resolve_compile_time_constant(&self, _: u16) -> Option<String> {
         None
     }
 
-    fn resolve_run_time_symbol(&self, _: u32) -> Option<&str> {
+    fn resolve_run_time_symbol(&self, _: u32) -> Option<String> {
         None
     }
 }
 
 impl StringResolver for CompiledModule {
-    fn resolve_compile_time_constant(&self, idx: u16) -> Option<&str> {
+    fn resolve_compile_time_constant(&self, idx: u16) -> Option<String> {
         match self.constants.values.get(idx as usize) {
-            Some(ConstantValue::String(s)) => Some(s.as_str()),
+            Some(cv) => {
+                let poa = PrintoutAccumulator::default();
+                let poa = cv.dump(self, poa);
+                Some(poa.value())
+            }
             _ => None,
         }
     }

@@ -12,7 +12,7 @@ pub(crate) struct RuntimeOpcodePrinter<'a> {
 }
 
 impl<'a> StringResolver for RuntimeOpcodePrinter<'a> {
-    fn resolve_compile_time_constant(&self, idx: u16) -> Option<&str> {
+    fn resolve_compile_time_constant(&self, idx: u16) -> Option<String> {
         if let Some(module) = &self.module {
             module
                 .get_compiled_module()
@@ -22,9 +22,11 @@ impl<'a> StringResolver for RuntimeOpcodePrinter<'a> {
         }
     }
 
-    fn resolve_run_time_symbol(&self, idx: u32) -> Option<&str> {
+    fn resolve_run_time_symbol(&self, idx: u32) -> Option<String> {
         if let Some(globals) = &self.globals {
-            globals.resolve_symbol(crate::symbol::Symbol(idx))
+            globals
+                .resolve_symbol(crate::symbol::Symbol(idx))
+                .map(|f| f.to_string())
         } else {
             None
         }
