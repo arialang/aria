@@ -23,7 +23,10 @@ use crate::{
         vm_error::{VmError, VmErrorReason},
     },
     frame::Frame,
-    opcodes::prettyprint::opcode_prettyprint,
+    opcodes::{
+        prettyprint::opcode_prettyprint,
+        sidecar::{OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice},
+    },
     runtime_module::RuntimeModule,
     runtime_value::{
         RuntimeValue,
@@ -542,14 +545,16 @@ impl VirtualMachine {
         &mut self,
         module: &RuntimeModule,
         bc: &[Opcode],
+        sidecar: &SidecarSlice,
         target_frame: &mut Frame,
     ) -> ExecutionResult<RunloopExit> {
-        self.runloop(bc, module, target_frame)
+        self.runloop(bc, sidecar, module, target_frame)
     }
 
     fn run_opcode(
         &mut self,
         next: Opcode,
+        next_sidecar: &SidecarCell,
         op_idx: &mut usize,
         this_module: &RuntimeModule,
         frame: &mut Frame,
@@ -1035,8 +1040,37 @@ impl VirtualMachine {
                 );
             }
             Opcode::ReadAttributeSymbol(n) => {
+                let n = crate::symbol::Symbol(n);
+
                 let val_obj = pop_or_err!(next, frame, op_idx);
-                match val_obj.read_attribute(crate::symbol::Symbol(n), &self.globals) {
+
+                if let Some(mut sc) = next_sidecar.get()
+                    && let Some(sc) = sc.as_read_attribute_mut()
+                    && sc.misses < ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES
+                {
+                    if let Some(v) = val_obj.read_slot(sc.slot_id, sc.shape_id) {
+                        frame.stack.push(v);
+                        return Ok(OpcodeRunExit::Continue);
+                    } else {
+                        sc.misses = sc
+                            .misses
+                            .saturating_add(1)
+                            .clamp(0, ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES);
+                        next_sidecar.set(Some(OpcodeSidecar::ReadAttribute(*sc)));
+                    }
+                }
+
+                if let Some((v, sid, slot)) = val_obj.resolve_to_slot(&self.globals, n) {
+                    next_sidecar.set(Some(OpcodeSidecar::ReadAttribute(ReadAttributeSidecar {
+                        misses: 0,
+                        shape_id: sid,
+                        slot_id: slot,
+                    })));
+                    frame.stack.push(v);
+                    return Ok(OpcodeRunExit::Continue);
+                }
+
+                match val_obj.read_attribute(n, &self.globals) {
                     Ok(val) => {
                         frame.stack.push(val);
                     }
@@ -1044,7 +1078,7 @@ impl VirtualMachine {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchSymbol(n)
+                                    VmErrorReason::NoSuchSymbol(n.0)
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1776,6 +1810,7 @@ impl VirtualMachine {
     fn runloop(
         &mut self,
         bc: &[Opcode],
+        sidecar: &SidecarSlice,
         module: &RuntimeModule,
         frame: &mut Frame,
     ) -> ExecutionResult<RunloopExit, VmError> {
@@ -1787,6 +1822,13 @@ impl VirtualMachine {
 
             let next = match bc.get(op_counter) {
                 Some(op) => *op,
+                None => {
+                    return Err(VmErrorReason::UnterminatedBytecode.into());
+                }
+            };
+
+            let next_sidecar = match sidecar.get(op_counter) {
+                Some(sc) => sc,
                 None => {
                     return Err(VmErrorReason::UnterminatedBytecode.into());
                 }
@@ -1821,7 +1863,7 @@ impl VirtualMachine {
             // some errors can be converted into exceptions, so reserve the right to postpone exception handling
             let mut need_handle_exception: Option<VmException> = None;
 
-            match self.run_opcode(next, &mut op_counter, module, frame) {
+            match self.run_opcode(next, next_sidecar, &mut op_counter, module, frame) {
                 Ok(OpcodeRunExit::Continue) => {}
                 Ok(OpcodeRunExit::Return) => {
                     return Ok(RunloopExit::Ok(()));

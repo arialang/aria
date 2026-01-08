@@ -6,8 +6,8 @@ use std::{
 
 use rustc_data_structures::fx::FxHashSet;
 
-use crate::symbol::Symbol;
 use crate::{error::vm_error::VmErrorReason, shape::ShapeId};
+use crate::{shape::SlotId, symbol::Symbol};
 
 use super::{RuntimeValue, structure::Struct};
 
@@ -52,6 +52,24 @@ impl ObjectBox {
     ) -> Option<RuntimeValue> {
         let slot_id = builtins.shapes.resolve_slot(self.shape.get(), name)?;
         self.slots.borrow().get(slot_id.0 as usize).cloned()
+    }
+
+    pub(super) fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
+        if self.shape.get() != sid {
+            return None;
+        }
+        self.slots.borrow().get(slot_id.0 as usize).cloned()
+    }
+
+    pub(super) fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
+        let sid = self.shape.get();
+        let slot_id = builtins.shapes.resolve_slot(sid, name)?;
+        let val = self.slots.borrow().get(slot_id.0 as usize)?.clone();
+        Some((val, sid, slot_id))
     }
 
     pub(super) fn list_attributes(
@@ -100,6 +118,18 @@ impl ObjectImpl {
         }
     }
 
+    fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
+        self.boxx.read_slot(slot_id, sid)
+    }
+
+    fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
+        self.boxx.resolve_to_slot(builtins, name)
+    }
+
     fn write(&self, builtins: &mut crate::builtins::VmGlobals, name: Symbol, val: RuntimeValue) {
         self.boxx.write(builtins, name, val)
     }
@@ -118,6 +148,18 @@ impl Object {
         Self {
             imp: Rc::new(ObjectImpl::new(kind)),
         }
+    }
+
+    pub(crate) fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
+        self.imp.read_slot(slot_id, sid)
+    }
+
+    pub(crate) fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
+        self.imp.resolve_to_slot(builtins, name)
     }
 
     pub fn read(

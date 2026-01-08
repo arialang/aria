@@ -48,6 +48,7 @@ impl BuiltinFunction {
 pub struct BytecodeFunction {
     pub name: String,
     pub body: Rc<[Opcode]>,
+    pub sidecar: Rc<[std::cell::Cell<Option<crate::opcodes::sidecar::OpcodeSidecar>>]>,
     pub arity: Arity,
     pub frame_size: u8,
     pub line_table: Rc<LineTable>,
@@ -213,10 +214,14 @@ impl FunctionImpl {
 
     pub fn from_code_object(co: &CodeObject, a: u8, m: &RuntimeModule) -> Self {
         let rc = co.body.clone();
+        let sidecar = (0..rc.len())
+            .map(|_| std::cell::Cell::new(None))
+            .collect::<Vec<_>>();
         let lt = co.line_table.clone();
         let bcf = BytecodeFunction {
             name: co.name.clone(),
             body: rc,
+            sidecar: sidecar.into(),
             arity: Arity {
                 required: co.required_argc,
                 optional: co.default_argc,
@@ -303,7 +308,7 @@ impl Function {
         match self.imp.as_ref() {
             FunctionImpl::BytecodeFunction(bcf) => {
                 target_frame.set_argc(argc);
-                vm.eval_bytecode_in_frame(&bcf.module, &bcf.body, target_frame)
+                vm.eval_bytecode_in_frame(&bcf.module, &bcf.body, &bcf.sidecar, target_frame)
             }
             FunctionImpl::BuiltinFunction(bnf) => bnf.body.eval(target_frame, vm),
         }

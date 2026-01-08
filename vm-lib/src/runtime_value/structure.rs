@@ -4,7 +4,10 @@ use std::{cell::RefCell, rc::Rc};
 use rustc_data_structures::fx::FxHashSet;
 
 use crate::{
-    builtins::VmGlobals, error::vm_error::VmErrorReason, runtime_value::object::ObjectBox,
+    builtins::VmGlobals,
+    error::vm_error::VmErrorReason,
+    runtime_value::object::ObjectBox,
+    shape::{ShapeId, SlotId},
     symbol::Symbol,
 };
 
@@ -31,6 +34,18 @@ impl StructImpl {
 
     fn isa_mixin(&self, mixin: &Mixin) -> bool {
         self.mixins.borrow().contains(mixin)
+    }
+
+    fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
+        self.entries.read_slot(slot_id, sid)
+    }
+
+    fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
+        self.entries.resolve_to_slot(builtins, name)
     }
 
     fn load_named_value(&self, builtins: &VmGlobals, name: Symbol) -> Option<RuntimeValue> {
@@ -97,6 +112,18 @@ impl PartialEq for Struct {
 impl Eq for Struct {}
 
 impl Struct {
+    pub(crate) fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
+        self.imp.read_slot(slot_id, sid)
+    }
+
+    pub(crate) fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
+        self.imp.resolve_to_slot(builtins, name)
+    }
+
     pub fn insert_builtin<T>(&self, builtins: &mut VmGlobals)
     where
         T: 'static + Default + BuiltinFunctionImpl,

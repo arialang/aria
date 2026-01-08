@@ -454,7 +454,12 @@ impl std::fmt::Debug for RuntimeValue {
             Self::Mixin(m) => write!(f, "<mixin{}>", m.name()),
             Self::Module(_) => write!(f, "<module>"),
             Self::EnumValue(v) => {
-                write!(f, "<enum-value of type {}>", v.get_container_enum().name())
+                write!(
+                    f,
+                    "<enum-value of type {} case {}>",
+                    v.get_container_enum().name(),
+                    v.get_case_index(),
+                )
             }
             Self::CodeObject(co) => write!(f, "{co:?}"),
             Self::Function(fnc) => write!(f, "{fnc:?}"),
@@ -714,6 +719,39 @@ impl RuntimeValue {
         }
 
         resolved.into_iter().collect()
+    }
+
+    pub(crate) fn read_slot(
+        &self,
+        slot_id: crate::shape::SlotId,
+        sid: crate::shape::ShapeId,
+    ) -> Option<RuntimeValue> {
+        match self {
+            RuntimeValue::Object(object) => match object.read_slot(slot_id, sid) {
+                Some(val) => Some(val),
+                None => val_or_bound_func!(object.get_struct().read_slot(slot_id, sid)?, self).ok(),
+            },
+            _ => None,
+        }
+    }
+
+    pub(crate) fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, crate::shape::ShapeId, crate::shape::SlotId)> {
+        match self {
+            RuntimeValue::Object(object) => match object.resolve_to_slot(builtins, name) {
+                Some(val) => Some(val),
+                None => {
+                    let val = object.get_struct().resolve_to_slot(builtins, name)?;
+                    val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2))
+                }
+            },
+            _ => None,
+        }
     }
 
     pub fn read_attribute(
