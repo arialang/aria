@@ -4,7 +4,7 @@ use haxby_opcodes::function_attribs::{FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 use haxby_vm::{
     builtins::{
         VmGlobals,
-        native_iterator::{NativeIteratorImpl, create_iterator_struct},
+        native_iterator::{AriaNativeIterator, NativeIteratorImpl, create_iterator_struct},
     },
     error::{dylib_load::LoadResult, vm_error::VmErrorReason},
     frame::Frame,
@@ -124,6 +124,29 @@ impl BuiltinFunctionImpl for New {
     }
 }
 
+struct PathBufAriaIterator {
+    iter: Box<dyn Iterator<Item = PathBuf>>,
+    the_struct: haxby_vm::runtime_value::structure::Struct,
+    path_sym: Symbol,
+}
+
+impl AriaNativeIterator for PathBufAriaIterator {
+    type Item = RuntimeValue;
+
+    fn next(&mut self, vm: &mut crate::vm::VirtualMachine) -> Option<Self::Item> {
+        let next_pathbuf = self.iter.next()?;
+
+        let next_runtime_val = new_from_path(
+            &self.the_struct,
+            next_pathbuf,
+            self.path_sym,
+            &mut vm.globals,
+        );
+
+        Some(next_runtime_val)
+    }
+}
+
 #[derive(Default)]
 struct Glob {}
 impl BuiltinFunctionImpl for Glob {
@@ -150,14 +173,15 @@ impl BuiltinFunctionImpl for Glob {
                     .as_struct()
                     .ok_or(VmErrorReason::UnexpectedVmState)?;
 
-                let values: Vec<_> = path
-                    .flatten()
-                    .map(|e| new_from_path(&the_struct, e, path_sym, &mut vm.globals))
-                    .collect();
+                let values = path.flatten();
 
                 let iterator = create_iterator_struct(
                     iterator_struct,
-                    NativeIteratorImpl::new(values.into_iter()),
+                    NativeIteratorImpl::new(PathBufAriaIterator {
+                        iter: Box::new(values),
+                        the_struct: the_struct.clone(),
+                        path_sym,
+                    }),
                     &mut vm.globals,
                 );
 
@@ -798,15 +822,18 @@ impl BuiltinFunctionImpl for Entries {
         let rfo = rust_obj.content.borrow_mut();
 
         if let Ok(rd) = rfo.read_dir() {
-            let values: Vec<_> = rd
-                .flatten()
-                .map(|e| new_from_path(&aria_struct, e.path(), path_sym, &mut vm.globals))
-                .collect();
+            let values = rd.flatten().map(|e| e.path());
+
             let iterator = create_iterator_struct(
                 &iterator_struct,
-                NativeIteratorImpl::new(values.into_iter()),
+                NativeIteratorImpl::new(PathBufAriaIterator {
+                    iter: Box::new(values),
+                    the_struct: aria_struct.clone(),
+                    path_sym,
+                }),
                 &mut vm.globals,
             );
+
             frame.stack.push(iterator);
         } else {
             let iterator = create_iterator_struct(

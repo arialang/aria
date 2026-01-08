@@ -20,23 +20,27 @@ use crate::{
     vm::RunloopExit,
 };
 
-struct EmptyIterator {}
-impl Iterator for EmptyIterator {
-    type Item = RuntimeValue;
+pub trait AriaNativeIterator {
+    type Item;
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self, _: &mut crate::vm::VirtualMachine) -> Option<Self::Item> {
         None
     }
 }
 
+struct EmptyIterator {}
+impl AriaNativeIterator for EmptyIterator {
+    type Item = RuntimeValue;
+}
+
 pub struct NativeIteratorImpl {
-    iter: Rc<RefCell<dyn Iterator<Item = RuntimeValue>>>,
+    iter: Rc<RefCell<dyn AriaNativeIterator<Item = RuntimeValue>>>,
 }
 
 impl NativeIteratorImpl {
     pub fn new<T>(iter: T) -> Self
     where
-        T: Iterator<Item = RuntimeValue> + 'static,
+        T: AriaNativeIterator<Item = RuntimeValue> + 'static,
     {
         Self {
             iter: Rc::new(RefCell::new(iter)),
@@ -48,11 +52,11 @@ impl NativeIteratorImpl {
     }
 }
 
-impl Iterator for NativeIteratorImpl {
+impl AriaNativeIterator for NativeIteratorImpl {
     type Item = RuntimeValue;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter.borrow_mut().next()
+    fn next(&mut self, vm: &mut crate::vm::VirtualMachine) -> Option<Self::Item> {
+        self.iter.borrow_mut().next(vm)
     }
 }
 
@@ -66,10 +70,8 @@ impl BuiltinFunctionImpl for Next {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_this = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let impl_sym = vm
-            .globals
-            .intern_symbol("__impl")
-            .expect("too many symbols interned");
+        let impl_sym = INTERNED_ATTR_IMPL;
+
         let iterator_impl = aria_this
             .read(&vm.globals, impl_sym)
             .ok_or(VmErrorReason::UnexpectedVmState)?;
@@ -77,7 +79,7 @@ impl BuiltinFunctionImpl for Next {
             .as_opaque_concrete::<RefCell<NativeIteratorImpl>>()
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
-        if let Some(next) = rust_native_iter.borrow_mut().next() {
+        if let Some(next) = rust_native_iter.borrow_mut().next(vm) {
             frame.stack.push(vm.globals.create_maybe_some(next)?);
         } else {
             frame.stack.push(vm.globals.create_maybe_none()?);
