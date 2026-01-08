@@ -64,7 +64,7 @@ impl ObjectBox {
             None => return ret,
         };
 
-        assert!(self.slots.borrow().len() == shape.reverse_slots.len());
+        assert_eq!(self.slots.borrow().len(), shape.reverse_slots.len());
 
         shape.reverse_slots.iter().for_each(|&sym| {
             ret.insert(sym);
