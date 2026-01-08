@@ -16,6 +16,7 @@ inherits = "release"
 codegen-units = 1
 lto = "fat"
 
-[profile.release]
+[profile.forpgo]
+inherits = "release"
 lto = "thin"
 
