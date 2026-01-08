@@ -166,10 +166,12 @@ impl BuiltinFunctionImpl for Close {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
+        let file_sym = file_symbol(&vm.globals)?;
+        let unit = vm.globals.create_unit_object()?;
 
         let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
         let _ = rust_file_obj.file.borrow_mut().flush();
-        //aria_file.delete(file_symbol(&vm.globals)?);
+        aria_file.write(&mut vm.globals, file_sym, unit);
         Ok(RunloopExit::Ok(()))
     }
 

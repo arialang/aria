@@ -128,6 +128,15 @@ impl Object {
         self.imp.read(builtins, name)
     }
 
+    pub fn write(
+        &self,
+        builtins: &mut crate::builtins::VmGlobals,
+        name: Symbol,
+        val: RuntimeValue,
+    ) {
+        self.imp.write(builtins, name, val)
+    }
+
     pub fn list_attributes(&self, builtins: &crate::builtins::VmGlobals) -> FxHashSet<Symbol> {
         self.imp.list_attributes(builtins)
     }
