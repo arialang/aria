@@ -11,19 +11,19 @@ pub struct SlotId(pub u32);
 
 pub struct Shape {
     #[allow(unused)]
-    id: ShapeId,
-    slots: FxHashMap<Symbol, SlotId>,
-    reverse_slots: FxHashMap<SlotId, Symbol>,
-    transitions: FxHashMap<Symbol, ShapeId>,
+    pub(crate) id: ShapeId,
+    pub(crate) slots: FxHashMap<Symbol, SlotId>,
+    pub(crate) reverse_slots: Vec<Symbol>,
+    pub(crate) transitions: FxHashMap<Symbol, ShapeId>,
 }
 
 impl Shape {
     pub fn empty() -> Self {
         Shape {
             id: Shapes::EMPTY_SHAPE_INDEX,
-            slots: FxHashMap::default(),
-            reverse_slots: FxHashMap::default(),
-            transitions: FxHashMap::default(),
+            slots: Default::default(),
+            reverse_slots: Vec::default(),
+            transitions: Default::default(),
         }
     }
 }
@@ -61,7 +61,8 @@ impl Shapes {
         let mut new_shape_slots = cur_shape.slots.clone();
         new_shape_slots.insert(name, new_slot_id);
         let mut new_shape_reverse_slots = cur_shape.reverse_slots.clone();
-        new_shape_reverse_slots.insert(new_slot_id, name);
+        assert_eq!(new_shape_reverse_slots.len(), new_slot_id.0 as usize);
+        new_shape_reverse_slots.push(name);
 
         let new_sid = ShapeId(self.shapes.len() as u32);
         let new_shape = Shape {
@@ -87,6 +88,10 @@ impl Shapes {
     pub fn resolve_symbol(&self, sid: ShapeId, slot_id: SlotId) -> Option<Symbol> {
         self.shapes
             .get(sid.0 as usize)
-            .and_then(|shape| shape.reverse_slots.get(&slot_id).copied())
+            .and_then(|shape| shape.reverse_slots.get(slot_id.0 as usize).copied())
+    }
+
+    pub(crate) fn get_shape(&self, sid: ShapeId) -> Option<&Shape> {
+        self.shapes.get(sid.0 as usize)
     }
 }

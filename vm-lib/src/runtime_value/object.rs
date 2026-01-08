@@ -58,17 +58,17 @@ impl ObjectBox {
         &self,
         builtins: &crate::builtins::VmGlobals,
     ) -> FxHashSet<Symbol> {
-        let slot_count = self.slots.borrow().len();
         let mut ret = FxHashSet::<Symbol>::default();
-        for i in 0..slot_count {
-            if let Some(symbol) = builtins
-                .shapes
-                .resolve_symbol(self.shape.get(), crate::shape::SlotId(i as u32))
-            {
-                ret.insert(symbol);
-            }
-        }
+        let shape = match builtins.shapes.get_shape(self.shape.get()) {
+            Some(s) => s,
+            None => return ret,
+        };
 
+        assert!(self.slots.borrow().len() == shape.reverse_slots.len());
+
+        shape.reverse_slots.iter().for_each(|&sym| {
+            ret.insert(sym);
+        });
         ret
     }
 
