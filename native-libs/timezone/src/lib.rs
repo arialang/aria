@@ -66,7 +66,7 @@ impl BuiltinFunctionImpl for TimezoneInfo {
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    _: *const haxby_vm::vm::VirtualMachine,
+    _: *mut haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
     match unsafe { module.as_ref() } {

@@ -1614,7 +1614,7 @@ impl VirtualMachine {
                         };
                         let symbol: libloading::Symbol<
                             unsafe extern "C" fn(
-                                *const VirtualMachine,
+                                *mut VirtualMachine,
                                 *const RuntimeModule,
                             ) -> LoadResult,
                         > = match dylib.get(b"dylib_haxby_inject") {
@@ -1632,10 +1632,8 @@ impl VirtualMachine {
                             }
                         };
 
-                        let load_result = symbol(
-                            self as *const VirtualMachine,
-                            module as *const RuntimeModule,
-                        );
+                        let load_result =
+                            symbol(self as *mut VirtualMachine, module as *const RuntimeModule);
                         if load_result.status == LoadStatus::Success {
                             self.loaded_dylibs.insert(lib_name, dylib);
                         } else {

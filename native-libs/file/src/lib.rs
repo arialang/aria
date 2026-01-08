@@ -485,15 +485,10 @@ impl BuiltinFunctionImpl for Flush {
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    vm: *const haxby_vm::vm::VirtualMachine,
+    vm: *mut haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
-    match unsafe {
-        (
-            (vm as *mut haxby_vm::vm::VirtualMachine).as_mut(),
-            module.as_ref(),
-        )
-    } {
+    match unsafe { (vm.as_mut(), module.as_ref()) } {
         (Some(vm), Some(module)) => {
             let file = match module.load_named_value("File") {
                 Some(file) => file,

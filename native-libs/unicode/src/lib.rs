@@ -80,21 +80,17 @@ impl<T: CharFunctionImpl + Default> BuiltinFunctionImpl for CharBuiltinFunction<
 #[unsafe(no_mangle)]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn dylib_haxby_inject(
-    vm: *const haxby_vm::vm::VirtualMachine,
+    vm: *mut haxby_vm::vm::VirtualMachine,
     module: *const RuntimeModule,
 ) -> LoadResult {
     // the aria module isn't really useful here since it's just a placeholder to inject methods
     // into the String builtin type, but I'd rather be safe here and check that it's also a valid
     // module, not just a valid VM instance
-    if let (Some(vm), Some(_)) = unsafe {
-        (
-            (vm as *mut haxby_vm::vm::VirtualMachine).as_mut(),
-            module.as_ref(),
-        )
-    } && let Some(string) = vm
-        .globals
-        .get_builtin_type_by_id(BuiltinTypeId::String)
-        .as_rust_native()
+    if let (Some(vm), Some(_)) = unsafe { (vm.as_mut(), module.as_ref()) }
+        && let Some(string) = vm
+            .globals
+            .get_builtin_type_by_id(BuiltinTypeId::String)
+            .as_rust_native()
     {
         string.insert_builtin::<CharBuiltinFunction<is_lowercase_letter>>(&mut vm.globals);
         string.insert_builtin::<CharBuiltinFunction<is_uppercase_letter>>(&mut vm.globals);
