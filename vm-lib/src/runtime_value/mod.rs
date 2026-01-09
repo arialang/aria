@@ -723,6 +723,7 @@ impl RuntimeValue {
 
     pub(crate) fn read_slot(
         &self,
+        _: &crate::builtins::VmGlobals,
         slot_id: crate::shape::SlotId,
         sid: crate::shape::ShapeId,
     ) -> Option<RuntimeValue> {

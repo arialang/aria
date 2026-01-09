@@ -1048,7 +1048,7 @@ impl VirtualMachine {
                     && let Some(sc) = sc.as_read_attribute_mut()
                     && sc.misses < ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES
                 {
-                    if let Some(v) = val_obj.read_slot(sc.slot_id, sc.shape_id) {
+                    if let Some(v) = val_obj.read_slot(&self.globals, sc.slot_id, sc.shape_id) {
                         frame.stack.push(v);
                         return Ok(OpcodeRunExit::Continue);
                     } else {
