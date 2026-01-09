@@ -25,7 +25,9 @@ use crate::{
     frame::Frame,
     opcodes::{
         prettyprint::opcode_prettyprint,
-        sidecar::{OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice},
+        sidecar::{
+            OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice, sidecar_prettyprint,
+        },
     },
     runtime_module::RuntimeModule,
     runtime_value::{
@@ -1843,14 +1845,22 @@ impl VirtualMachine {
                     };
                     opcode_prettyprint(next, &ropc, poa).value()
                 };
+                let next_sidecar = {
+                    if let Some(sc) = next_sidecar.get() {
+                        let poa = PrintoutAccumulator::default();
+                        sidecar_prettyprint(sc, poa).value()
+                    } else {
+                        "".to_string()
+                    }
+                };
                 let wrote_lt = if let Some(lt) = frame.get_line_entry_at_pos(op_counter as u16) {
-                    println!("{op_counter:05}: {next} --> {lt}");
+                    println!("{op_counter:05}: {next} {next_sidecar} --> {lt}");
                     true
                 } else {
                     false
                 };
                 if !wrote_lt {
-                    println!("{op_counter:05}: {next}");
+                    println!("{op_counter:05}: {next} {next_sidecar}");
                 }
             }
 
