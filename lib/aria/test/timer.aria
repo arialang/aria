@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.iterator.mixin;
+import aria.range.int_extension;
+
+struct Timer {
+    type func new(f) {
+        return alloc(This) {
+            .fn = f,
+            .samples = []
+        };
+    }
+
+    func run(n=1) {
+        val start = now();
+        for _ in 0.to(n) {
+            this.fn();
+        }
+        val end = now();
+        val duration = (end - start)/1000.0;
+        this.samples.append(duration);
+        return duration;
+    }
+
+    func average() {
+        return this.samples.sum() / this.samples.len();
+    }
+
+    func max() {
+        return this.samples.max();
+    }
+
+    func min() {
+        return this.samples.min();
+    }
+}
