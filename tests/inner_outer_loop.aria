@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+
+### TAGS: XFAIL
+
+import aria.range.int_extension;
+
+val inner = 0;
+val outer = 0;
+for i in 0.to(12) {
+    for i in 0.to(500) {
+        inner += 1;
+    }
+    outer += 1;
+}
+
+assert inner == 6000;
+assert outer == 12;
