@@ -723,7 +723,7 @@ impl RuntimeValue {
 
     pub(crate) fn read_slot(
         &self,
-        _: &crate::builtins::VmGlobals,
+        builtins: &crate::builtins::VmGlobals,
         slot_id: crate::shape::SlotId,
         sid: crate::shape::ShapeId,
     ) -> Option<RuntimeValue> {
@@ -732,6 +732,97 @@ impl RuntimeValue {
                 Some(val) => Some(val),
                 None => val_or_bound_func!(object.get_struct().read_slot(slot_id, sid)?, self).ok(),
             },
+            RuntimeValue::Mixin(mixin) => mixin.imp.as_ref().entries.read_slot(slot_id, sid),
+            RuntimeValue::EnumValue(enumm) => {
+                let val = enumm
+                    .get_container_enum()
+                    .imp
+                    .as_ref()
+                    .entries
+                    .read_slot(slot_id, sid)?;
+                val_or_bound_func!(val, self).ok()
+            }
+            RuntimeValue::Integer(bv) => match bv.imp.as_ref().boxx.read_slot(slot_id, sid) {
+                Some(val) => val_or_bound_func!(val, self).ok(),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
+                    Self::read_slot_from_type(&bt, slot_id, sid)
+                        .and_then(|val| val_or_bound_func!(val, self).ok())
+                }
+            },
+            RuntimeValue::String(bv) => match bv.imp.as_ref().boxx.read_slot(slot_id, sid) {
+                Some(val) => val_or_bound_func!(val, self).ok(),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
+                    Self::read_slot_from_type(&bt, slot_id, sid)
+                        .and_then(|val| val_or_bound_func!(val, self).ok())
+                }
+            },
+            RuntimeValue::Float(bv) => match bv.imp.as_ref().boxx.read_slot(slot_id, sid) {
+                Some(val) => val_or_bound_func!(val, self).ok(),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Float);
+                    Self::read_slot_from_type(&bt, slot_id, sid)
+                        .and_then(|val| val_or_bound_func!(val, self).ok())
+                }
+            },
+            RuntimeValue::Boolean(bv) => match bv.imp.as_ref().boxx.read_slot(slot_id, sid) {
+                Some(val) => val_or_bound_func!(val, self).ok(),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Bool);
+                    Self::read_slot_from_type(&bt, slot_id, sid)
+                        .and_then(|val| val_or_bound_func!(val, self).ok())
+                }
+            },
+            RuntimeValue::Function(f) => f.get_attribute_store().read_slot(slot_id, sid),
+            RuntimeValue::List(l) => match l.imp.as_ref().boxx.read_slot(slot_id, sid) {
+                Some(val) => Some(val),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::List);
+                    Self::read_slot_from_type(&bt, slot_id, sid)
+                        .and_then(|val| val_or_bound_func!(val, self).ok())
+                }
+            },
+            RuntimeValue::Type(t) => {
+                let val = Self::read_slot_from_type(t, slot_id, sid)?;
+                if let Some(rf) = val.as_function() {
+                    if !rf.attribute().is_type_method() {
+                        None
+                    } else {
+                        Some(self.bind(rf.clone()))
+                    }
+                } else {
+                    Some(val)
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn read_slot_from_type(
+        ty: &RuntimeValueType,
+        slot_id: crate::shape::SlotId,
+        sid: crate::shape::ShapeId,
+    ) -> Option<RuntimeValue> {
+        match ty {
+            RuntimeValueType::Struct(st) => st.imp.as_ref().entries.read_slot(slot_id, sid),
+            RuntimeValueType::Enum(en) => en.imp.as_ref().entries.read_slot(slot_id, sid),
+            RuntimeValueType::RustNative(rt) => rt.get_boxx().as_ref().read_slot(slot_id, sid),
+            _ => None,
+        }
+    }
+
+    fn resolve_to_slot_from_type(
+        ty: &RuntimeValueType,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(RuntimeValue, crate::shape::ShapeId, crate::shape::SlotId)> {
+        match ty {
+            RuntimeValueType::Struct(st) => st.imp.as_ref().entries.resolve_to_slot(builtins, name),
+            RuntimeValueType::Enum(en) => en.imp.as_ref().entries.resolve_to_slot(builtins, name),
+            RuntimeValueType::RustNative(rt) => {
+                rt.get_boxx().as_ref().resolve_to_slot(builtins, name)
+            }
             _ => None,
         }
     }
@@ -751,6 +842,95 @@ impl RuntimeValue {
                         .map(|v| (v, val.1, val.2))
                 }
             },
+            RuntimeValue::Mixin(mixin) => {
+                mixin.imp.as_ref().entries.resolve_to_slot(builtins, name)
+            }
+            RuntimeValue::EnumValue(enumm) => {
+                let val = enumm
+                    .get_container_enum()
+                    .imp
+                    .as_ref()
+                    .entries
+                    .resolve_to_slot(builtins, name)?;
+                val_or_bound_func!(val.0, self)
+                    .ok()
+                    .map(|v| (v, val.1, val.2))
+            }
+            RuntimeValue::Integer(bv) => match bv.imp.as_ref().boxx.resolve_to_slot(builtins, name)
+            {
+                Some(val) => val_or_bound_func!(val.0, self)
+                    .ok()
+                    .map(|v| (v, val.1, val.2)),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Int);
+                    let val = Self::resolve_to_slot_from_type(&bt, builtins, name)?;
+                    val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2))
+                }
+            },
+            RuntimeValue::String(bv) => {
+                match bv.imp.as_ref().boxx.resolve_to_slot(builtins, name) {
+                    Some(val) => val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2)),
+                    None => {
+                        let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::String);
+                        let val = Self::resolve_to_slot_from_type(&bt, builtins, name)?;
+                        val_or_bound_func!(val.0, self)
+                            .ok()
+                            .map(|v| (v, val.1, val.2))
+                    }
+                }
+            }
+            RuntimeValue::Float(bv) => match bv.imp.as_ref().boxx.resolve_to_slot(builtins, name) {
+                Some(val) => val_or_bound_func!(val.0, self)
+                    .ok()
+                    .map(|v| (v, val.1, val.2)),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Float);
+                    let val = Self::resolve_to_slot_from_type(&bt, builtins, name)?;
+                    val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2))
+                }
+            },
+            RuntimeValue::Boolean(bv) => match bv.imp.as_ref().boxx.resolve_to_slot(builtins, name)
+            {
+                Some(val) => val_or_bound_func!(val.0, self)
+                    .ok()
+                    .map(|v| (v, val.1, val.2)),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::Bool);
+                    let val = Self::resolve_to_slot_from_type(&bt, builtins, name)?;
+                    val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2))
+                }
+            },
+            RuntimeValue::Function(f) => f.get_attribute_store().resolve_to_slot(builtins, name),
+            RuntimeValue::List(l) => match l.imp.as_ref().boxx.resolve_to_slot(builtins, name) {
+                Some(val) => Some(val),
+                None => {
+                    let bt = builtins.get_builtin_type_by_id(BuiltinTypeId::List);
+                    let val = Self::resolve_to_slot_from_type(&bt, builtins, name)?;
+                    val_or_bound_func!(val.0, self)
+                        .ok()
+                        .map(|v| (v, val.1, val.2))
+                }
+            },
+            RuntimeValue::Type(t) => {
+                let val = Self::resolve_to_slot_from_type(t, builtins, name)?;
+                if let Some(rf) = val.0.as_function() {
+                    if !rf.attribute().is_type_method() {
+                        None
+                    } else {
+                        Some((self.bind(rf.clone()), val.1, val.2))
+                    }
+                } else {
+                    Some(val)
+                }
+            }
             _ => None,
         }
     }
