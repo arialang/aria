@@ -15,8 +15,9 @@ resolver = "2"
 inherits = "release"
 codegen-units = 1
 lto = "fat"
+debug = true
 
-[profile.forpgo]
+[profile.pgo]
 inherits = "release"
 lto = "thin"
-
+debug = true

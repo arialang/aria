@@ -6,13 +6,13 @@ RUST_MIN_STACK=16777216
 
 cargo install cargo-pgo && rustup component add llvm-tools-preview
 
-output=$(CARGO_PROFILE_RELEASE_DEBUG=true cargo pgo build -- --profile forpgo 2>&1)
+output=$(cargo pgo build -- --profile pgo 2>&1)
 
 aria_bin=$(printf "%s\n" "$output" | sed -n 's/.* Now run \(.*\/aria\) on your workload.*/\1/p')
 
 # TODO: write a more interesting benchmark workload
 RUST_MIN_STACK=${RUST_MIN_STACK} ARIA_LIB_DIR=${ARIA_LIB_DIR} ${aria_bin} ${SELF_DIR}/examples/sieve.aria
 
-CARGO_PROFILE_RELEASE_DEBUG=true cargo pgo optimize build -- --profile forpgo
+cargo pgo optimize build -- --profile pgo
 
 printf "Run PGO optimized Aria as ARIA_LIB_DIR="${ARIA_LIB_DIR}" "${aria_bin}"\n"
