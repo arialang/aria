@@ -5,30 +5,47 @@ extension Float {
             throw Float.DomainError.new("logarithm undefined for non-positive values");
         }
 
-        val ε = 0.000000000001f;
+        val LN2 = 0.6931471805599453;
+        val ε = 1.0e-15;
+        val max_iterations = 10000;
 
-        val guess = this / 2.0f;
-        val current_guess = guess;
+        val x = this;
+        val k = 0;
+        val mant = x;
 
-        val max_iterations = 1000;
-        val iterations = 0;
-
-        while iterations < max_iterations {
-            iterations = iterations + 1;
-
-            val f = current_guess.exp() - this;
-            val f_prime = current_guess.exp();
-
-            val next_guess = current_guess - f / f_prime;
-
-            if (next_guess - current_guess).abs() < ε {
-                return next_guess;
-            }
-
-            current_guess = next_guess;
+        while mant >= 2.0f {
+            mant = mant / 2.0f;
+            k = k + 1;
         }
-        
-        return next_guess;
+
+        while mant < 1.0f {
+            mant = mant * 2.0f;
+            k = k - 1;
+        }
+
+        if mant == 1.0f {
+            return k * LN2;
+        }
+
+        val y = (mant - 1.0f) / (mant + 1.0f);
+        val y2 = y * y;
+
+        val term = y;
+        val sum = 0.0f;
+        val n = 1;
+        val iterations = 0;
+        while iterations < max_iterations {
+            sum = sum + term / n;
+            term = term * y2;
+            n = n + 2;
+            iterations = iterations + 1;
+            if (term.abs() / n) < ε {
+                break;
+            }
+        }
+
+        val ln_val = 2.0f * sum;
+        return ln_val + k * LN2;
     }
 
     func exp() {
