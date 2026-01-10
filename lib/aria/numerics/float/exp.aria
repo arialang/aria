@@ -33,22 +33,35 @@ extension Float {
 
     func exp() {
         val ε = 0.000000000001f;
+        val max_iterations = 1000;
+
+        if this == 0.0f {
+            return 1.0f;
+        }
+
+        val reduced = this;
+        val scale = 0;
+        while reduced.abs() > 0.5f {
+            reduced = reduced / 2.0f;
+            scale = scale + 1;
+        }
 
         val result = 1.0f;
         val term = 1.0f;
-
-        val max_iterations = 1000;
         val iterations = 0;
-
         while iterations < max_iterations {
             iterations = iterations + 1;
-
-            term = term * this / iterations;
+            term = term * reduced / iterations;
             if term.abs() < ε {
                 break;
             }
-
             result = result + term;
+        }
+
+        val i = 0;
+        while i < scale {
+            result = result * result;
+            i = i + 1;
         }
 
         return result;

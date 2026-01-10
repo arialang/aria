@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+import aria.numerics.float.exp;
+
+func within_tolerance(expected: Float, got: Float, rel_tol: Float = 1.0e-9, abs_tol: Float = 1.0e-15) {
+    val diff = (got - expected).abs();
+    val tol = expected.abs() * rel_tol;
+    if tol < abs_tol {
+        tol = abs_tol;
+    }
+    return diff <= tol;
+}
+
+assert within_tolerance(1.0, 0.0.exp());
+assert within_tolerance(2.718281828459045, 1.0.exp());
+assert within_tolerance(0.36787944117144233, (-1.0).exp());
+assert within_tolerance(4.851651954097903e8, 20.0.exp());
+assert within_tolerance(1.9287498479639178e-22, (-50.0).exp());
