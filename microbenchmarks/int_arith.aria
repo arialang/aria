@@ -4,11 +4,13 @@ import Microbenchmark from infra;
 
 struct ListWrite : Microbenchmark {
     func test() {
-        val l = [];
-        for i in 0.to(100000) {
-            l.append(i);
+        val n = 2;
+        val m = 1;
+        while n < 500_000_000_000 {
+            n = n + 2 * m + n / m;
+            m = m + 1;
         }
     }
 }
 
-ListWrite.new("List Write").run();
+ListWrite.new("Integer Arithmetic").run();
