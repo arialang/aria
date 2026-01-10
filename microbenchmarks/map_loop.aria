@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+import Map from aria.structures.map;
+import Microbenchmark from infra;
+
+struct MapLoop : Microbenchmark {
+    func prepare() {
+        val m = Map.new();
+        for i in 0.to(12_000) {
+            m.set(i, i);
+        }
+        this.m = m;
+    }
+
+    func test() {
+        for item in this.m {
+            assert item.value == item.key;
+        }
+    }
+}
+
+MapLoop.new("Map Iterator").run();

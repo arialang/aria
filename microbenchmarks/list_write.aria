@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 import aria.range.int_extension;
-import Timer from aria.test.timer;
 import Microbenchmark from infra;
 
 struct ListWrite : Microbenchmark {

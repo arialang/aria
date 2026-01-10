@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Microbenchmark from infra;
+
+struct IntegerArithmetic : Microbenchmark {
+    func test() {
+        val n = 2;
+        val m = 1;
+        while n < 500_000_000_000 {
+            n = n + 2 * m + n / m;
+            m = m + 1;
+        }
+    }
+}
+
+IntegerArithmetic.new("Integer Arithmetic").run();
