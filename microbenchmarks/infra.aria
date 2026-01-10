@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Timer from aria.test.timer;
+
+# include this mixin and provide a func test() to create a microbenchmark
+mixin Microbenchmark {
+    type func new(name) = alloc(This) { .name };
+
+    # override this if you need to prepare data before running the benchmark
+    func prepare() {}
+
+    # override this if you need to clean up after running the benchmark
+    func teardown() {}
+
+    func run(n=24) {
+        assert hasattr(this, "test");
+        if !hasattr(this, "timer") {
+            this.timer = Timer.new(this.test);
+        }
+
+        for _ in 0.to(n) {
+            this.prepare();
+            println("{1} duration: {0:.3}s".format(this.timer.run(), this.name));
+            this.teardown();
+        }
+        println("{1} average: {0:.3}s".format(this.timer.average(), this.name));
+    }
+}

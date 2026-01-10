@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Timer from aria.test.timer;
+import Microbenchmark from infra;
+
+func foo(_) {}
+
+struct ListWrite : Microbenchmark {
+    func prepare() {
+        this.list = List.filled(false, 100000);
+    }
+    # no need for teardown since we recreate the list each time
+
+    func test() {
+        for n in this.list {
+            foo(n);
+        }
+    }
+}
+
+ListWrite.new("List Read").run();
