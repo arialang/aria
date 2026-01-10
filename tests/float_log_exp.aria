@@ -2,8 +2,13 @@
 
 import aria.numerics.float.exp;
 
-func rough_approx_eq(x: Float, y: Float) {
-    return (x-y).abs() <= 0.00001f;
+func within_tolerance(expected: Float, got: Float, rel_tol: Float = 1.0e-9, abs_tol: Float = 1.0e-15) {
+    val diff = (got - expected).abs();
+    val tol = expected.abs() * rel_tol;
+    if tol < abs_tol {
+        tol = abs_tol;
+    }
+    return diff <= tol;
 }
 
 func roundtrip_le(x: Float) {
@@ -14,12 +19,24 @@ func roundtrip_el(x: Float) {
     return x.exp().ln();
 }
 
-func main() {
-    assert(rough_approx_eq(roundtrip_le(2.0f), 2.0f));
-    assert(rough_approx_eq(roundtrip_el(2.0f), 2.0f));
+func check_roundtrip_el(x: Float) {
+    val y = x.exp();
+    val z = y.ln();
+    return within_tolerance(x, z);
+}
 
-    assert(rough_approx_eq(roundtrip_le(3.4635f), 3.4635f));
-    assert(rough_approx_eq(roundtrip_el(3.4635f), 3.4635f));
+func check_roundtrip_le(x: Float) {
+    val y = x.ln();
+    val z = y.exp();
+    return within_tolerance(x, z);
+}
+
+func main() {
+    assert check_roundtrip_el(2.0f);
+    assert check_roundtrip_le(2.0f);
+
+    assert check_roundtrip_el(3.4635f);
+    assert check_roundtrip_le(3.4635f);
 
     val had_error = false;
 
