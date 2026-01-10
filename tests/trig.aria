@@ -28,8 +28,4 @@ func main() {
     assert(rough_approx_eq(0.0f.arccos(), π/2.0f));
     assert(rough_approx_eq(0.5f.arccos(), π/3));
     assert(rough_approx_eq((-0.5f).arccos(), 2*π/3));
-
-    assert(rough_approx_eq(0.0f.arctan(), 0.0f));
-    assert(rough_approx_eq(1.0f.arctan(), π/4));
-    assert(rough_approx_eq(10.0f.arctan(), 1.4711289944f));
 }

@@ -1,7 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-
-### TAGS: XFAIL
-
-import aria.numerics.float.trig;
-
-assert (0.5f).arctan() == 0.4636476090008061;

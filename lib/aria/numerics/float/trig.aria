@@ -78,15 +78,25 @@ extension Float {
     func arctan() {
         val ε = 0.000000000001f;
         val x = this;
-        
+        if x == -1.0f {
+            return -Float.π / 4;
+        }
+
+        if x == 1.0f {
+            return Float.π / 4;
+        }
+
         if x.abs() > 1.0f {
-            val ret = (Float.π / 2 - (1.0f / x).arctan());
-            return x <= 0 ? -ret : ret;
+            if x > 0.0f {
+                return Float.π / 2 - (1.0f / x).arctan();
+            } else {
+                return -Float.π / 2 - (1.0f / x).arctan();
+            }
         }
 
         if x.abs() > 0.5f {
             val y = (x - 1) / (x + 1);
-            return (Float.π / 4 + y.arctan());
+            return Float.π / 4 + y.arctan();
         }
 
         val term = x;
@@ -95,7 +105,7 @@ extension Float {
 
         while term.abs() > ε {
             n += 2;
-            term = term * (-x * x / n);
+            term = term * (-x * x * (n - 2) / n);
             result = result + term;
         }
 
