@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Microbenchmark from infra;
+
+struct ListWrite : Microbenchmark {
+    func test() {
+        val l = [];
+        for i in 0.to(100000) {
+            l.append(i);
+        }
+    }
+}
+
+ListWrite.new("List Write").run();
