@@ -165,30 +165,69 @@ struct Matrix {
             throw Matrix.DimensionMismatch.new("Determinant can only be calculated for square matrices");
         }
 
-        if this.rows == 1 {
+        val n = this.rows;
+
+        if n == 1 {
             return this.get(0, 0);
-        } elsif this.rows == 2 {
+        } elsif n == 2 {
             return this.get(0, 0) * this.get(1, 1) - this.get(0, 1) * this.get(1, 0);
         }
 
-        val det = alloc(typeof(this.get(0,0)));
-        for col in Range.from(0).to(this.cols) {
-            val submatrix = Matrix.new(this.rows - 1, this.cols - 1);
-            for sub_row in Range.from(1).to(this.rows) {
-                for sub_col in Range.from(0).to(this.cols) {
-                    if sub_col < col {
-                        submatrix.set(sub_row - 1, sub_col, this.get(sub_row, sub_col));
-                    } elsif sub_col > col {
-                        submatrix.set(sub_row - 1, sub_col - 1, this.get(sub_row, sub_col));
-                    }
-                }
-            }
-            if col % 2 == 0 {
-                det += this.get(0, col) * submatrix.determinant();
-            } else {
-                det -= this.get(0, col) * submatrix.determinant();
+        val work = Matrix.new(n, n);
+        for row in Range.from(0).to(n) {
+            for col in Range.from(0).to(n) {
+                work.set(row, col, this.get(row, col) * 1.0f);
             }
         }
-        return det;
+
+        val det = 1.0f;
+        val sign = 1.0f;
+
+        for col in Range.from(0).to(n) {
+            val pivot_row = col;
+            val pivot_val = work.get(col, col);
+            if pivot_val < 0.0f {
+                pivot_val = -pivot_val;
+            }
+
+            for row in Range.from(col + 1).to(n) {
+                val abs_val = work.get(row, col);
+                if abs_val < 0.0f {
+                    abs_val = -abs_val;
+                }
+                if abs_val > pivot_val {
+                    pivot_val = abs_val;
+                    pivot_row = row;
+                }
+            }
+
+            if pivot_val == 0.0f {
+                return 0.0f;
+            }
+
+            if pivot_row != col {
+                for k in Range.from(0).to(n) {
+                    val temp = work.get(col, k);
+                    work.set(col, k, work.get(pivot_row, k));
+                    work.set(pivot_row, k, temp);
+                }
+                sign = -sign;
+            }
+
+            val pivot = work.get(col, col);
+
+            for row in Range.from(col + 1).to(n) {
+                val factor = work.get(row, col) / pivot;
+                for k in Range.from(col).to(n) {
+                    work.set(row, k, work.get(row, k) - factor * work.get(col, k));
+                }
+            }
+        }
+
+        for i in Range.from(0).to(n) {
+            det *= work.get(i, i);
+        }
+
+        return det * sign;
     }
 }
