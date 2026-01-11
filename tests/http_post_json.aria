@@ -23,12 +23,12 @@ func main() {
         }
     });
 
-    result = result.unwrap_Pass()!!;
+    result = result.unwrap_Pass()!;
     if result.status_code == 503 {
         println("Service Unavailable, try again later");
         return true;
     }
-    val json_result = JsonValue.parse(result.content)!!.flatten();
+    val json_result = JsonValue.parse(result.content)!.flatten();
 
     assert json_result["json"]["message"] == "hello world";
 }

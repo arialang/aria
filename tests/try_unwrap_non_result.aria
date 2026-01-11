@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 func main() {
-    assert 5?? == 5;
-    assert false?? == false;
-    assert 3!! == 3;
-    assert "hello"!! == "hello";
+    assert 5? == 5;
+    assert false? == false;
+    assert 3! == 3;
+    assert "hello"! == "hello";
 }

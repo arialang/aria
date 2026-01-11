@@ -2,7 +2,7 @@
 import JsonValue from aria.json.parser;
 
 func main() {
-    val json_object = JsonValue.parse('[true, false, null]')!!;
+    val json_object = JsonValue.parse('[true, false, null]')!;
 
     assert json_object.is_Array();
     val array = json_object.unwrap_Array();

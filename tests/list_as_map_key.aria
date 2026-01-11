@@ -12,8 +12,8 @@ func main() {
     assert m[l1] == 6;
     assert m[l2] == 15;
 
-    assert m.get([1,2,3])!! == 6;
-    assert m.get([4,5,6])!! == 15;
+    assert m.get([1,2,3])! == 6;
+    assert m.get([4,5,6])! == 15;
 
     assert m.get([3,2,1]).is_None();
     assert m.get([]).is_None();

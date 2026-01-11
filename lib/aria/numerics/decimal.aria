@@ -26,7 +26,7 @@ struct Decimal {
                 return v.apply(|value| => This.new_with_parts(value, 0));
             },
             == 2 => {
-                val integer_part = Int.parse(parts[0])??;
+                val integer_part = Int.parse(parts[0])?;
                 val decimal_part = parts[1];
                 val scale = decimal_part.len();
                 val combined_str = parts[0] + decimal_part;

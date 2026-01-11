@@ -3,5 +3,5 @@
 ### TAGS: XFAIL
 
 val x = 1.0E3;
-val y = Float.parse("1.0E3")!!;
+val y = Float.parse("1.0E3")!;
 assert x == y;

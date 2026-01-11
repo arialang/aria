@@ -57,7 +57,7 @@ func main() {
     val u_math = try_doing_math(u);
 
     assert s_math.is_Ok();
-    assert s_math!! == 13;
+    assert s_math! == 13;
 
     assert u_math.is_Err();
     assert t_math.is_Err();

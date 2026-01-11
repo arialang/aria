@@ -19,5 +19,5 @@ func get_maybe_something(x: E) {
 
 func main() {
     assert get_maybe_something(E::NoPayload) == Maybe::None;
-    assert get_maybe_something(E::Payload(42))!! == 42;
+    assert get_maybe_something(E::Payload(42))! == 42;
 }

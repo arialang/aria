@@ -4,7 +4,7 @@ import Instant from aria.date.instant;
 import Path from aria.io.path;
 
 func is_this_test(path) {
-    return path.get_filename()!! == "dir_entries.aria";
+    return path.get_filename()! == "dir_entries.aria";
 }
 
 func main() {
@@ -18,11 +18,11 @@ func main() {
     assert entries[0] isa Path;
     assert entries[0].is_file();
     assert entries[0].exists();
-    assert entries[0].get_extension()!! == "aria";
+    assert entries[0].get_extension()! == "aria";
 
-    val creation = entries[0].created()!!;
-    val modified = entries[0].modified()!!;
-    val accessed = entries[0].accessed()!!;
+    val creation = entries[0].created()!;
+    val modified = entries[0].modified()!;
+    val accessed = entries[0].accessed()!;
 
     assert creation.year >= 2025;
     assert modified.year >= 2025;

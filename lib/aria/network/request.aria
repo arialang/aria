@@ -41,7 +41,7 @@ struct Request {
             headers.append([h.key, h.value]);
         }
 
-        val response = this._get(headers)??;
+        val response = this._get(headers)?;
 
         val headers = Map.new();
         for header in response.headers {
@@ -61,7 +61,7 @@ struct Request {
             headers.append([h.key, h.value]);
         }
 
-        val response = this._post(headers, data)??;
+        val response = this._post(headers, data)?;
 
         val headers = Map.new();
         for header in response.headers {
@@ -73,7 +73,7 @@ struct Request {
     }
 
     func post_as_json(data) {
-        val the_val = JsonValue.new_with_value(data)??.to_json_string();
+        val the_val = JsonValue.new_with_value(data)?.to_json_string();
         this.headers["Content-Type"] = "application/json";
         return this.post(the_val);
     }

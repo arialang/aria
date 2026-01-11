@@ -3,6 +3,6 @@ func main() {
     val a = Maybe::Some(5);
     val b = Maybe::None;
 
-    assert a?? == 5;
-    assert b??.is_Err();
+    assert a? == 5;
+    assert b?.is_Err();
 }

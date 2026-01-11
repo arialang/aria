@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-func calculate(x: Maybe) = Maybe::Some(x?? + 1);
+func calculate(x: Maybe) = Maybe::Some(x? + 1);
 
 assert calculate(Maybe::Some(1)) == Maybe::Some(2);
 assert calculate(Maybe::None) == Maybe::None;
 
-assert calculate(Maybe::Some(10))!! == 11;
+assert calculate(Maybe::Some(10))! == 11;

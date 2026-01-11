@@ -92,6 +92,28 @@ pub fn parse(text: &str) -> Parse {
         }
     }
 
+    fn is_expr_start(kind: SyntaxKind) -> bool {
+        use SyntaxKind::*;
+        matches!(
+            kind,
+            Identifier
+                | HexIntLiteral
+                | OctIntLiteral
+                | BinIntLiteral
+                | DecIntLiteral
+                | FloatLiteral
+                | StringLiteral
+                | TrueKwd
+                | FalseKwd
+                | LeftParen
+                | LeftBracket
+                | Pipe
+                | LogicalOr
+                | Not
+                | Minus
+        )
+    }
+
     fn postfix_binding_power(op: SyntaxKind) -> Option<(u8, ())> {
         use SyntaxKind::*;
         match op {
@@ -899,25 +921,23 @@ pub fn parse(text: &str) -> Parse {
                     continue;
                 }
 
-                if op == Not && self.nth(1) == Not {
+                if op == Not {
                     let l_bp = 25u8;
                     if l_bp < min_bp {
                         break;
                     }
                     let m = self.open_before(lhs);
-                    self.expect(Not);
                     self.expect(Not);
                     lhs = self.close(m, ExprNonNull);
                     continue;
                 }
 
-                if op == Question && self.nth(1) == Question {
+                if op == Question && !self.is_ternary_question() {
                     let l_bp = 25u8;
                     if l_bp < min_bp {
                         break;
                     }
                     let m = self.open_before(lhs);
-                    self.expect(Question);
                     self.expect(Question);
                     lhs = self.close(m, ExprNullish);
                     continue;
@@ -962,6 +982,74 @@ pub fn parse(text: &str) -> Parse {
             }
 
             lhs
+        }
+
+        fn is_ternary_question(&self) -> bool {
+            let mut idx = self.pos + 1;
+            let mut first_kind = None;
+            while let Some(tok) = self.tokens.get(idx) {
+                if is_trivia(tok.0) {
+                    idx += 1;
+                    continue;
+                }
+                first_kind = Some(tok.0);
+                break;
+            }
+
+            let Some(first_kind) = first_kind else {
+                return false;
+            };
+            if !is_expr_start(first_kind) {
+                return false;
+            }
+
+            let mut paren_depth = 0i32;
+            let mut bracket_depth = 0i32;
+            let mut brace_depth = 0i32;
+            let mut scan_idx = idx;
+
+            while let Some(tok) = self.tokens.get(scan_idx) {
+                if is_trivia(tok.0) {
+                    scan_idx += 1;
+                    continue;
+                }
+
+                match tok.0 {
+                    LeftParen => paren_depth += 1,
+                    RightParen => {
+                        if paren_depth == 0 {
+                            return false;
+                        }
+                        paren_depth -= 1;
+                    }
+                    LeftBracket => bracket_depth += 1,
+                    RightBracket => {
+                        if bracket_depth == 0 {
+                            return false;
+                        }
+                        bracket_depth -= 1;
+                    }
+                    LeftBrace => brace_depth += 1,
+                    RightBrace => {
+                        if brace_depth == 0 {
+                            return false;
+                        }
+                        brace_depth -= 1;
+                    }
+                    Colon if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                        return true;
+                    }
+                    Comma | Semicolon
+                        if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 =>
+                    {
+                        return false;
+                    }
+                    _ => {}
+                }
+                scan_idx += 1;
+            }
+
+            false
         }
 
         fn expr_primary(&mut self) -> MarkClosed {

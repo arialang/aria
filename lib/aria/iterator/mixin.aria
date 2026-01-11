@@ -172,7 +172,7 @@ mixin Iterator {
     func max() {
         val first_item = this.next();
         if first_item.is_None() { return first_item; }
-        val current_max = first_item!!;
+        val current_max = first_item!;
         for v in this {
             if v > current_max {
                 current_max = v;
@@ -184,7 +184,7 @@ mixin Iterator {
     func min() {
         val first_item = this.next();
         if first_item.is_None() { return first_item; }
-        val current_min = first_item!!;
+        val current_min = first_item!;
         for v in this {
             if v < current_min {
                 current_min = v;

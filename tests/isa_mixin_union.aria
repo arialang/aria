@@ -45,10 +45,10 @@ func main() {
     val double_u = try_double(u);
 
     assert double_s.is_Ok();
-    assert double_s!! == 10;
+    assert double_s! == 10;
 
     assert double_t.is_Ok();
-    assert double_t!! == 10;
+    assert double_t! == 10;
 
     assert double_u.is_Err();
 }

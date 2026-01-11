@@ -7,7 +7,7 @@ func main() {
     assert binls.is_file();
     assert binls.is_absolute();
     assert binls.exists();
-    assert binls.size()!! > 0;
+    assert binls.size()! > 0;
     assert binls.size().is_Ok();
     assert binls.created().is_Ok();
     assert binls.accessed().is_Ok();

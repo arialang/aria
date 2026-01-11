@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 func main() {
     setenv("ARIA_SETENV_TEST_CASE", "it works");
-    assert getenv("ARIA_SETENV_TEST_CASE")!! == "it works";
+    assert getenv("ARIA_SETENV_TEST_CASE")! == "it works";
     setenv("ARIA_SETENV_TEST_CASE", "it does not work");
 }

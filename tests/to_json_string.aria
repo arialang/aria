@@ -23,7 +23,7 @@ func main() {
     assert json_as_string.contains('"list":[');
     assert json_as_string.contains('"false":false');
 
-    val json_remade = JsonValue.parse(json_as_string)!!.flatten();
+    val json_remade = JsonValue.parse(json_as_string)!.flatten();
 
     assert json_remade["pi"] == 3.14f;
     assert json_remade["zero"] == 0.0f;

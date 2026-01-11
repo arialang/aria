@@ -16,7 +16,7 @@ func main() {
     val ok = retry(return_global, |x| => x == 1, 3, 10);
     assert ok.is_Pass();
     assert ok.unwrap_Pass() == 1;
-    assert ok!! == 1;
+    assert ok! == 1;
 
     global = 5;
     val ok = retry(return_global, |x| => x == 1, 3, 10);

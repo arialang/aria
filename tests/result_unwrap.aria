@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import ok,err from aria.core.result;
 
-func calc_r(x: Result) = ok(x?? + 1);
+func calc_r(x: Result) = ok(x? + 1);
 
 assert calc_r(ok(1)) == ok(2);
 assert calc_r(err("e")) == err("e");
-assert calc_r(ok(1))!! == 2;
+assert calc_r(ok(1))! == 2;

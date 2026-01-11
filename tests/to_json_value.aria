@@ -10,7 +10,7 @@ func main() {
     map["hi"] = false;
     map["foo"] = 3.14f;
 
-    val json_map = JsonValue.new_with_value(map)!!;
+    val json_map = JsonValue.new_with_value(map)!;
 
     assert json_map isa JsonValue;
 

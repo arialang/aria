@@ -14,8 +14,8 @@ struct CustomJson {
 
     func to_json_value() {
         return Result::Ok(JsonValue::Object(Map.new() {
-            ["x"] = JsonValue.new_with_value(this.x)??,
-            ["y"] = JsonValue.new_with_value(this.y)??,
+            ["x"] = JsonValue.new_with_value(this.x)?,
+            ["y"] = JsonValue.new_with_value(this.y)?,
         }));
     }
 }
@@ -25,7 +25,7 @@ func main() {
     map["hello"] = CustomJson.new(3,4);
     map["hi"] = false;
 
-    val json_map = JsonValue.new_with_value(map)!!;
+    val json_map = JsonValue.new_with_value(map)!;
 
     assert json_map isa JsonValue;
 

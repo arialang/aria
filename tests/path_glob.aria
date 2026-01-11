@@ -3,7 +3,7 @@ import Path from aria.io.path;
 import Set from aria.structures.set;
 
 func main() {
-    val glob_iter = Path.glob("**/*.aria")!!;
+    val glob_iter = Path.glob("**/*.aria")!;
     
     val expected_paths = Set.new_with_items(
         "tests/path_glob.aria",
@@ -16,7 +16,7 @@ func main() {
     
     assert expected_paths.len() == 0;
 
-    val glob_iter = Path.glob("**/*.pepepapa")!!;
+    val glob_iter = Path.glob("**/*.pepepapa")!;
     assert glob_iter.count() == 0;
     
     val glob_iter = Path.glob("a**/b/*.yml");

@@ -2,27 +2,27 @@
 import Decimal from aria.numerics.decimal;
 
 func main() {
-    assert Decimal.parse("3.14")!! + Decimal.parse("3.14")!! == Decimal.new(6.28f);
-    assert 3 + Decimal.parse("5")!! == Decimal.new(8);
-    assert 3.1f + Decimal.parse("2.5")!! == Decimal.new(5.6f);
-    assert Decimal.parse("5")!! - Decimal.parse("3.1")!! == Decimal.parse("1.9")!!;
-    assert 4 - Decimal.parse("3.5")!! == Decimal.new(0.5f);
+    assert Decimal.parse("3.14")! + Decimal.parse("3.14")! == Decimal.new(6.28f);
+    assert 3 + Decimal.parse("5")! == Decimal.new(8);
+    assert 3.1f + Decimal.parse("2.5")! == Decimal.new(5.6f);
+    assert Decimal.parse("5")! - Decimal.parse("3.1")! == Decimal.parse("1.9")!;
+    assert 4 - Decimal.parse("3.5")! == Decimal.new(0.5f);
 
-    assert Decimal.parse("3.14")!! * 2 == Decimal.new(6.28f);
-    assert 2 * Decimal.parse("3.14")!! == Decimal.new(6.28f);
-    assert Decimal.parse("12")!! / Decimal.new(3) == Decimal.new(4);
-    assert 12 / Decimal.parse("3")!! == Decimal.new(4);
+    assert Decimal.parse("3.14")! * 2 == Decimal.new(6.28f);
+    assert 2 * Decimal.parse("3.14")! == Decimal.new(6.28f);
+    assert Decimal.parse("12")! / Decimal.new(3) == Decimal.new(4);
+    assert 12 / Decimal.parse("3")! == Decimal.new(4);
 
-    assert Decimal.parse("3.14")!! > Decimal.parse("2.0")!!;
-    assert Decimal.parse("5.123")!! < Decimal.parse("6.28")!!;
+    assert Decimal.parse("3.14")! > Decimal.parse("2.0")!;
+    assert Decimal.parse("5.123")! < Decimal.parse("6.28")!;
 
-    assert Decimal.parse("5")!! != Decimal.parse("6")!!;
+    assert Decimal.parse("5")! != Decimal.parse("6")!;
 
     assert Decimal.new(5) >= Decimal.new(4);
-    assert Decimal.new(5) >= Decimal.parse("5.00000")!!;
+    assert Decimal.new(5) >= Decimal.parse("5.00000")!;
 
-    assert Decimal.parse("5.0")!! <= Decimal.new(5);
-    assert Decimal.parse("5.0")!! <= Decimal.new(5.001);
+    assert Decimal.parse("5.0")! <= Decimal.new(5);
+    assert Decimal.parse("5.0")! <= Decimal.new(5.001);
 
     assert Decimal.parse("foo").is_Err();
     assert Decimal.parse("3.14.15").is_Err();
