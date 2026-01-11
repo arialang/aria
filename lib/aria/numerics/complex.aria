@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 struct Complex {
-    type func new(r,i) {
+    type func new(r: Int|Float, i: Int|Float = 0) {
         return alloc(This) {
             .real = r + 0.0f, # ensure floating point
             .imag = i + 0.0f, # ensure floating point
@@ -124,4 +124,9 @@ struct Complex {
         h = h ^ (h >> 31);
         return h;
     }
+}
+
+extension Complex {
+    type val i = Complex.new(0,1);
+    type val j = Complex.i;
 }
