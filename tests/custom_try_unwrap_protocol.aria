@@ -17,9 +17,9 @@ func main() {
     val five = Number.new(5);
     val six = Number.new(6);
 
-    assert five?? == 5;
-    assert five!! == 5;
+    assert five? == 5;
+    assert five! == 5;
 
-    assert six??.is_Err();
-    assert six??.unwrap_Err() == "not five";
+    assert six?.is_Err();
+    assert six?.unwrap_Err() == "not five";
 }

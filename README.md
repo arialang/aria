@@ -70,7 +70,7 @@ func main() {
 import JsonValue from aria.json.parser;
 
 func main() {
-    val json_data = JsonValue.parse('{"name": "Aria", "version": "0.9"}')!!.flatten();
+    val json_data = JsonValue.parse('{"name": "Aria", "version": "0.9"}')!.flatten();
     println("Language: {0}, Version: {1}".format(json_data["name"], json_data["version"]));
 }
 ```
@@ -96,7 +96,7 @@ func main() {
     val response = request.get();
 
     if response.status_code == 200 {
-        val user_data = JsonValue.parse(response.content)!!.flatten();
+        val user_data = JsonValue.parse(response.content)!.flatten();
         println("User {1} has {0} public repositories.".format(user_data["public_repos"], whoami));
     } else {
         println("Failed to fetch user data. Status: {0}".format(response.status_code));

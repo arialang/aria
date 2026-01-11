@@ -182,7 +182,7 @@ struct Map {
             if key.is_None() {
                 return Maybe::None;
             } else {
-                val key = key!!;
+                val key = key!;
                 val value = this.map[key];
                 return Maybe::Some(Box(){ .key, .value });
             }

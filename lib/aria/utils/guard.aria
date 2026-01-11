@@ -32,7 +32,7 @@ struct GuardImpl {
         try {
             val ret = f(this.obj);
             this._call_guard_exit();
-            return ret??;
+            return ret?;
         } catch e {
             this._call_guard_exit();
             throw e;

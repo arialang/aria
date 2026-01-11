@@ -6,7 +6,7 @@ import aria.json.parser;
 func main() {
     val json_string = '{ "key1": [1,2,3], "key2": {"a":1, "b":false, "c": "hello world"} }';
 
-    val json_object = JsonValue.parse(json_string)!!;
+    val json_object = JsonValue.parse(json_string)!;
     val json_flat = json_object.flatten();
 
     assert json_flat["key1"][0] == 1;

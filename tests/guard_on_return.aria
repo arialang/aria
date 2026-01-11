@@ -12,7 +12,7 @@ struct Guard {
 func add(x,y) {
     return guard(alloc(Guard)).do(|g| => {
         return x + y;
-    })??;
+    })?;
 }
 
 func main() {

@@ -10,7 +10,7 @@ func generates_a_result(x) {
 }
 
 func try_double(x) {
-    val x = generates_a_result(x)??;
+    val x = generates_a_result(x)?;
     return ok(x * 4);
 }
 
@@ -19,7 +19,7 @@ func main() {
     val b = try_double(11);
 
     assert a.is_Ok();
-    assert a?? == 20;
+    assert a? == 20;
 
     assert b.is_Err();
     assert b.unwrap_Err() == "not divisible by two";

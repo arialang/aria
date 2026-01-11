@@ -3,13 +3,13 @@ import aria.iterator.mixin;
 
 func main() {
     val l = [1,2,3,4,5,6,7,8,9,10];
-    assert l.iterator().skip(5).nth(0)!! == 6;
-    assert l.iterator().skip(5).nth(1)!! == 7;
+    assert l.iterator().skip(5).nth(0)! == 6;
+    assert l.iterator().skip(5).nth(1)! == 7;
 
     assert l.iterator().skip(10).first() == Maybe::None;
     assert l.iterator().skip(15).first() == Maybe::None;
 
-    assert l.iterator().skip(0).first()!! == 1;
+    assert l.iterator().skip(0).first()! == 1;
 
-    assert l.iterator().skip(3).skip(4).first()!! == 8;
+    assert l.iterator().skip(3).skip(4).first()! == 8;
 }

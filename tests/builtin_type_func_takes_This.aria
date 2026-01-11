@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 extension Int {
     type func from_string(x: String) {
-        return This.parse(x)!!;
+        return This.parse(x)!;
     }
 }
 

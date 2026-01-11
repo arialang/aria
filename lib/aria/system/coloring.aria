@@ -53,9 +53,9 @@ enum Color {
             val green = s.substring(2,3);
             val blue = s.substring(4,5);
 
-            val red = Int.parse_radix(red, 16)??;
-            val green = Int.parse_radix(green, 16)??;
-            val blue = Int.parse_radix(blue, 16)??;
+            val red = Int.parse_radix(red, 16)?;
+            val green = Int.parse_radix(green, 16)?;
+            val blue = Int.parse_radix(blue, 16)?;
 
             return Result::Ok(This.new(red, green, blue));
         }

@@ -28,9 +28,9 @@ struct Foo {
 func main() {
     val f = Foo.new();
 
-    val err = expect_catch(|| => f[1])!!;
+    val err = expect_catch(|| => f[1])!;
     assert err isa Foo.Error;
 
-    val err = expect_catch(|| => f.get(1))!!;
+    val err = expect_catch(|| => f.get(1))!;
     assert err isa Foo.Error;
 }

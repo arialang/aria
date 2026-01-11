@@ -16,21 +16,21 @@ struct Checker {
 
     operator()() {
         val glob_pattern = "**/*.{0}".format(this.ext);
-        val glob_iterator = Path.glob(glob_pattern)!!;
+        val glob_iterator = Path.glob(glob_pattern)!;
         for file in glob_iterator {
             if this.should_exclude(file) {
                 continue;
             }
 
-            val line0 = File.open(file, File.OpenMode.new().read())!!.readln();
+            val line0 = File.open(file, File.OpenMode.new().read())!.readln();
             if line0 != this.marker {
                 if this.check {
                     println("[ERROR] file '{0}' missing license marker!".format(file));
                     return false;
                 } else {
                     println("adding license marker to {0}".format(file));
-                    val rest_of_file = File.open(file, File.OpenMode.new().read())!!.read_all();
-                    File.open(file, File.OpenMode.new().write().truncate())!!.write("{0}\n{1}".format(this.marker, rest_of_file));
+                    val rest_of_file = File.open(file, File.OpenMode.new().read())!.read_all();
+                    File.open(file, File.OpenMode.new().write().truncate())!.write("{0}\n{1}".format(this.marker, rest_of_file));
                 }
             }
         }

@@ -5,7 +5,7 @@ func bump() {
     return Maybe::Some(c);
 }
 
-bump()??; bump()??;
+bump()?; bump()?;
 assert c == 2;
-assert bump()?? == 3;
-assert bump()!! == 4;
+assert bump()? == 3;
+assert bump()! == 4;

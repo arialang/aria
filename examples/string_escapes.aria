@@ -13,4 +13,4 @@ println("This is yet another example string".with_style(color_scheme));
 
 println("And this one is {0} unformatted.".format("mostly".with_foreground_color(Color::RGB(Color.RGB.new(255,165,0)))));
 
-println("And this one uses {0} background color".format("hexadecimal".with_background_color(Color::RGB(Color.RGB.new_with_hex_string("#c3e91c")!!))));
+println("And this one uses {0} background color".format("hexadecimal".with_background_color(Color::RGB(Color.RGB.new_with_hex_string("#c3e91c")!))));

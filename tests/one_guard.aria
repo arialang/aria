@@ -12,7 +12,7 @@ struct Guard {
 func main() {
     val n = guard(alloc(Guard)).do(|x| => {
         return 1;
-    })!!;
+    })!;
 
     assert n == 1;
     assert Guard.COUNTER == 1;

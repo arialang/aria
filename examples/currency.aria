@@ -11,9 +11,9 @@ enum FetchResult {
 func get_rates(currency: String) {
     val url = "https://open.er-api.com/v6/latest/{0}".format(currency.uppercase());
 
-    val response = Request.new(url).get()??;
+    val response = Request.new(url).get()?;
     if response.status_code == 200 {
-        val data = JsonValue.parse(response.content)??.flatten();
+        val data = JsonValue.parse(response.content)?.flatten();
         match data.get("rates") {
             case Some(rates) => { return FetchResult::Success(rates); },
             case None => { return FetchResult::Error("No rates found for {0}".format(currency)); }
@@ -41,7 +41,7 @@ func main() {
         println("Please provide a valid numeric value to convert.");
         return Unit::unit;
     }
-    value = value!!;
+    value = value!;
 
     val source_currency = args[1].uppercase();
     val target_currency = args[2].uppercase();

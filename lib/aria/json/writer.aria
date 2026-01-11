@@ -42,7 +42,7 @@ extension JsonValue {
             isa List => {
                 val ret = [];
                 for item in x {
-                    ret.append(JsonValue.new_with_value(item)??);
+                    ret.append(JsonValue.new_with_value(item)?);
                 }
                 return ok(JsonValue::Array(ret));
             }
@@ -53,7 +53,7 @@ extension JsonValue {
                     if !(key isa String) {
                         key = format("{0}", key);
                     }
-                    val value = JsonValue.new_with_value(item.value)??;
+                    val value = JsonValue.new_with_value(item.value)?;
                     ret.set(key, value);
                 }
                 return ok(JsonValue::Object(ret));
@@ -65,7 +65,7 @@ extension JsonValue {
             if hasattr(x, "to_json_value") {
                 val to_json_value = x.to_json_value;
                 if arity(to_json_value).can_call_with_argc(0) {
-                    return to_json_value()??;
+                    return to_json_value()?;
                 }
             }
         }

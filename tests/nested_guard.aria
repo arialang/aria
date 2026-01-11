@@ -13,11 +13,11 @@ func main() {
     val n = guard(alloc(Guard)).do(|x| => {
         val n = guard(alloc(Guard)).do(|y| => {
             return 1;
-        })??;
+        })?;
 
         assert Guard.COUNTER == 1;
         return n + 1;
-    })??;
+    })?;
 
     assert n == 2;
     assert Guard.COUNTER == 2;

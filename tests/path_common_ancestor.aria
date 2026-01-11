@@ -4,10 +4,10 @@ import Path from aria.io.path;
 func main() {
     val p1 = Path.new("/a/b/c/d");
     val p2 = Path.new("/a/b/e/f");
-    val ca = p1.common_ancestor(p2)!!;
+    val ca = p1.common_ancestor(p2)!;
     assert ca == Path.new("/a/b");
 
     val p3 = Path.new("/x/y/z/t");
-    val ca2 = p1.common_ancestor(p3)!!;
+    val ca2 = p1.common_ancestor(p3)!;
     assert ca2 == Path.new("/");
 }

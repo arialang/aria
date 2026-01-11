@@ -2,9 +2,9 @@
 import Decimal from aria.numerics.decimal;
 
 func main() {
-    val d1 = Decimal.parse("123.456")!!;
-    val d2 = Decimal.parse("123.457")!!;
-    val d3 = Decimal.parse("321.456")!!;
+    val d1 = Decimal.parse("123.456")!;
+    val d2 = Decimal.parse("123.457")!;
+    val d3 = Decimal.parse("321.456")!;
 
     assert d1.hash() != d2.hash();
     assert d1.hash() != d3.hash();
@@ -14,7 +14,7 @@ func main() {
     assert d2.hash() == d2.hash();
     assert d3.hash() == d3.hash();
 
-    val d4 = Decimal.parse("321.456")!!;
+    val d4 = Decimal.parse("321.456")!;
 
     assert d4.hash() == d3.hash();
     assert d3 == d4;

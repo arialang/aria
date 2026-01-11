@@ -208,7 +208,7 @@ fn test_force_unwrap_asserts() {
     let input = r##"
 func main() {
     val x = Result::Err("fail");
-    assert x!! == 3;
+    assert x! == 3;
 }
 "##;
 
@@ -256,7 +256,7 @@ fn test_cmdline_args_mismatch() {
     let input = r##"
 func main(x,y,z,...) {
     val x = Result::Err("fail");
-    assert x!! == 3;
+    assert x! == 3;
 }
 "##;
 

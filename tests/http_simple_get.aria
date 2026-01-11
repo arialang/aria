@@ -18,7 +18,7 @@ func main() {
         }
     });
 
-    response = response.unwrap_Pass()!!;
+    response = response.unwrap_Pass()!;
     if response.status_code == 503 {
         println("Service Unavailable, try again later");
         return true;

@@ -44,7 +44,7 @@ struct JsonStream {
 
 extension JsonValue {
     type func parse(s) {
-        return ok(parse_value(JsonStream.new(s))??);
+        return ok(parse_value(JsonStream.new(s))?);
     }
 }
 
@@ -69,19 +69,19 @@ func parse_value(stream) {
     val c = stream.peek();
 
     if c == '"' {
-        return JsonValue::String(parse_string(stream)??);
+        return JsonValue::String(parse_string(stream)?);
     } elsif c == '{' {
-        return JsonValue::Object(parse_object(stream)??);
+        return JsonValue::Object(parse_object(stream)?);
     } elsif c == '[' {
-        return JsonValue::Array(parse_array(stream)??);
+        return JsonValue::Array(parse_array(stream)?);
     } elsif c == 't' {
-        return parse_true(stream)??;
+        return parse_true(stream)?;
     } elsif c == 'f' {
-        return parse_false(stream)??;
+        return parse_false(stream)?;
     } elsif c == 'n' {
-        return parse_null(stream)??;
+        return parse_null(stream)?;
     } elsif c.is_digit() || c == '-' {
-        return JsonValue::Number(parse_number(stream))??;
+        return JsonValue::Number(parse_number(stream))?;
     } else {
         return json_err("Not a valid JSON value: " + c);
     }
@@ -145,7 +145,7 @@ func parse_number(stream) {
         }
     }
 
-    return Float.parse(text)??;
+    return Float.parse(text)?;
 }
 
 func parse_true(stream) {
@@ -184,13 +184,13 @@ func parse_object(stream) {
 
     while true {
         stream.skip_whitespace();
-        val key = parse_string(stream)??;
+        val key = parse_string(stream)?;
         stream.skip_whitespace();
         if !stream.eat(':') {
             return json_err("Invalid JSON object key-value pair");
         }
 
-        val value = parse_value(stream)??;
+        val value = parse_value(stream)?;
         map.set(key, value);
         stream.skip_whitespace();
 
@@ -217,7 +217,7 @@ func parse_array(stream) {
     }
 
     while true {
-        val value = parse_value(stream)??;
+        val value = parse_value(stream)?;
         list.append(value);
         stream.skip_whitespace();
 

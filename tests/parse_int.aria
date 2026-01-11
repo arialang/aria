@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 func main() {
-    assert(12345 == Int.parse("12345")!!);
-    assert(67890 == Int.parse("67890")!!);
-    assert(-12 == Int.parse("-12")!!);
-    assert Int.parse("-0xabcdef")!! == -0xABCDEF;
-    assert Int.parse("0b000110011")!! == 51;
-    assert(12345 == Int.parse("+12345")!!);
-    assert(0 == Int.parse("+0")!!);
-    assert(0 == Int.parse("-0")!!);
-    assert Int.parse("0xFF")!! == 255;
-    assert Int.parse("0B101")!! == 5;
-    assert Int.parse("0O377")!! == 255;
+    assert(12345 == Int.parse("12345")!);
+    assert(67890 == Int.parse("67890")!);
+    assert(-12 == Int.parse("-12")!);
+    assert Int.parse("-0xabcdef")! == -0xABCDEF;
+    assert Int.parse("0b000110011")! == 51;
+    assert(12345 == Int.parse("+12345")!);
+    assert(0 == Int.parse("+0")!);
+    assert(0 == Int.parse("-0")!);
+    assert Int.parse("0xFF")! == 255;
+    assert Int.parse("0B101")! == 5;
+    assert Int.parse("0O377")! == 255;
 
     assert Int.parse("").is_Err();
     assert Int.parse("-abcdef").is_Err();
@@ -19,11 +19,11 @@ func main() {
     assert Int.parse("0b2").is_Err();
     assert Int.parse("0o8").is_Err();
 
-    assert Int.parse_radix("abcDEf", 16)!! == 0xABCDEF;
-    assert Int.parse("-0xabcDEf")!! == -0xABCDEF;
-    assert Int.parse_radix("011110111", 2)!! == 0b011110111;
-    assert Int.parse_radix("12345", 6)!! == 1865;
-    assert Int.parse_radix("1A", 31)!! == 41;
+    assert Int.parse_radix("abcDEf", 16)! == 0xABCDEF;
+    assert Int.parse("-0xabcDEf")! == -0xABCDEF;
+    assert Int.parse_radix("011110111", 2)! == 0b011110111;
+    assert Int.parse_radix("12345", 6)! == 1865;
+    assert Int.parse_radix("1A", 31)! == 41;
 
     assert Int.parse_radix("1A", 2).is_Err();
     assert Int.parse_radix("aBC", 10).is_Err();

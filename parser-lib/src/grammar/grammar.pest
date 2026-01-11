@@ -45,7 +45,40 @@ postfix_term_index        = { "[" ~ expr_list? ~ "]" }
 postfix_term_call         = { "(" ~ expr_list? ~ ")" }
 postfix_term_object_write = { "{" ~ postfix_term_write_list ~ "}" }
 postfix_term_enum_case    = { "::" ~ identifier ~ ("(" ~ expression ~ ")")? }
-postfix_term_try_protocol = { "??" | "!!" }
+ternary_guard = { ternary_guard_start ~ ternary_guard_item* ~ ":" }
+ternary_guard_start = _{
+    identifier
+  | fp_literal
+  | str_literal
+  | int_literal
+  | "(" ~ ternary_guard_inner* ~ ")"
+  | "[" ~ ternary_guard_inner* ~ "]"
+  | "!"
+  | "-"
+  | "|"
+}
+ternary_guard_item = _{
+    str_literal
+  | "(" ~ ternary_guard_inner* ~ ")"
+  | "[" ~ ternary_guard_inner* ~ "]"
+  | "{" ~ ternary_guard_inner* ~ "}"
+  | !(":" | ";" | "," | ")" | "]" | "}") ~ ANY
+}
+ternary_guard_inner = _{
+    str_literal
+  | "(" ~ ternary_guard_inner* ~ ")"
+  | "[" ~ ternary_guard_inner* ~ "]"
+  | "{" ~ ternary_guard_inner* ~ "}"
+  | !(")" | "]" | "}") ~ ANY
+}
+postfix_term_try_protocol_assert_token = @{ "!" ~ !"=" }
+postfix_term_try_protocol_return_token = @{ "?" }
+postfix_term_try_protocol_assert = { postfix_term_try_protocol_assert_token }
+postfix_term_try_protocol_return = { postfix_term_try_protocol_return_token ~ !ternary_guard }
+postfix_term_try_protocol = {
+    postfix_term_try_protocol_assert
+  | postfix_term_try_protocol_return
+}
 postfix_term              = {
     postfix_term_object_write
   | postfix_term_enum_case

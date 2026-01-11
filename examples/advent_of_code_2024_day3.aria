@@ -17,8 +17,8 @@ func main() {
     for multiplication in multiplications {
         val operands = multiplication.replace("mul(", "").replace(")","").split(",");
         assert operands.len() == 2;
-        val op1 = Int.parse(operands[0])!!;
-        val op2 = Int.parse(operands[1])!!;
+        val op1 = Int.parse(operands[0])!;
+        val op2 = Int.parse(operands[1])!;
         total += op1 * op2;
     }
     println("The total value is {0}".format(total));

@@ -3,12 +3,12 @@ import ok, err from aria.core.result;
 
 val n = ok(ok(ok(3)));
 
-assert n?????? == 3;
-assert n????!! == 3;
-assert n!!???? == 3;
-assert n!!!!!! == 3;
+assert n??? == 3;
+assert n??! == 3;
+assert n!?? == 3;
+assert n!!! == 3;
 
 val m = ok(3);
 
-val m = m ?? == 3 ? 4 : 5;
+val m = m ? == 3 ? 4 : 5;
 assert m == 4;
