@@ -9,7 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 pest = "2.8.5"
-pest_derive = "2.8.4"
+pest_derive = "2.8.5"
 parser-lib = { path = "../parser-lib" }
 compiler-lib = { path = "../compiler-lib" }
 opcodes-lib = { path = "../opcodes-lib" }
