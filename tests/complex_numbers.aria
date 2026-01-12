@@ -2,7 +2,7 @@
 import Complex from aria.numerics.complex;
 
 func complex(i,j) {
-    return Complex.new(i,j);
+    return Complex.new(i) + j * Complex.i;
 }
 
 func main() {

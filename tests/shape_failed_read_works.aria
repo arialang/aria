@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+
+struct Foo {
+    type func new() = alloc(This) {.value = 1, .other = 2, };
+}
+
+struct Bar {
+    type func new() = alloc(This) {.other = 3, .value = 1, };
+}
+
+struct Baz {
+    type func new() = alloc(This) {.x = 3, .y = 5, .value = 1, };
+}
+
+# this test is rather boring without taking shapes into account
+# it checks that this "obj.value" read eventually fails to specialize
+# but that it still works correctly from the user's point of view
+func get_value(obj) { return obj.value; }
+
+func foo(blah) {
+    assert blah == 1;
+}
+
+# just enough to saturate the cache and then some
+for i in 0.to(100) {
+    foo(get_value(Foo.new()));
+    foo(get_value(Bar.new()));
+    foo(get_value(Baz.new()));
+}

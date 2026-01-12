@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+import Complex from aria.numerics.complex;
+
+func main() {
+    val error = false;
+    try {
+        val c1 = Complex.new("hello", 5);
+    } catch e {
+        error = true;
+        assert e isa RuntimeError;
+        assert e.is_UnexpectedType();
+    }
+
+    assert error;
+}

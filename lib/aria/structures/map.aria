@@ -27,7 +27,6 @@ struct Map {
             .buckets = List.from_function(|_| => [], capacity),
             .count = 0,
             .capacity,
-            .key_list = []
         };
     }
 
@@ -38,6 +37,25 @@ struct Map {
             this.set(item, count + 1);
         }
         return this;
+    }
+
+    func load_factor() {
+        return (this.count * 1.0f) / (this.capacity * 1.0f);
+    }
+
+    func resize(new_capacity: Int) {
+        val old_buckets = this.buckets;
+        this.buckets = List.from_function(|_| => [], new_capacity);
+        this.capacity = new_capacity;
+        this.count = 0;
+
+        for bucket in old_buckets {
+            for entry in bucket {
+                if entry isa Map.Entry {
+                    this.set(entry.key, entry.value);
+                }
+            }
+        }
     }
 
     func keys() {
@@ -85,6 +103,10 @@ struct Map {
     }
 
     func set(k,v) {
+        if this.load_factor() > 0.7f {
+            this.resize(this.capacity * 2);
+        }
+
         val h = this.calc_hash(k);
         val bucket = this.buckets[h];
         val bucket_len = bucket.len();
@@ -170,22 +192,32 @@ struct Map {
     }
 
     struct MapIterator {
-        type func new(m) {
+        type func new(m: Map) {
             return alloc(This){
-                .map = m,
-                .keys = m.keys().iterator(),
+                .buckets = m.buckets,
+                .bucket_idx = 0,
+                .entry_idx = 0,
             };
         }
 
         func next() {
-            val key = this.keys.next();
-            if key.is_None() {
-                return Maybe::None;
-            } else {
-                val key = key!;
-                val value = this.map[key];
-                return Maybe::Some(Box(){ .key, .value });
+            val buckets = this.buckets;
+            val num_buckets = buckets.len();
+            
+            while this.bucket_idx < num_buckets {
+                val bucket = buckets[this.bucket_idx];
+                while this.entry_idx < bucket.len() {
+                    val entry = bucket[this.entry_idx];
+                    this.entry_idx += 1;
+                    if entry isa Map.Entry {
+                        return Maybe::Some(Box(){ .key = entry.key, .value = entry.value });
+                    }
+                }
+                this.bucket_idx += 1;
+                this.entry_idx = 0;
             }
+            
+            return Maybe::None;
         }
 
         include Iterator
