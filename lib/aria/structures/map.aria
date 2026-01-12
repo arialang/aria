@@ -170,22 +170,32 @@ struct Map {
     }
 
     struct MapIterator {
-        type func new(m) {
+        type func new(m: Map) {
             return alloc(This){
-                .map = m,
-                .keys = m.keys().iterator(),
+                .buckets = m.buckets,
+                .bucket_idx = 0,
+                .entry_idx = 0,
             };
         }
 
         func next() {
-            val key = this.keys.next();
-            if key.is_None() {
-                return Maybe::None;
-            } else {
-                val key = key!!;
-                val value = this.map[key];
-                return Maybe::Some(Box(){ .key, .value });
+            val buckets = this.buckets;
+            val num_buckets = buckets.len();
+            
+            while this.bucket_idx < num_buckets {
+                val bucket = buckets[this.bucket_idx];
+                while this.entry_idx < bucket.len() {
+                    val entry = bucket[this.entry_idx];
+                    this.entry_idx += 1;
+                    if entry isa Map.Entry {
+                        return Maybe::Some(Box(){ .key = entry.key, .value = entry.value });
+                    }
+                }
+                this.bucket_idx += 1;
+                this.entry_idx = 0;
             }
+            
+            return Maybe::None;
         }
 
         include Iterator
