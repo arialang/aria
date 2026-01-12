@@ -336,3 +336,19 @@ x.one_of([])
         &[],
     );
 }
+
+#[test]
+fn repl_includes_ranges() {
+    let cmdline_options = Args::default();
+    let mut repl = build_test_repl(&cmdline_options);
+
+    run_passing_repl_line(
+        &mut repl,
+        r#"
+val x = 0;
+for i in 0.to(5) { x += i; }
+"i = {0}\n".printf(x);
+"#,
+        &["i = 10"],
+    );
+}
