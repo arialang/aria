@@ -1046,30 +1046,48 @@ impl VirtualMachine {
 
                 let val_obj = pop_or_err!(next, frame, op_idx);
 
-                if let Some(mut sc) = next_sidecar.get()
-                    && let Some(sc) = sc.as_read_attribute_mut()
-                    && sc.misses < ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES
+                let current_sidecar = next_sidecar
+                    .get()
+                    .and_then(|sc| sc.as_read_attribute().copied());
+                let mut current_misses = current_sidecar
+                    .as_ref()
+                    .map(|sc| sc.misses)
+                    .unwrap_or_default();
+
+                if let Some(sc) = current_sidecar
+                    && current_misses < ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES
                 {
                     if let Some(v) = val_obj.read_slot(&self.globals, sc.slot_id, sc.shape_id) {
                         frame.stack.push(v);
                         return Ok(OpcodeRunExit::Continue);
                     } else {
-                        sc.misses = sc
-                            .misses
+                        current_misses = current_misses
                             .saturating_add(1)
                             .clamp(0, ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES);
-                        next_sidecar.set(Some(OpcodeSidecar::ReadAttribute(*sc)));
                     }
                 }
 
-                if let Some((v, sid, slot)) = val_obj.resolve_to_slot(&self.globals, n) {
+                if current_misses < ReadAttributeSidecar::MAXIMUM_ALLOWED_MISSES
+                    && let Some((v, sid, slot)) = val_obj.resolve_to_slot(&self.globals, n)
+                {
                     next_sidecar.set(Some(OpcodeSidecar::ReadAttribute(ReadAttributeSidecar {
-                        misses: 0,
+                        misses: current_misses,
                         shape_id: sid,
                         slot_id: slot,
                     })));
                     frame.stack.push(v);
                     return Ok(OpcodeRunExit::Continue);
+                }
+
+                // if you're here, either you had no sidecar, or you did but your sidecar failed and you didn't get a valid
+                // alternative slot to try (or you would have returned in the earlier if) - record where you're at (if you had a
+                // sidecar to begin with), and then do a full slow path attribute read
+                if let Some(sc) = current_sidecar {
+                    next_sidecar.set(Some(OpcodeSidecar::ReadAttribute(ReadAttributeSidecar {
+                        misses: current_misses,
+                        shape_id: sc.shape_id,
+                        slot_id: sc.slot_id,
+                    })));
                 }
 
                 match val_obj.read_attribute(n, &self.globals) {
