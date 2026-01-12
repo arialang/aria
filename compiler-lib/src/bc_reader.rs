@@ -233,6 +233,21 @@ impl BytecodeReader {
             haxby_opcodes::OPCODE_JUMP => self
                 .read_u16()
                 .map_or(Err(DecodeError::InsufficientData), |b| Ok(Opcode::Jump(b))),
+            haxby_opcodes::OPCODE_JUMP_CONDITIONALLY => {
+                let arg0 = match self.read_u16() {
+                    Ok(b) => b,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                let arg1 = match self.read_u16() {
+                    Ok(w) => w,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                Ok(Opcode::JumpConditionally(arg0, arg1))
+            }
             haxby_opcodes::OPCODE_JUMP_IF_ARG_SUPPLIED => {
                 let arg0 = match self.read_u8() {
                     Ok(b) => b,

@@ -102,6 +102,10 @@ impl BytecodeWriter {
                 .write_u8(haxby_opcodes::OPCODE_JUMP_FALSE)
                 .write_u16(*n),
             Opcode::Jump(n) => self.write_u8(haxby_opcodes::OPCODE_JUMP).write_u16(*n),
+            Opcode::JumpConditionally(t, f) => self
+                .write_u8(haxby_opcodes::OPCODE_JUMP_CONDITIONALLY)
+                .write_u16(*t)
+                .write_u16(*f),
             Opcode::JumpIfArgSupplied(n, d) => self
                 .write_u8(haxby_opcodes::OPCODE_JUMP_IF_ARG_SUPPLIED)
                 .write_u8(*n)

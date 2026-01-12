@@ -53,6 +53,7 @@ pub enum CompilerOpcode {
     JumpTrue(BasicBlock),
     JumpFalse(BasicBlock),
     Jump(BasicBlock),
+    JumpConditionally(BasicBlock, BasicBlock),
     JumpIfArgSupplied(u8, BasicBlock),
     Call(u8),
     Return,
@@ -128,6 +129,7 @@ impl CompilerOpcode {
             Self::JumpTrue(_) => false,
             Self::JumpFalse(_) => false,
             Self::Jump(_) => true,
+            Self::JumpConditionally(..) => true,
             Self::JumpIfArgSupplied(..) => false,
             Self::Call(_) => false,
             Self::Return => true,
@@ -156,14 +158,15 @@ impl CompilerOpcode {
         }
     }
 
-    pub fn is_jump_instruction(&self) -> Option<BasicBlock> {
+    pub fn is_jump_instruction(&self) -> Vec<BasicBlock> {
         match self {
             Self::TryEnter(dst)
             | Self::JumpIfArgSupplied(_, dst)
             | Self::Jump(dst)
             | Self::JumpTrue(dst)
-            | Self::JumpFalse(dst) => Some(dst.clone()),
-            _ => None,
+            | Self::JumpFalse(dst) => vec![dst.clone()],
+            Self::JumpConditionally(t, f) => vec![t.clone(), f.clone()],
+            _ => vec![],
         }
     }
 
@@ -214,25 +217,34 @@ impl CompilerOpcode {
             Self::JumpTrue(dst) => {
                 let offset = parent
                     .position_of_block_instructions(dst)
-                    .expect("invalid block");
+                    .unwrap_or_else(|| panic!("invalid block {}", dst.name()));
                 VmOpcode::JumpTrue(offset)
             }
             Self::JumpFalse(dst) => {
                 let offset = parent
                     .position_of_block_instructions(dst)
-                    .expect("invalid block");
+                    .unwrap_or_else(|| panic!("invalid block {}", dst.name()));
                 VmOpcode::JumpFalse(offset)
             }
             Self::Jump(dst) => {
                 let offset = parent
                     .position_of_block_instructions(dst)
-                    .expect("invalid block");
+                    .unwrap_or_else(|| panic!("invalid block {}", dst.name()));
                 VmOpcode::Jump(offset)
+            }
+            Self::JumpConditionally(t, f) => {
+                let t_offset = parent
+                    .position_of_block_instructions(t)
+                    .unwrap_or_else(|| panic!("invalid block {}", t.name()));
+                let f_offset = parent
+                    .position_of_block_instructions(f)
+                    .unwrap_or_else(|| panic!("invalid block {}", f.name()));
+                VmOpcode::JumpConditionally(t_offset, f_offset)
             }
             Self::JumpIfArgSupplied(arg, dst) => {
                 let offset = parent
                     .position_of_block_instructions(dst)
-                    .expect("invalid block");
+                    .unwrap_or_else(|| panic!("invalid block {}", dst.name()));
                 VmOpcode::JumpIfArgSupplied(*arg, offset)
             }
             Self::Call(n) => VmOpcode::Call(*n),
@@ -241,7 +253,7 @@ impl CompilerOpcode {
             Self::TryEnter(dst) => {
                 let offset = parent
                     .position_of_block_instructions(dst)
-                    .expect("invalid block");
+                    .unwrap_or_else(|| panic!("invalid block {}", dst.name()));
                 VmOpcode::TryEnter(offset)
             }
             Self::TryExit => VmOpcode::TryExit,
@@ -321,6 +333,9 @@ impl std::fmt::Display for CompilerOpcode {
             Jump(dst) => write!(f, "Jump({})", dst.name()),
             JumpIfArgSupplied(arg, dst) => {
                 write!(f, "JumpIfArgSupplied({}, {})", arg, dst.name())
+            }
+            JumpConditionally(tr, fa) => {
+                write!(f, "JumpConditionally({}, {})", tr.name(), fa.name())
             }
             Call(n) => write!(f, "Call({})", n),
             Return => write!(f, "Return"),

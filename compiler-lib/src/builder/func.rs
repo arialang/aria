@@ -123,10 +123,10 @@ impl FunctionBuilder {
         for src_blk in &self.blocks {
             let br = src_blk.imp.writer.borrow();
             for src_op in br.as_slice() {
-                if let Some(dst) = src_op.op.is_jump_instruction()
-                    && dst.id() == blk.id()
-                {
-                    return true;
+                for dst in src_op.op.is_jump_instruction() {
+                    if dst.id() == blk.id() {
+                        return true;
+                    }
                 }
             }
         }

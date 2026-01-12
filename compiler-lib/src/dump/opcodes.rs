@@ -147,6 +147,7 @@ pub fn opcode_prettyprint(
         | Opcode::JumpTrue(_)
         | Opcode::JumpFalse(_)
         | Opcode::Jump(_)
+        | Opcode::JumpConditionally(..)
         | Opcode::JumpIfArgSupplied(..)
         | Opcode::Call(_)
         | Opcode::Return

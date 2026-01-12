@@ -1229,6 +1229,14 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
+            Opcode::JumpConditionally(t, f) => {
+                let x = pop_or_err!(next, frame, op_idx);
+                if let Some(b) = x.as_boolean() {
+                    *op_idx = if b.raw_value() { t } else { f } as usize;
+                } else {
+                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                }
+            }
             Opcode::Jump(n) => {
                 *op_idx = n as usize;
             }

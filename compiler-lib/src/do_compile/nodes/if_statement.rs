@@ -45,14 +45,7 @@ impl<'a> CompileNode<'a> for aria_parser::ast::IfStatement {
                     .writer
                     .get_current_block()
                     .write_opcode_and_source_info(
-                        CompilerOpcode::JumpTrue(if_true.clone()),
-                        self.iff.content.then.loc.clone(),
-                    );
-                params
-                    .writer
-                    .get_current_block()
-                    .write_opcode_and_source_info(
-                        CompilerOpcode::Jump(if_false.clone()),
+                        CompilerOpcode::JumpConditionally(if_true.clone(), if_false.clone()),
                         self.iff.content.loc.clone(),
                     );
                 params.writer.set_current_block(if_true);
@@ -79,19 +72,13 @@ impl<'a> CompileNode<'a> for aria_parser::ast::IfStatement {
                 let if_false = params
                     .writer
                     .insert_block_after(&format!("if_false_{}", self.loc), &if_true);
+
                 params
                     .writer
                     .get_current_block()
                     .write_opcode_and_source_info(
-                        CompilerOpcode::JumpTrue(if_true.clone()),
+                        CompilerOpcode::JumpConditionally(if_true.clone(), if_false.clone()),
                         elsif.content.then.loc.clone(),
-                    );
-                params
-                    .writer
-                    .get_current_block()
-                    .write_opcode_and_source_info(
-                        CompilerOpcode::Jump(if_false.clone()),
-                        elsif.content.loc.clone(),
                     );
                 params.writer.set_current_block(if_true);
                 elsif.content.then.do_compile(params)?;
