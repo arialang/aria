@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 vm-lib = { path = "../../vm-lib" }
 opcodes-lib = { path = "../../opcodes-lib" }
-libc = "0.2.179"
+libc = "0.2.180"
