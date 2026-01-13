@@ -83,12 +83,7 @@ extension Result {
         }
     }
 
-    func unwrap_or(x) {
-        match this {
-            case Ok(v)  => { return v; },
-            case Err(_) => { return x; }
-        }
-    }
+    func unwrap_or(els) = this ?? els;
 
     func hash() {
         match this {

@@ -81,14 +81,6 @@ func append_to_list(x,y) {
     return x;
 }
 
-func add(x,y) {
-    return x+y;
-}
-
-func mul(x,y) {
-    return x*y;
-}
-
 mixin Iterator {
     # allow running a for loop directly on an iterator
     func iterator() = this;
@@ -128,14 +120,7 @@ mixin Iterator {
         return true;
     }
 
-    func any(f) {
-        for v in this {
-            if f(v) {
-                return true;
-            }
-        }
-        return false;
-    }
+    func any(f) = this.find(f).is_Some();
 
     func find(f) {
         for v in this {
@@ -170,9 +155,7 @@ mixin Iterator {
     func product(v0=1) = this.reduce(|x,y| => x*y, v0);
 
     func max() {
-        val first_item = this.next();
-        if first_item.is_None() { return first_item; }
-        val current_max = first_item!;
+        val current_max = this.next()?;
         for v in this {
             if v > current_max {
                 current_max = v;
@@ -182,9 +165,7 @@ mixin Iterator {
     }
 
     func min() {
-        val first_item = this.next();
-        if first_item.is_None() { return first_item; }
-        val current_min = first_item!;
+        val current_min = this.next()?;
         for v in this {
             if v < current_min {
                 current_min = v;
@@ -193,13 +174,7 @@ mixin Iterator {
         return Maybe::Some(current_min);
     }
 
-    func count() {
-        val acc = 0;
-        for _ in this {
-            acc += 1;
-        }
-        return acc;
-    }
+    func count() = this.reduce(|acc,_| => acc + 1, 0);
 
     func first() = this.next();
 
@@ -227,7 +202,7 @@ mixin Iterator {
 
     func skip(n: Int) {
         while n > 0 {
-            val _ = this.next();
+            if this.next().is_None() { break; };
             n -= 1;
         }
         return this;

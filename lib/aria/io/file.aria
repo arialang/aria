@@ -108,7 +108,7 @@ struct File {
     # this is slow!
     func readln() {
         val maybe_line = this.try_readln();
-        return maybe_line.unwrap_or("");
+        return maybe_line ?? "";
     }
 
     func writeln(s) {

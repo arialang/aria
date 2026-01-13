@@ -46,7 +46,7 @@ func run_over_dir(path: Path) {
             println("{0}  {1}       <DIR>          {2}".format(
                     date_str,
                     time_str,
-                    entry.get_filename().unwrap_or("")
+                    entry.get_filename() ?? ""
             ));
         } else {
             val size = entry.size();
@@ -68,7 +68,7 @@ func run_over_dir(path: Path) {
                 date_str,
                 time_str,
                 size_str,
-                entry.get_filename().unwrap_or("")
+                entry.get_filename() ?? ""
             ));
         }
     }

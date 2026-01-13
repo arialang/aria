@@ -33,7 +33,7 @@ struct Map {
     type func frequency_map(iter) {
         val this = This.new();
         for item in iter {
-            val count = this.get(item).unwrap_or(0);
+            val count = this.get(item) ?? 0;
             this.set(item, count + 1);
         }
         return this;

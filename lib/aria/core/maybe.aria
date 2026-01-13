@@ -17,12 +17,7 @@ extension Maybe {
         }
     }
 
-    func unwrap_or(x) {
-        match this {
-            case Some(y) => { return y; },
-            case None => { return x; }
-        }
-    }
+    func unwrap_or(els) = this ?? els;
 
     func prettyprint() {
         match this {

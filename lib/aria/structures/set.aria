@@ -70,14 +70,7 @@ struct Set {
 
         func next() {
             val nv = this.impl.next();
-            match nv {
-                case None => {
-                    return Maybe::None;
-                },
-                case Some(x) => {
-                    return Maybe::Some(x.key);
-                }
-            }
+            return Maybe::Some(nv?.key);
         }
     }
 

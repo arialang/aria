@@ -25,4 +25,13 @@ func main() {
     assert s.len() == 1;
     assert s.contains("hello");
     assert !s.contains(123);
+
+    s = Set.new_with_items(1, 2, 3, 4, 5);
+    assert s.len() == 5;
+    assert s.contains(3);
+    val count = 0;
+    for x in s {
+        count = count + x;
+    }
+    assert count == 15;
 }

@@ -5,10 +5,6 @@ func iter_or_self(i) {
     return hasattr(i, "iterator") ? i.iterator() : i;
 }
 
-func get_next(i) {
-    return i.next();
-}
-
 struct Zip {
     type func new(...) {
         val iterators = varargs.iterator().map(iter_or_self).to_list();
@@ -24,10 +20,7 @@ struct Zip {
     func next() {
         val next_values = [];
         for iter in this.iterators {
-            match iter.next() {
-                case None => { return Maybe::None; }
-                case Some(x) => { next_values.append(x); }
-            }
+            next_values.append(iter.next()?);
         }
         return Maybe::Some(next_values);
     }

@@ -18,19 +18,19 @@ func main() {
     }
     assert sum == 35;
 
-    assert l.iterator().find(is_even).unwrap_or(-1) == 2;
-    assert l.iterator().position(is_even).unwrap_or(-1) == 1;
+    assert (l.iterator().find(is_even) ?? -1) == 2;
+    assert (l.iterator().position(is_even) ?? -1) == 1;
 
     assert l.iterator().sum() == 55;
     assert l.iterator().sum(10) == 65;
     assert l.iterator().product() == 3628800;
     assert l.iterator().product(2) == 7257600;
-    assert l.iterator().max().unwrap_or(-1) == 10;
-    assert l.iterator().min().unwrap_or(-1) == 1;
+    assert (l.iterator().max() ?? -1) == 10;
+    assert (l.iterator().min() ?? -1) == 1;
     assert l.iterator().count() == 10;
 
     val l = [42, 16, 55, 120, 5];
-    assert l.iterator().first().unwrap_or(-1) == 42;
-    assert l.iterator().last().unwrap_or(-1) == 5;
-    assert l.iterator().nth(2).unwrap_or(-1) == 55;
+    assert (l.iterator().first() ?? -1) == 42;
+    assert (l.iterator().last() ?? -1) == 5;
+    assert (l.iterator().nth(2) ?? -1) == 55;
 }
