@@ -683,11 +683,19 @@ pub struct TernaryExpression {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TryUnwrapExpression {
+    pub loc: SourcePointer,
+    pub left: Box<LogOperation>,
+    pub right: Box<Expression>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Expression {
     LambdaFunction(LambdaFunction),
     LogOperation(LogOperation),
     TernaryExpression(TernaryExpression),
+    TryUnwrapExpression(TryUnwrapExpression),
 }
 
 impl From<&LogOperation> for Expression {
@@ -736,6 +744,7 @@ impl Expression {
             Expression::LogOperation(c) => &c.loc,
             Expression::LambdaFunction(f) => &f.loc,
             Expression::TernaryExpression(t) => &t.loc,
+            Expression::TryUnwrapExpression(t) => &t.loc,
         }
     }
 }

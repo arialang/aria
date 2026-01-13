@@ -45,6 +45,7 @@ mod struct_decl;
 mod ternary_expression;
 mod throw_statement;
 mod try_block;
+mod try_unwrap_expression;
 mod unary_operation;
 mod val_decl_entry;
 mod val_decl_statement;

@@ -71,10 +71,11 @@ ternary_guard_inner = _{
   | "{" ~ ternary_guard_inner* ~ "}"
   | !(")" | "]" | "}") ~ ANY
 }
+try_unwrap_guard = { "?" ~ expression }
 postfix_term_try_protocol_assert_token = @{ "!" ~ !"=" }
 postfix_term_try_protocol_return_token = @{ "?" }
 postfix_term_try_protocol_assert = { postfix_term_try_protocol_assert_token }
-postfix_term_try_protocol_return = { postfix_term_try_protocol_return_token ~ !ternary_guard }
+postfix_term_try_protocol_return = { postfix_term_try_protocol_return_token ~ !ternary_guard ~ !try_unwrap_guard }
 postfix_term_try_protocol = {
     postfix_term_try_protocol_assert
   | postfix_term_try_protocol_return
@@ -112,12 +113,14 @@ comp    =  { rel ~ (comp_op ~ rel)? }
 log_op = @{ "&&" | "||" | "^" | "&" | "|" }
 log    =  { comp ~ (log_op ~ comp)* }
 
+try_unwrap_expr = { log ~ "??" ~ expression }
+
 ternary_expr = { log ~ "?" ~ expression ~ ":" ~ expression }
 
 lambda_f_body = { expression | code_block }
 lambda_f      = { "|" ~ arg_list ~ "|" ~ "=>" ~ lambda_f_body }
 
-expression = { ternary_expr | lambda_f | log }
+expression = { ternary_expr | lambda_f | try_unwrap_expr | log }
 
 decl_id = { identifier ~ (":" ~ expression)? }
 

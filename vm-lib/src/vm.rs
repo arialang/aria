@@ -1551,6 +1551,9 @@ impl VirtualMachine {
                         // Ok/Some
                         if let Some(case_value) = ev.get_payload() {
                             frame.stack.push(case_value.clone());
+                            if mode == haxby_opcodes::try_unwrap_protocol_mode::FLAG_TO_CALLER {
+                                frame.stack.push(RuntimeValue::Boolean(true.into()));
+                            }
                         } else {
                             return build_vm_error!(
                                 VmErrorReason::EnumWithoutPayload,
@@ -1566,6 +1569,10 @@ impl VirtualMachine {
                             haxby_opcodes::try_unwrap_protocol_mode::PROPAGATE_ERROR => {
                                 frame.stack.push(val.clone());
                                 return Ok(OpcodeRunExit::Return); // implement a Return
+                            }
+                            haxby_opcodes::try_unwrap_protocol_mode::FLAG_TO_CALLER => {
+                                frame.stack.push(val.clone());
+                                frame.stack.push(RuntimeValue::Boolean(false.into()));
                             }
                             haxby_opcodes::try_unwrap_protocol_mode::ASSERT_ERROR => {
                                 return build_vm_error!(

@@ -200,6 +200,7 @@ use enum_case_attribs::*;
 pub mod try_unwrap_protocol_mode {
     pub const PROPAGATE_ERROR:  u8 = 1;
     pub const ASSERT_ERROR:     u8 = 2;
+    pub const FLAG_TO_CALLER:   u8 = 3;
 }
 
 #[allow(unused_imports)]

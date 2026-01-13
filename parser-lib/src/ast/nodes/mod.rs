@@ -85,6 +85,7 @@ mod ternary_expression;
 mod throw_statement;
 mod top_level_entry;
 mod try_block;
+mod try_unwrap_expression;
 mod unary_operation;
 mod unary_symbol;
 mod val_decl_entry;

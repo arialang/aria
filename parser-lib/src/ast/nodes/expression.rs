@@ -2,7 +2,7 @@
 use crate::{
     ast::TernaryExpression,
     ast::{
-        Expression, LambdaFunction, LogOperation, SourceBuffer,
+        Expression, LambdaFunction, LogOperation, SourceBuffer, TryUnwrapExpression,
         derive::Derive,
         prettyprint::{PrettyPrintable, printout_accumulator::PrintoutAccumulator},
     },
@@ -21,6 +21,9 @@ impl Derive for Expression {
             Rule::ternary_expr => {
                 Self::TernaryExpression(TernaryExpression::from_parse_tree(content, source))
             }
+            Rule::try_unwrap_expr => {
+                Self::TryUnwrapExpression(TryUnwrapExpression::from_parse_tree(content, source))
+            }
             _ => panic!("atom does not contain"),
         }
     }
@@ -32,6 +35,7 @@ impl PrettyPrintable for Expression {
             Expression::LogOperation(c) => c.prettyprint(buffer),
             Expression::LambdaFunction(f) => f.prettyprint(buffer),
             Expression::TernaryExpression(t) => t.prettyprint(buffer),
+            Expression::TryUnwrapExpression(t) => t.prettyprint(buffer),
         }
     }
 }

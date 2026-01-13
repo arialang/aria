@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+import ok, err from aria.core.result;
+
+val called = false;
+
+func fallback() {
+    called = true;
+    return 99;
+}
+
+func main() {
+    val ok_val = ok(5);
+    val err_val = err("nope");
+
+    val a = ok_val ?? fallback();
+    assert a == 5;
+    assert called == false;
+
+    called = false;
+    val b = err_val ?? fallback();
+    assert b == 99;
+    assert called == true;
+
+    assert (Maybe::Some(3) ?? 7) == 3;
+    assert (Maybe::None ?? 7) == 7;
+
+    val chained = err("bad") ?? ok(10) ?? 20;
+    assert chained == 10;
+
+    val chained = err("bad") ?? err(10) ?? 20;
+    assert chained == 20;
+}
