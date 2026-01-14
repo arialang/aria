@@ -9,8 +9,8 @@ use std::{
 use aria_compiler::{compile_from_source, module::CompiledModule};
 use aria_parser::ast::{SourceBuffer, prettyprint::printout_accumulator::PrintoutAccumulator};
 use haxby_opcodes::{
-    BuiltinTypeId, OPCODE_READ_ATTRIBUTE, OPCODE_WRITE_ATTRIBUTE, Opcode,
-    enum_case_attribs::CASE_HAS_PAYLOAD,
+    BuiltinTypeId, OPCODE_BIND_CASE, OPCODE_ENUM_CHECK_IS_CASE, OPCODE_NEW_ENUM_VAL,
+    OPCODE_READ_ATTRIBUTE, OPCODE_WRITE_ATTRIBUTE, Opcode, enum_case_attribs::CASE_HAS_PAYLOAD,
 };
 use std::sync::OnceLock;
 
@@ -20,13 +20,14 @@ use crate::{
     error::{
         dylib_load::{LoadResult, LoadStatus},
         exception::VmException,
-        vm_error::{VmError, VmErrorReason},
+        vm_error::{SymbolKind, VmError, VmErrorReason},
     },
     frame::Frame,
     opcodes::{
         prettyprint::opcode_prettyprint,
         sidecar::{
-            OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice, sidecar_prettyprint,
+            NewEnumValSidecar, OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice,
+            sidecar_prettyprint,
         },
     },
     runtime_module::RuntimeModule,
@@ -1098,7 +1099,7 @@ impl VirtualMachine {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchSymbol(n.0)
+                                    VmErrorReason::NoSuchSymbol(n.0, SymbolKind::Identifier)
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1123,7 +1124,7 @@ impl VirtualMachine {
                         return build_vm_error!(
                             match err {
                                 crate::runtime_value::AttributeError::NoSuchAttribute => {
-                                    VmErrorReason::NoSuchSymbol(n)
+                                    VmErrorReason::NoSuchSymbol(n, SymbolKind::Identifier)
                                 }
                                 crate::runtime_value::AttributeError::InvalidFunctionBinding => {
                                     VmErrorReason::InvalidBinding
@@ -1377,7 +1378,15 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
             }
-            Opcode::BindCase(a, n) => {
+            Opcode::BindCase(..) => {
+                return build_vm_error!(
+                    VmErrorReason::UnknownOpcode(OPCODE_BIND_CASE),
+                    next,
+                    frame,
+                    op_idx
+                );
+            }
+            Opcode::BindCaseSymbol(a, n) => {
                 let payload_type = if (a & CASE_HAS_PAYLOAD) == CASE_HAS_PAYLOAD {
                     let t = pop_or_err!(next, frame, op_idx);
                     if let Ok(t) = IsaCheckable::try_from(&t) {
@@ -1389,56 +1398,54 @@ impl VirtualMachine {
                     None
                 };
 
-                let enumm = pop_or_err!(next, frame, op_idx);
-
-                let new_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.raw_value()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                let new_case = EnumCase {
+                    name: crate::symbol::Symbol(n),
+                    payload_type,
                 };
+
+                let enumm = pop_or_err!(next, frame, op_idx);
 
                 match enumm.as_enum() {
                     Some(enumm) => {
-                        enumm.add_case(EnumCase {
-                            name: new_name,
-                            payload_type,
-                        });
+                        enumm.add_case(&mut self.globals, new_case);
                     }
                     _ => {
                         return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
                 }
             }
-            Opcode::NewEnumVal(a, n) => {
+            Opcode::NewEnumVal(..) => {
+                return build_vm_error!(
+                    VmErrorReason::UnknownOpcode(OPCODE_NEW_ENUM_VAL),
+                    next,
+                    frame,
+                    op_idx
+                );
+            }
+            Opcode::EnumCheckIsCase(_) => {
+                return build_vm_error!(
+                    VmErrorReason::UnknownOpcode(OPCODE_ENUM_CHECK_IS_CASE),
+                    next,
+                    frame,
+                    op_idx
+                );
+            }
+            Opcode::NewEnumValSymbol(a, n) => {
                 let has_payload = (a & CASE_HAS_PAYLOAD) == CASE_HAS_PAYLOAD;
-                let case_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.clone()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
+                let case_sym = crate::symbol::Symbol(n);
+
+                let enumm = pop_or_err!(next, frame, op_idx);
+                let enumm = if let Some(enumm) = enumm.as_enum() {
+                    enumm
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
 
-                let enumm = pop_or_err!(next, frame, op_idx);
-                match enumm.as_enum() {
-                    Some(enumm) => {
-                        let case = enumm.get_idx_of_case(&case_name.raw_value());
-                        let (cidx, case) = if let Some(case) = case {
-                            (case, enumm.get_case_by_idx(case).unwrap())
-                        } else {
-                            return build_vm_error!(
-                                VmErrorReason::NoSuchCase(case_name.raw_value()),
-                                next,
-                                frame,
-                                op_idx
-                            );
-                        };
+                let mut create_enum_payload =
+                    |case: &EnumCase,
+                     cidx,
+                     has_payload|
+                     -> ExecutionResult<OpcodeRunExit, VmError> {
                         if case.payload_type.is_some() != has_payload {
                             return build_vm_error!(
                                 VmErrorReason::UnexpectedType,
@@ -1447,6 +1454,7 @@ impl VirtualMachine {
                                 op_idx
                             );
                         }
+
                         let payload = match &case.payload_type {
                             Some(pt) => {
                                 let pv = pop_or_err!(next, frame, op_idx);
@@ -1465,32 +1473,94 @@ impl VirtualMachine {
                         };
                         let ev = enumm.make_value(cidx, payload).unwrap();
                         frame.stack.push(RuntimeValue::EnumValue(ev));
-                    }
-                    _ => {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                        Ok(OpcodeRunExit::Continue)
+                    };
+
+                let current_sidecar = next_sidecar
+                    .get()
+                    .and_then(|sc| sc.as_new_enum_val().copied());
+                let mut current_misses = current_sidecar
+                    .as_ref()
+                    .map(|sc| sc.misses)
+                    .unwrap_or_default();
+
+                let case_shape = enumm.case_shape_id();
+
+                if let Some(sc) = current_sidecar
+                    && current_misses < NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES
+                    && sc.shape_id == case_shape
+                    && let Some(case) = enumm.get_case_by_idx(sc.slot_id.0 as usize)
+                {
+                    return create_enum_payload(&case, sc.slot_id.0 as usize, has_payload);
+                } else {
+                    current_misses = current_misses
+                        .saturating_add(1)
+                        .clamp(0, NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES);
+                }
+
+                if current_misses < NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES
+                    && let Some((shape_id, slot_id)) =
+                        enumm.resolve_to_slot(&self.globals, case_sym)
+                {
+                    let cidx = slot_id.0 as usize;
+                    if let Some(case) = enumm.get_case_by_idx(cidx) {
+                        next_sidecar.set(Some(OpcodeSidecar::NewEnumVal(NewEnumValSidecar {
+                            misses: current_misses,
+                            shape_id,
+                            slot_id,
+                        })));
+
+                        return create_enum_payload(&case, cidx, has_payload);
                     }
                 }
-            }
-            Opcode::EnumCheckIsCase(n) => {
-                let case_name = if let Some(ct) = this_module.load_indexed_const(n) {
-                    if let Some(sv) = ct.as_string() {
-                        sv.clone()
-                    } else {
-                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                    }
-                } else {
-                    return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
-                };
 
+                // if you're here, either you had no sidecar, or you did but your sidecar failed and you didn't get a valid
+                // alternative slot to try (or you would have returned in the earlier if) - record where you're at (if you had a
+                // sidecar to begin with), and then do a full slow path attribute read
+                if let Some(sc) = current_sidecar {
+                    next_sidecar.set(Some(OpcodeSidecar::NewEnumVal(NewEnumValSidecar {
+                        misses: current_misses,
+                        shape_id: sc.shape_id,
+                        slot_id: sc.slot_id,
+                    })));
+                }
+
+                // if you're here, either you had no sidecar, or you did but your sidecar failed and you didn't get a valid
+                // alternative slot to try (or you would have returned in the earlier if) - record where you're at (if you had a
+                // sidecar to begin with), and then do a full slow path attribute read
+                if let Some(sc) = current_sidecar {
+                    next_sidecar.set(Some(OpcodeSidecar::NewEnumVal(NewEnumValSidecar {
+                        misses: current_misses,
+                        shape_id: sc.shape_id,
+                        slot_id: sc.slot_id,
+                    })));
+                }
+
+                if let Some(cidx) = enumm.get_idx_of_case_by_symbol(&self.globals, case_sym)
+                    && let Some(case) = enumm.get_case_by_idx(cidx)
+                {
+                    return create_enum_payload(&case, cidx, has_payload);
+                } else {
+                    return build_vm_error!(
+                        VmErrorReason::NoSuchSymbol(case_sym.0, SymbolKind::Case),
+                        next,
+                        frame,
+                        op_idx
+                    );
+                }
+            }
+            Opcode::EnumCheckIsCaseSymbol(n) => {
+                let case_sym = crate::symbol::Symbol(n);
                 let ev = pop_or_err!(next, frame, op_idx);
                 if let Some(ev) = ev.as_enum_value() {
-                    let ec = ev
+                    let is_case = match ev
                         .get_container_enum()
-                        .get_case_by_idx(ev.get_case_index())
-                        .unwrap();
-                    frame.stack.push(RuntimeValue::Boolean(
-                        (ec.name == case_name.raw_value()).into(),
-                    ));
+                        .get_idx_of_case_by_symbol(&self.globals, case_sym)
+                    {
+                        Some(idx) => idx == ev.get_case_index(),
+                        None => false,
+                    };
+                    frame.stack.push(RuntimeValue::Boolean(is_case.into()));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }

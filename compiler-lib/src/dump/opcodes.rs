@@ -80,6 +80,16 @@ pub fn opcode_prettyprint(
                 << const_best_repr(resolver, idx)
                 << "]"
         }
+        Opcode::BindCaseSymbol(arg, idx) => {
+            buffer
+                << "BIND_CASE_SYMBOL("
+                << arg
+                << ",#"
+                << idx
+                << ") ["
+                << symbol_best_repr(resolver, idx)
+                << "]"
+        }
         Opcode::NewEnumVal(flag, idx) => {
             buffer
                 << "NEW_ENUM_VAL("
@@ -90,12 +100,30 @@ pub fn opcode_prettyprint(
                 << const_best_repr(resolver, idx)
                 << "]"
         }
+        Opcode::NewEnumValSymbol(flag, idx) => {
+            buffer
+                << "NEW_ENUM_VAL_SYMBOL("
+                << flag
+                << ",#"
+                << idx
+                << ") ["
+                << symbol_best_repr(resolver, idx)
+                << "]"
+        }
         Opcode::EnumCheckIsCase(idx) => {
             buffer
                 << "ENUM_CHECK_IS_CASE(@"
                 << idx
                 << ") ["
                 << const_best_repr(resolver, idx)
+                << "]"
+        }
+        Opcode::EnumCheckIsCaseSymbol(idx) => {
+            buffer
+                << "ENUM_CHECK_IS_CASE_SYMBOL(#"
+                << idx
+                << ") ["
+                << symbol_best_repr(resolver, idx)
                 << "]"
         }
         Opcode::Import(idx) => {

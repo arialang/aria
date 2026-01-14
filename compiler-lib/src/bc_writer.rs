@@ -132,14 +132,25 @@ impl BytecodeWriter {
                 .write_u8(haxby_opcodes::OPCODE_BIND_CASE)
                 .write_u8(*a)
                 .write_u16(*n),
+            Opcode::BindCaseSymbol(a, n) => self
+                .write_u8(haxby_opcodes::OPCODE_BIND_CASE_SYMBOL)
+                .write_u8(*a)
+                .write_u32(*n),
             Opcode::IncludeMixin => self.write_u8(haxby_opcodes::OPCODE_INCLUDE_MIXIN),
             Opcode::NewEnumVal(a, n) => self
                 .write_u8(haxby_opcodes::OPCODE_NEW_ENUM_VAL)
                 .write_u8(*a)
                 .write_u16(*n),
+            Opcode::NewEnumValSymbol(a, n) => self
+                .write_u8(haxby_opcodes::OPCODE_NEW_ENUM_VAL_SYMBOL)
+                .write_u8(*a)
+                .write_u32(*n),
             Opcode::EnumCheckIsCase(n) => self
                 .write_u8(haxby_opcodes::OPCODE_ENUM_CHECK_IS_CASE)
                 .write_u16(*n),
+            Opcode::EnumCheckIsCaseSymbol(n) => self
+                .write_u8(haxby_opcodes::OPCODE_ENUM_CHECK_IS_CASE_SYMBOL)
+                .write_u32(*n),
             Opcode::EnumTryExtractPayload => {
                 self.write_u8(haxby_opcodes::OPCODE_ENUM_TRY_EXTRACT_PAYLOAD)
             }

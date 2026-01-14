@@ -52,6 +52,9 @@ pub const INTERNED_ATTR_STDERR: Symbol = Symbol(36);
 pub const INTERNED_ATTR_EXPECTED: Symbol = Symbol(37);
 pub const INTERNED_ATTR_ACTUAL: Symbol = Symbol(38);
 
+pub const INTERNED_CASE_VARARGS: Symbol = Symbol(39);
+pub const INTERNED_CASE_BOUNDED: Symbol = Symbol(40);
+
 pub struct Interner {
     map: FxHashMap<String, Symbol>,
     strings: Vec<String>,
@@ -112,6 +115,9 @@ impl Default for Interner {
         assert!(this.intern("stderr").unwrap() == INTERNED_ATTR_STDERR);
         assert!(this.intern("expected").unwrap() == INTERNED_ATTR_EXPECTED);
         assert!(this.intern("actual").unwrap() == INTERNED_ATTR_ACTUAL);
+
+        assert!(this.intern("Varargs").unwrap() == INTERNED_CASE_VARARGS);
+        assert!(this.intern("Bounded").unwrap() == INTERNED_CASE_BOUNDED);
 
         this
     }

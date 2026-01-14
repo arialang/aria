@@ -18,9 +18,21 @@ impl ReadAttributeSidecar {
     pub const MAXIMUM_ALLOWED_MISSES: u8 = 16;
 }
 
+#[derive(Clone, Copy)]
+pub struct NewEnumValSidecar {
+    pub misses: u8,
+    pub shape_id: ShapeId,
+    pub slot_id: SlotId,
+}
+
+impl NewEnumValSidecar {
+    pub const MAXIMUM_ALLOWED_MISSES: u8 = 16;
+}
+
 #[derive(Clone, Copy, EnumAsInner)]
 pub enum OpcodeSidecar {
     ReadAttribute(ReadAttributeSidecar),
+    NewEnumVal(NewEnumValSidecar),
 }
 
 pub type SidecarCell = Cell<Option<OpcodeSidecar>>;
@@ -34,6 +46,16 @@ pub(crate) fn sidecar_prettyprint(
         OpcodeSidecar::ReadAttribute(sc) => {
             buffer
                 << "[sidecar misses="
+                << sc.misses
+                << " shape_id="
+                << sc.shape_id.0
+                << " slot_id="
+                << sc.slot_id.0
+                << "]"
+        }
+        OpcodeSidecar::NewEnumVal(sc) => {
+            buffer
+                << "[enum_case misses="
                 << sc.misses
                 << " shape_id="
                 << sc.shape_id.0

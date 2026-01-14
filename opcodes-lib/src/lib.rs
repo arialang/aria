@@ -73,6 +73,9 @@ pub const OPCODE_TRY_UNWRAP_PROTOCOL: u8 = 92;
 // ..
 pub const OPCODE_READ_ATTRIBUTE_SYMBOL: u8 = 100;
 pub const OPCODE_WRITE_ATTRIBUTE_SYMBOL: u8 = 101;
+pub const OPCODE_NEW_ENUM_VAL_SYMBOL: u8 = 102;
+pub const OPCODE_ENUM_CHECK_IS_CASE_SYMBOL: u8 = 103;
+pub const OPCODE_BIND_CASE_SYMBOL: u8 = 104;
 // ...
 pub const OPCODE_IMPORT: u8 = 250;
 pub const OPCODE_LIFT_MODULE: u8 = 251;
@@ -270,9 +273,12 @@ pub enum Opcode {
     BuildEnum,
     BuildMixin,
     BindCase(u8, u16),
+    BindCaseSymbol(u8, u32),
     IncludeMixin,
     NewEnumVal(u8, u16),
+    NewEnumValSymbol(u8, u32),
     EnumCheckIsCase(u16),
+    EnumCheckIsCaseSymbol(u32),
     EnumTryExtractPayload,
     TryUnwrapProtocol(u8),
     Isa,
@@ -347,10 +353,13 @@ impl std::fmt::Display for Opcode {
             Self::BuildStruct => write!(f, "BUILD_STRUCT"),
             Self::BuildEnum => write!(f, "BUILD_ENUM"),
             Self::BuildMixin => write!(f, "BUILD_MIXIN"),
-            Self::BindCase(arg0, arg1) => write!(f, "BIND_C {arg0} @{arg1}"),
+            Self::BindCase(arg0, arg1) => write!(f, "BIND_CASE {arg0} @{arg1}"),
+            Self::BindCaseSymbol(arg0, arg1) => write!(f, "BIND_CASE_SYM {arg0} #{arg1}"),
             Self::IncludeMixin => write!(f, "INCLUDE_MIXIN"),
             Self::NewEnumVal(arg0, arg1) => write!(f, "NEW_ENUM_VAL {arg0} @{arg1}"),
+            Self::NewEnumValSymbol(arg0, arg1) => write!(f, "NEW_ENUM_VAL_SYM {arg0} #{arg1}"),
             Self::EnumCheckIsCase(arg0) => write!(f, "ENUM_CHECK_IS_CASE @{arg0}"),
+            Self::EnumCheckIsCaseSymbol(arg0) => write!(f, "ENUM_CHECK_IS_CASE_SYM #{arg0}"),
             Self::EnumTryExtractPayload => write!(f, "ENUM_TRY_EXTRACT_PAYLOAD"),
             Self::TryUnwrapProtocol(mode) => write!(f, "TRY_UNWRAP_PROTOCOL {mode}"),
             Self::Isa => write!(f, "ISA"),

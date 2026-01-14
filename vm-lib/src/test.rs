@@ -4,6 +4,7 @@ use aria_parser::ast::SourceBuffer;
 
 use crate::{
     HaxbyEvalResult,
+    builtins::runtime_error::RUNTIME_ERR_CASE_UNEXPECTED_TYPE_IDX,
     error::vm_error::VmErrorReason,
     haxby_eval,
     vm::{ExecutionResult, VmOptions},
@@ -101,13 +102,7 @@ func main() {
                     .value
                     .as_enum_value()
                     .expect("exception should be an enum value");
-                assert!(
-                    enum_value.get_case_index()
-                        == enum_value
-                            .get_container_enum()
-                            .get_idx_of_case("UnexpectedType")
-                            .expect("enum should have UnexpectedType case")
-                );
+                assert!(enum_value.get_case_index() == RUNTIME_ERR_CASE_UNEXPECTED_TYPE_IDX);
             }
         },
         Err(_) => {

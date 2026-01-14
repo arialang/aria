@@ -8,18 +8,25 @@ use crate::runtime_value::{
 use super::VmGlobals;
 
 pub(super) fn insert_maybe_builtins(builtins: &mut VmGlobals) {
+    let some_sym = builtins
+        .intern_symbol("Some")
+        .expect("too many symbols interned");
+    let none_sym = builtins
+        .intern_symbol("None")
+        .expect("too many symbols interned");
     let maybe_enum = Enum::new_with_cases(
         "Maybe",
         &[
             EnumCase {
-                name: "Some".to_owned(),
+                name: some_sym,
                 payload_type: Some(IsaCheckable::any()),
             },
             EnumCase {
-                name: "None".to_owned(),
+                name: none_sym,
                 payload_type: None,
             },
         ],
+        builtins,
     );
 
     builtins.register_builtin_type(

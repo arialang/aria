@@ -10,6 +10,21 @@ use crate::{
     runtime_module::RuntimeModule,
 };
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum SymbolKind {
+    Identifier,
+    Case,
+}
+
+impl std::fmt::Display for SymbolKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SymbolKind::Identifier => write!(f, "identifier"),
+            SymbolKind::Case => write!(f, "case"),
+        }
+    }
+}
+
 #[derive(Clone, Error, PartialEq, Eq, Debug)]
 pub enum VmErrorReason {
     #[error("assertion failed: {0}")]
@@ -51,14 +66,14 @@ pub enum VmErrorReason {
     #[error("unknown named identifier: '{0}'")]
     NoSuchIdentifier(String),
 
-    #[error("unknown symbol: '{0}'")]
-    NoSuchSymbol(u32),
+    #[error("'{0}' is not a valid case for this enum")]
+    NoSuchCase(String),
+
+    #[error("unknown {1} symbol: '{0}'")]
+    NoSuchSymbol(u32, SymbolKind),
 
     #[error("unknown module constant value: '{0}'")]
     NoSuchModuleConstant(u16),
-
-    #[error("'{0}' is not a valid case for this enum")]
-    NoSuchCase(String),
 
     #[error("operation failed: {0}")]
     OperationFailed(String),

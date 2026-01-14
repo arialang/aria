@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Microbenchmark from infra;
+
+enum Foo { case A, case B }
+
+extension Foo {
+    type func get_case(x) {
+        if x {
+            return Foo::A;
+        } else {
+            return Foo::B;
+        }
+    }
+}
+
+func foo(_) {}
+
+struct EnumCaseCreation : Microbenchmark {
+    func test() {
+        val which = true;
+        for _ in 0.to(100_000) {
+            foo(Foo.get_case(which));
+            which = !which;
+        }
+    }
+}
+
+EnumCaseCreation.new("Enum Case Creation").run();

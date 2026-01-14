@@ -85,6 +85,13 @@ impl VmException {
             };
         }
 
+        use crate::builtins::runtime_error::{
+            RUNTIME_ERR_CASE_DIVISION_BY_ZERO_IDX, RUNTIME_ERR_CASE_ENUM_WITHOUT_PAYLOAD_IDX,
+            RUNTIME_ERR_CASE_INDEX_OUT_OF_BOUNDS_IDX, RUNTIME_ERR_CASE_MISMATCHED_ARGC_IDX,
+            RUNTIME_ERR_CASE_NO_SUCH_CASE_IDX, RUNTIME_ERR_CASE_NO_SUCH_IDENTIFIER_IDX,
+            RUNTIME_ERR_CASE_OPERATION_FAILED_IDX, RUNTIME_ERR_CASE_UNEXPECTED_TYPE_IDX,
+        };
+
         let rt_err_type = builtins.get_builtin_type_by_id(BuiltinTypeId::RuntimeError);
 
         let rt_err = some_or_err!(rt_err_type.as_enum(), err);
@@ -96,15 +103,15 @@ impl VmException {
 
         let e_data = match &err.reason {
             VmErrorReason::DivisionByZero => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("DivisionByZero"), err),
+                case: RUNTIME_ERR_CASE_DIVISION_BY_ZERO_IDX,
                 payload: None,
             },
             VmErrorReason::EnumWithoutPayload => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("EnumWithoutPayload"), err),
+                case: RUNTIME_ERR_CASE_ENUM_WITHOUT_PAYLOAD_IDX,
                 payload: None,
             },
             VmErrorReason::IndexOutOfBounds(idx) => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("IndexOutOfBounds"), err),
+                case: RUNTIME_ERR_CASE_INDEX_OUT_OF_BOUNDS_IDX,
                 payload: Some(RuntimeValue::Integer((*idx as i64).into())),
             },
             VmErrorReason::MismatchedArgumentCount(expected, actual) => {
@@ -126,22 +133,29 @@ impl VmException {
                     builtins,
                 );
                 ExceptionData {
-                    case: some_or_err!(rt_err.get_idx_of_case("MismatchedArgumentCount"), err),
+                    case: RUNTIME_ERR_CASE_MISMATCHED_ARGC_IDX,
                     payload: Some(argc_mismatch_obj),
                 }
             }
             VmErrorReason::NoSuchCase(s) => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("NoSuchCase"), err),
+                case: RUNTIME_ERR_CASE_NO_SUCH_CASE_IDX,
                 payload: Some(RuntimeValue::String(s.clone().into())),
             },
             VmErrorReason::NoSuchIdentifier(s) => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("NoSuchIdentifier"), err),
+                case: RUNTIME_ERR_CASE_NO_SUCH_IDENTIFIER_IDX,
                 payload: Some(RuntimeValue::String(s.clone().into())),
             },
-            VmErrorReason::NoSuchSymbol(n) => {
+            VmErrorReason::NoSuchSymbol(n, kind) => {
                 if let Some(name_for_sym) = builtins.resolve_symbol(Symbol(*n)) {
                     ExceptionData {
-                        case: some_or_err!(rt_err.get_idx_of_case("NoSuchIdentifier"), err),
+                        case: match kind {
+                            crate::error::vm_error::SymbolKind::Identifier => {
+                                RUNTIME_ERR_CASE_NO_SUCH_IDENTIFIER_IDX
+                            }
+                            crate::error::vm_error::SymbolKind::Case => {
+                                RUNTIME_ERR_CASE_NO_SUCH_CASE_IDX
+                            }
+                        },
                         payload: Some(RuntimeValue::String(name_for_sym.to_owned().into())),
                     }
                 } else {
@@ -149,11 +163,11 @@ impl VmException {
                 }
             }
             VmErrorReason::OperationFailed(s) => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("OperationFailed"), err),
+                case: RUNTIME_ERR_CASE_OPERATION_FAILED_IDX,
                 payload: Some(RuntimeValue::String(s.clone().into())),
             },
             VmErrorReason::UnexpectedType => ExceptionData {
-                case: some_or_err!(rt_err.get_idx_of_case("UnexpectedType"), err),
+                case: RUNTIME_ERR_CASE_UNEXPECTED_TYPE_IDX,
                 payload: None,
             },
             _ => {

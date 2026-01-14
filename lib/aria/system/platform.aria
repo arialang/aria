@@ -34,6 +34,9 @@ enum Platform {
         }
     }
 
+    # code in the native layer relies on the order of these cases
+    # if we ever add or change cases, go update the code in
+    # native-libs/platform/src/lib.rs to match the case numbering
     case Linux(Platform.LinuxPlatform),
     case macOS(Platform.macOSPlatform),
     case Unknown,

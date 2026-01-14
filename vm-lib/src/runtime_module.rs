@@ -57,6 +57,15 @@ macro_rules! replace_const_with_symbol {
         };
         *$opcode = Opcode::$target_variant(n_as_sym.0);
     }};
+    ($vm:expr, $cm:expr, $arg0:expr, $n:expr, $opcode:expr, $target_variant:ident) => {{
+        let n_const = $cm.load_indexed_const($n).expect("missing constant");
+        let n_as_str = n_const.as_string().expect("expected string constant");
+        let n_as_sym = match $vm.globals.intern_symbol(&n_as_str) {
+            Ok(s) => s,
+            Err(_) => return Err(VmErrorReason::UnexpectedVmState),
+        };
+        *$opcode = Opcode::$target_variant($arg0, n_as_sym.0);
+    }};
 }
 
 fn replace_attribute_access_with_interned(
@@ -77,6 +86,20 @@ fn replace_attribute_access_with_interned(
                 // what the VM will intern at runtime in what order - so if we see them in
                 // the compiled module's byte stream, it's clearly bad and we should reject
                 // loading this module
+                return Err(VmErrorReason::UnexpectedVmState);
+            }
+            Opcode::BindCase(a, n) => {
+                replace_const_with_symbol!(vm, cm, *a, *n, opcode, BindCaseSymbol)
+            }
+            Opcode::NewEnumVal(a, n) => {
+                replace_const_with_symbol!(vm, cm, *a, *n, opcode, NewEnumValSymbol)
+            }
+            Opcode::EnumCheckIsCase(n) => {
+                replace_const_with_symbol!(vm, cm, *n, opcode, EnumCheckIsCaseSymbol)
+            }
+            Opcode::BindCaseSymbol(..)
+            | Opcode::NewEnumValSymbol(..)
+            | Opcode::EnumCheckIsCaseSymbol(_) => {
                 return Err(VmErrorReason::UnexpectedVmState);
             }
             _ => {}

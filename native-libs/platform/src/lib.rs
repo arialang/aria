@@ -7,6 +7,13 @@ use haxby_vm::{
     runtime_value::function::BuiltinFunctionImpl, vm::RunloopExit,
 };
 
+#[allow(unused)]
+const LINUX_CASE: usize = 0;
+#[allow(unused)]
+const MACOS_CASE: usize = 1;
+#[allow(unused)]
+const UNKNOWN_CASE: usize = 2;
+
 #[derive(Default)]
 struct GetPlatformInfo {}
 impl BuiltinFunctionImpl for GetPlatformInfo {
@@ -46,12 +53,8 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
             &mut vm.globals,
         );
 
-        let linux_case = platform_enum
-            .get_idx_of_case("Linux")
-            .ok_or(VmErrorReason::UnexpectedVmState)?;
-
         let linux_enum_instance = platform_enum
-            .make_value(linux_case, Some(linux_info))
+            .make_value(LINUX_CASE, Some(linux_info))
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         frame
@@ -102,12 +105,8 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
             &mut vm.globals,
         );
 
-        let mac_case = platform_enum
-            .get_idx_of_case("macOS")
-            .ok_or(VmErrorReason::UnexpectedVmState)?;
-
         let mac_enum_instance = platform_enum
-            .make_value(mac_case, Some(mac_info))
+            .make_value(MACOS_CASE, Some(mac_info))
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         frame.stack.push(RuntimeValue::EnumValue(mac_enum_instance));
@@ -125,7 +124,7 @@ impl BuiltinFunctionImpl for GetPlatformInfo {
         let platform_enum = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_enum().clone())?;
 
         let unknown_case = platform_enum
-            .get_idx_of_case("Unknown")
+            .get_idx_of_case(&vm.globals, "Unknown")
             .ok_or(VmErrorReason::UnexpectedVmState)?;
 
         let unknown_enum_instance = platform_enum

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use rustc_data_structures::fx::FxHashSet;
 
@@ -11,6 +14,7 @@ use crate::{
         isa::IsaCheckable,
         object::ObjectBox,
     },
+    shape::{ShapeId, SlotId},
     symbol::Symbol,
 };
 
@@ -22,14 +26,14 @@ use super::{
 
 #[derive(Clone)]
 pub struct EnumCase {
-    pub name: String,
+    pub name: Symbol,
     pub payload_type: Option<IsaCheckable>,
 }
 
-#[derive(Default)]
 pub struct EnumImpl {
     name: String,
     cases: RefCell<Vec<EnumCase>>,
+    case_shape: Cell<ShapeId>,
     pub(super) entries: ObjectBox,
     mixins: RefCell<crate::mixin_includer::MixinIncluder>,
 }
@@ -39,21 +43,30 @@ impl EnumImpl {
         Self {
             name: name.to_owned(),
             cases: Default::default(),
+            case_shape: Cell::new(crate::shape::Shapes::EMPTY_SHAPE_INDEX),
             entries: ObjectBox::default(),
             mixins: RefCell::new(crate::mixin_includer::MixinIncluder::default()),
         }
     }
 
-    pub fn add_case(&self, case: EnumCase) -> usize {
-        let idx = self.cases.borrow().len();
-        self.cases.borrow_mut().push(case);
-        idx
+    pub fn add_case(&self, builtins: &mut VmGlobals, case: EnumCase) -> usize {
+        let (shape_id, slot_id) = builtins.shapes.transition(self.case_shape.get(), case.name);
+        self.case_shape.set(shape_id);
+        let slot_id = slot_id.0 as usize;
+        let mut cases = self.cases.borrow_mut();
+        if slot_id == cases.len() {
+            cases.push(case);
+        } else if slot_id < cases.len() {
+            cases[slot_id] = case;
+        } else {
+            panic!("enum cases should grow sequentially");
+        }
+        slot_id
     }
 
-    pub fn add_cases(&self, cases: &[EnumCase]) {
-        let mut b = self.cases.borrow_mut();
+    pub fn add_cases(&self, builtins: &mut VmGlobals, cases: &[EnumCase]) {
         for case in cases {
-            b.push(case.clone());
+            self.add_case(builtins, case.clone());
         }
     }
 
@@ -62,14 +75,11 @@ impl EnumImpl {
         b.get(idx).cloned()
     }
 
-    fn get_idx_of_case(&self, name: &str) -> Option<usize> {
-        let b = self.cases.borrow();
-        for (idx, case) in b.iter().enumerate() {
-            if case.name == name {
-                return Some(idx);
-            }
-        }
-        None
+    fn get_idx_of_case_by_symbol(&self, builtins: &VmGlobals, name: Symbol) -> Option<usize> {
+        builtins
+            .shapes
+            .resolve_slot(self.case_shape.get(), name)
+            .map(|slot_id| slot_id.0 as usize)
     }
 
     fn load_named_value(&self, builtins: &VmGlobals, name: Symbol) -> Option<RuntimeValue> {
@@ -97,6 +107,26 @@ impl EnumImpl {
         attrs.extend(self.mixins.borrow().list_attributes(builtins));
         attrs
     }
+
+    fn case_shape_id(&self) -> ShapeId {
+        self.case_shape.get()
+    }
+
+    pub(super) fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(ShapeId, SlotId)> {
+        let sid = self.case_shape_id();
+        let slot_id = builtins.shapes.resolve_slot(sid, name)?;
+        Some((sid, slot_id))
+    }
+}
+
+impl Default for EnumImpl {
+    fn default() -> Self {
+        Self::new("")
+    }
 }
 
 #[derive(Clone)]
@@ -111,9 +141,9 @@ impl Enum {
         }
     }
 
-    pub fn new_with_cases(name: &str, cases: &[EnumCase]) -> Self {
+    pub fn new_with_cases(name: &str, cases: &[EnumCase], builtins: &mut VmGlobals) -> Self {
         let enumm = Self::new(name);
-        enumm.imp.add_cases(cases);
+        enumm.imp.add_cases(builtins, cases);
         enumm
     }
 
@@ -121,12 +151,12 @@ impl Enum {
         &self.imp.name
     }
 
-    pub fn add_case(&self, case: EnumCase) -> usize {
-        self.imp.add_case(case)
+    pub fn add_case(&self, builtins: &mut VmGlobals, case: EnumCase) -> usize {
+        self.imp.add_case(builtins, case)
     }
 
-    pub fn get_idx_of_case(&self, name: &str) -> Option<usize> {
-        self.imp.get_idx_of_case(name)
+    pub fn get_idx_of_case_by_symbol(&self, builtins: &VmGlobals, name: Symbol) -> Option<usize> {
+        self.imp.get_idx_of_case_by_symbol(builtins, name)
     }
 
     pub fn get_case_by_idx(&self, idx: usize) -> Option<EnumCase> {
@@ -168,6 +198,10 @@ impl Enum {
         self.imp.list_attributes(builtins)
     }
 
+    pub(crate) fn case_shape_id(&self) -> ShapeId {
+        self.imp.case_shape_id()
+    }
+
     pub fn insert_builtin<T>(&self, builtins: &mut VmGlobals)
     where
         T: 'static + Default + BuiltinFunctionImpl,
@@ -181,6 +215,14 @@ impl Enum {
             name,
             RuntimeValue::Function(Function::builtin_from(t)),
         );
+    }
+
+    pub fn resolve_to_slot(
+        &self,
+        builtins: &crate::builtins::VmGlobals,
+        name: Symbol,
+    ) -> Option<(ShapeId, SlotId)> {
+        self.imp.resolve_to_slot(builtins, name)
     }
 }
 

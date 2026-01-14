@@ -36,7 +36,7 @@ mod println;
 mod readattr;
 mod readln;
 mod result;
-mod runtime_error;
+pub(crate) mod runtime_error;
 mod setenv;
 mod sleep;
 mod string;

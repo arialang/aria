@@ -6,15 +6,15 @@ use crate::{
     error::vm_error::{VmError, VmErrorReason},
     frame::Frame,
     runtime_value::{RuntimeValue, function::BuiltinFunctionImpl, object::Object},
-    symbol::INTERNED_OP_IMPL_CALL,
+    symbol::{INTERNED_CASE_BOUNDED, INTERNED_CASE_VARARGS, INTERNED_OP_IMPL_CALL},
     vm::RunloopExit,
 };
 
 struct Cache {
     arity_struct: crate::runtime_value::structure::Struct,
     upper_bound_enum: crate::runtime_value::enumeration::Enum,
-    bounded_idx: usize,
     vararg_idx: usize,
+    bounded_idx: usize,
 }
 
 #[derive(Default)]
@@ -52,18 +52,18 @@ impl Arity {
                 .ok_or(VmErrorReason::UnexpectedType)?;
 
             let vararg_idx = upper_bound_enum
-                .get_idx_of_case("Varargs")
+                .get_idx_of_case_by_symbol(&vm.globals, INTERNED_CASE_VARARGS)
                 .ok_or_else(|| VmErrorReason::NoSuchCase("Varargs".to_owned()))?;
 
             let bounded_idx = upper_bound_enum
-                .get_idx_of_case("Bounded")
+                .get_idx_of_case_by_symbol(&vm.globals, INTERNED_CASE_BOUNDED)
                 .ok_or_else(|| VmErrorReason::NoSuchCase("Bounded".to_owned()))?;
 
             let cache = Cache {
                 arity_struct: arity_struct.clone(),
                 upper_bound_enum: upper_bound_enum.clone(),
-                bounded_idx,
                 vararg_idx,
+                bounded_idx,
             };
 
             let _ = self.cache.set(cache);

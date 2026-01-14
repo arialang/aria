@@ -308,6 +308,21 @@ impl BytecodeReader {
                 };
                 Ok(Opcode::BindCase(b0, w1))
             }
+            haxby_opcodes::OPCODE_BIND_CASE_SYMBOL => {
+                let b0 = match self.read_u8() {
+                    Ok(b) => b,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                let w1 = match self.read_u32() {
+                    Ok(w) => w,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                Ok(Opcode::BindCaseSymbol(b0, w1))
+            }
             haxby_opcodes::OPCODE_INCLUDE_MIXIN => Ok(Opcode::IncludeMixin),
             haxby_opcodes::OPCODE_NEW_ENUM_VAL => {
                 let b0 = match self.read_u8() {
@@ -328,6 +343,26 @@ impl BytecodeReader {
                 .read_u16()
                 .map_or(Err(DecodeError::InsufficientData), |b| {
                     Ok(Opcode::EnumCheckIsCase(b))
+                }),
+            haxby_opcodes::OPCODE_NEW_ENUM_VAL_SYMBOL => {
+                let b0 = match self.read_u8() {
+                    Ok(b) => b,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                let w1 = match self.read_u32() {
+                    Ok(w) => w,
+                    Err(_) => {
+                        return Err(DecodeError::InsufficientData);
+                    }
+                };
+                Ok(Opcode::NewEnumValSymbol(b0, w1))
+            }
+            haxby_opcodes::OPCODE_ENUM_CHECK_IS_CASE_SYMBOL => self
+                .read_u32()
+                .map_or(Err(DecodeError::InsufficientData), |b| {
+                    Ok(Opcode::EnumCheckIsCaseSymbol(b))
                 }),
             haxby_opcodes::OPCODE_ENUM_TRY_EXTRACT_PAYLOAD => Ok(Opcode::EnumTryExtractPayload),
             haxby_opcodes::OPCODE_TRY_UNWRAP_PROTOCOL => self

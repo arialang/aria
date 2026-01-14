@@ -8,18 +8,25 @@ use crate::runtime_value::{
 use super::VmGlobals;
 
 pub(super) fn insert_result_builtins(builtins: &mut VmGlobals) {
+    let ok_sym = builtins
+        .intern_symbol("Ok")
+        .expect("too many symbols interned");
+    let err_sym = builtins
+        .intern_symbol("Err")
+        .expect("too many symbols interned");
     let result_enum = Enum::new_with_cases(
         "Result",
         &[
             EnumCase {
-                name: "Ok".to_owned(),
+                name: ok_sym,
                 payload_type: Some(IsaCheckable::any()),
             },
             EnumCase {
-                name: "Err".to_owned(),
+                name: err_sym,
                 payload_type: Some(IsaCheckable::any()),
             },
         ],
+        builtins,
     );
 
     builtins.register_builtin_type(
