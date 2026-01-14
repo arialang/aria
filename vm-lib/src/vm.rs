@@ -26,8 +26,8 @@ use crate::{
     opcodes::{
         prettyprint::opcode_prettyprint,
         sidecar::{
-            NewEnumValSidecar, OpcodeSidecar, ReadAttributeSidecar, SidecarCell, SidecarSlice,
-            sidecar_prettyprint,
+            EnumCheckIsCaseSidecar, NewEnumValSidecar, OpcodeSidecar, ReadAttributeSidecar,
+            SidecarCell, SidecarSlice, sidecar_prettyprint,
         },
     },
     runtime_module::RuntimeModule,
@@ -1525,17 +1525,6 @@ impl VirtualMachine {
                     })));
                 }
 
-                // if you're here, either you had no sidecar, or you did but your sidecar failed and you didn't get a valid
-                // alternative slot to try (or you would have returned in the earlier if) - record where you're at (if you had a
-                // sidecar to begin with), and then do a full slow path attribute read
-                if let Some(sc) = current_sidecar {
-                    next_sidecar.set(Some(OpcodeSidecar::NewEnumVal(NewEnumValSidecar {
-                        misses: current_misses,
-                        shape_id: sc.shape_id,
-                        slot_id: sc.slot_id,
-                    })));
-                }
-
                 if let Some(cidx) = enumm.get_idx_of_case_by_symbol(&self.globals, case_sym)
                     && let Some(case) = enumm.get_case_by_idx(cidx)
                 {
@@ -1552,18 +1541,74 @@ impl VirtualMachine {
             Opcode::EnumCheckIsCaseSymbol(n) => {
                 let case_sym = crate::symbol::Symbol(n);
                 let ev = pop_or_err!(next, frame, op_idx);
-                if let Some(ev) = ev.as_enum_value() {
-                    let is_case = match ev
-                        .get_container_enum()
-                        .get_idx_of_case_by_symbol(&self.globals, case_sym)
-                    {
-                        Some(idx) => idx == ev.get_case_index(),
-                        None => false,
-                    };
-                    frame.stack.push(RuntimeValue::Boolean(is_case.into()));
+                let ev = if let Some(ev) = ev.as_enum_value() {
+                    ev
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
+                };
+
+                let current_sidecar = next_sidecar
+                    .get()
+                    .and_then(|sc| sc.as_enum_check_is_case().copied());
+                let mut current_misses = current_sidecar
+                    .as_ref()
+                    .map(|sc| sc.misses)
+                    .unwrap_or_default();
+
+                let case_shape = ev.get_container_enum().case_shape_id();
+
+                if let Some(sc) = current_sidecar
+                    && current_misses < NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES
+                    && sc.shape_id == case_shape
+                    && sc.slot_id.0 as usize == ev.get_case_index()
+                {
+                    frame.stack.push(RuntimeValue::Boolean(true.into()));
+                    return Ok(OpcodeRunExit::Continue);
+                } else {
+                    current_misses = current_misses
+                        .saturating_add(1)
+                        .clamp(0, NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES);
                 }
+
+                if current_misses < NewEnumValSidecar::MAXIMUM_ALLOWED_MISSES
+                    && let Some((shape_id, slot_id)) = ev
+                        .get_container_enum()
+                        .resolve_to_slot(&self.globals, case_sym)
+                    && slot_id.0 as usize == ev.get_case_index()
+                {
+                    next_sidecar.set(Some(OpcodeSidecar::EnumCheckIsCase(
+                        EnumCheckIsCaseSidecar {
+                            misses: current_misses,
+                            shape_id,
+                            slot_id,
+                        },
+                    )));
+
+                    frame.stack.push(RuntimeValue::Boolean(true.into()));
+                    return Ok(OpcodeRunExit::Continue);
+                }
+
+                // if you're here, either you had no sidecar, or you did but your sidecar failed and you didn't get a valid
+                // alternative slot to try (or you would have returned in the earlier if) - record where you're at (if you had a
+                // sidecar to begin with), and then do a full slow path attribute read
+                if let Some(sc) = current_sidecar {
+                    next_sidecar.set(Some(OpcodeSidecar::EnumCheckIsCase(
+                        EnumCheckIsCaseSidecar {
+                            misses: current_misses,
+                            shape_id: sc.shape_id,
+                            slot_id: sc.slot_id,
+                        },
+                    )));
+                }
+
+                let is_case = match ev
+                    .get_container_enum()
+                    .get_idx_of_case_by_symbol(&self.globals, case_sym)
+                {
+                    Some(idx) => idx == ev.get_case_index(),
+                    None => false,
+                };
+                frame.stack.push(RuntimeValue::Boolean(is_case.into()));
             }
             Opcode::EnumTryExtractPayload => {
                 let ev = pop_or_err!(next, frame, op_idx);

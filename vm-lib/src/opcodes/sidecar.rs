@@ -25,6 +25,13 @@ pub struct NewEnumValSidecar {
     pub slot_id: SlotId,
 }
 
+#[derive(Clone, Copy)]
+pub struct EnumCheckIsCaseSidecar {
+    pub misses: u8,
+    pub shape_id: ShapeId,
+    pub slot_id: SlotId,
+}
+
 impl NewEnumValSidecar {
     pub const MAXIMUM_ALLOWED_MISSES: u8 = 16;
 }
@@ -33,6 +40,7 @@ impl NewEnumValSidecar {
 pub enum OpcodeSidecar {
     ReadAttribute(ReadAttributeSidecar),
     NewEnumVal(NewEnumValSidecar),
+    EnumCheckIsCase(EnumCheckIsCaseSidecar),
 }
 
 pub type SidecarCell = Cell<Option<OpcodeSidecar>>;
@@ -45,7 +53,7 @@ pub(crate) fn sidecar_prettyprint(
     match sidecar {
         OpcodeSidecar::ReadAttribute(sc) => {
             buffer
-                << "[sidecar misses="
+                << "[misses="
                 << sc.misses
                 << " shape_id="
                 << sc.shape_id.0
@@ -55,7 +63,17 @@ pub(crate) fn sidecar_prettyprint(
         }
         OpcodeSidecar::NewEnumVal(sc) => {
             buffer
-                << "[enum_case misses="
+                << "[misses="
+                << sc.misses
+                << " shape_id="
+                << sc.shape_id.0
+                << " slot_id="
+                << sc.slot_id.0
+                << "]"
+        }
+        OpcodeSidecar::EnumCheckIsCase(sc) => {
+            buffer
+                << "[misses="
                 << sc.misses
                 << " shape_id="
                 << sc.shape_id.0
