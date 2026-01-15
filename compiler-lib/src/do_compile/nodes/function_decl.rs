@@ -38,8 +38,14 @@ impl<'a> CompileNode<'a> for aria_parser::ast::FunctionDecl {
         };
         let frame_size = params.scope.as_function_root().unwrap().num_locals();
         let line_table = writer.write_line_table().clone();
+        let a = if self.args.vararg {
+            FUNC_ACCEPTS_VARARG
+        } else {
+            0_u8
+        };
         let cco = CompiledCodeObject {
             name: self.name.value.clone(),
+            attribute: a,
             body: co,
             required_argc: argc.required_args,
             default_argc: argc.default_args,
@@ -49,11 +55,6 @@ impl<'a> CompileNode<'a> for aria_parser::ast::FunctionDecl {
         };
         let cco_idx =
             self.insert_const_or_fail(params, ConstantValue::CompiledCodeObject(cco), &self.loc)?;
-        let a = if self.args.vararg {
-            FUNC_ACCEPTS_VARARG
-        } else {
-            0_u8
-        };
         params
             .writer
             .get_current_block()

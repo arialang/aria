@@ -9,6 +9,7 @@ use crate::line_table::LineTable;
 #[derive(Clone, PartialEq, Eq)]
 pub struct CompiledCodeObject {
     pub name: String,
+    pub attribute: u8,
     pub body: Vec<u8>,
     pub required_argc: u8, // arguments that are required to call this function
     pub default_argc: u8,  // additional arguments that this function can accept

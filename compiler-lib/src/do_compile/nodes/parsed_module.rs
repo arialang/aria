@@ -149,6 +149,7 @@ impl<'a> CompileNode<'a, (), Vec<CompilationError>> for ParsedModule {
         let line_table = params.writer.write_line_table().clone();
         let __entry_cco = CompiledCodeObject {
             name: "__entry".to_owned(),
+            attribute: 0,
             body: co,
             required_argc: 0,
             default_argc: 0,

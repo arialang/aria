@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use aria_parser::ast::{DeclarationId, Identifier};
+use haxby_opcodes::function_attribs::{FUNC_ACCEPTS_VARARG, FUNC_IS_METHOD, METHOD_ATTRIBUTE_TYPE};
 
 use crate::{
     builder::{compiler_opcodes::CompilerOpcode, func::FunctionBuilder},
@@ -14,6 +15,17 @@ use crate::{
 
 impl<'a> CompileNode<'a> for aria_parser::ast::MethodDecl {
     fn do_compile(&self, params: &'a mut CompileParams) -> CompilationResult {
+        let attribute = if self.args.vararg {
+            FUNC_ACCEPTS_VARARG
+        } else {
+            0
+        } | FUNC_IS_METHOD
+            | if self.access == aria_parser::ast::MethodAccess::Type {
+                METHOD_ATTRIBUTE_TYPE
+            } else {
+                0
+            };
+
         let f_scope = CompilationScope::function(params.scope);
         let cflow = ControlFlowTargets::default();
         let mut writer = FunctionBuilder::default();
@@ -56,6 +68,7 @@ impl<'a> CompileNode<'a> for aria_parser::ast::MethodDecl {
         let line_table = writer.write_line_table().clone();
         let cco = CompiledCodeObject {
             name: self.name.value.clone(),
+            attribute,
             body: co,
             required_argc: argc.required_args,
             default_argc: argc.default_args,
