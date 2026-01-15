@@ -184,7 +184,7 @@ pub fn opcode_prettyprint(
         | Opcode::TryExit
         | Opcode::Throw
         | Opcode::BuildList(_)
-        | Opcode::BuildFunction(_)
+        | Opcode::BuildFunction
         | Opcode::StoreUplevel(_)
         | Opcode::BuildStruct
         | Opcode::BuildEnum

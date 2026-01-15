@@ -280,11 +280,7 @@ impl BytecodeReader {
                 .map_or(Err(DecodeError::InsufficientData), |b| {
                     Ok(Opcode::BuildList(b))
                 }),
-            haxby_opcodes::OPCODE_BUILD_FUNCTION => self
-                .read_u8()
-                .map_or(Err(DecodeError::InsufficientData), |b| {
-                    Ok(Opcode::BuildFunction(b))
-                }),
+            haxby_opcodes::OPCODE_BUILD_FUNCTION => Ok(Opcode::BuildFunction),
             haxby_opcodes::OPCODE_STORE_UPLEVEL => self
                 .read_u8()
                 .map_or(Err(DecodeError::InsufficientData), |b| {

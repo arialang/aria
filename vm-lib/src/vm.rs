@@ -450,7 +450,7 @@ impl VirtualMachine {
         }
 
         let entry_co = r_mod.load_entry_code_object();
-        let entry_f = Function::from_code_object(entry_co, 0, &r_mod);
+        let entry_f = Function::from_code_object(entry_co, &r_mod);
         let mut entry_frame: Frame = Default::default();
 
         let entry_result = entry_f.eval(0, &mut entry_frame, self, &Default::default(), true);
@@ -1316,10 +1316,10 @@ impl VirtualMachine {
                 let list = RuntimeValue::List(list);
                 frame.stack.push(list);
             }
-            Opcode::BuildFunction(a) => {
+            Opcode::BuildFunction => {
                 let val = pop_or_err!(next, frame, op_idx);
                 if let Some(co) = val.as_code_object() {
-                    let f = Function::from_code_object(co, a, this_module);
+                    let f = Function::from_code_object(co, this_module);
                     frame.stack.push(RuntimeValue::Function(f));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);

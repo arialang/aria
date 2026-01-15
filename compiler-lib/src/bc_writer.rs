@@ -119,9 +119,7 @@ impl BytecodeWriter {
             Opcode::BuildList(n) => self
                 .write_u8(haxby_opcodes::OPCODE_BUILD_LIST)
                 .write_u32(*n),
-            Opcode::BuildFunction(n) => self
-                .write_u8(haxby_opcodes::OPCODE_BUILD_FUNCTION)
-                .write_u8(*n),
+            Opcode::BuildFunction => self.write_u8(haxby_opcodes::OPCODE_BUILD_FUNCTION),
             Opcode::StoreUplevel(n) => self
                 .write_u8(haxby_opcodes::OPCODE_STORE_UPLEVEL)
                 .write_u8(*n),

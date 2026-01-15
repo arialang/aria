@@ -119,6 +119,7 @@ fn compiled_code_object_to_runtime_code_object(
 
     Ok(crate::runtime_value::runtime_code_object::CodeObject {
         name: cco.name.clone(),
+        attribute: cco.attribute,
         body,
         required_argc: cco.required_argc,
         default_argc: cco.default_argc,

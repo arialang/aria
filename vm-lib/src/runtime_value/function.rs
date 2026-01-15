@@ -212,7 +212,7 @@ impl FunctionImpl {
         Self::BuiltinFunction(BuiltinFunction::new(Rc::new(val)))
     }
 
-    pub fn from_code_object(co: &CodeObject, a: u8, m: &RuntimeModule) -> Self {
+    pub fn from_code_object(co: &CodeObject, m: &RuntimeModule) -> Self {
         let rc = co.body.clone();
         let sidecar = (0..rc.len())
             .map(|_| std::cell::Cell::new(None))
@@ -229,7 +229,7 @@ impl FunctionImpl {
             frame_size: co.frame_size,
             line_table: lt,
             loc: co.loc.clone(),
-            attrib_byte: a,
+            attrib_byte: co.attribute,
             module: m.clone(),
             boxx: Default::default(),
             uplevels: Default::default(),
@@ -284,9 +284,9 @@ impl Function {
         }
     }
 
-    pub fn from_code_object(co: &CodeObject, a: u8, m: &RuntimeModule) -> Self {
+    pub fn from_code_object(co: &CodeObject, m: &RuntimeModule) -> Self {
         Self {
-            imp: Rc::new(FunctionImpl::from_code_object(co, a, m)),
+            imp: Rc::new(FunctionImpl::from_code_object(co, m)),
         }
     }
 

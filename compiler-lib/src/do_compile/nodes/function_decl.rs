@@ -59,7 +59,7 @@ impl<'a> CompileNode<'a> for aria_parser::ast::FunctionDecl {
             .writer
             .get_current_block()
             .write_opcode_and_source_info(CompilerOpcode::Push(cco_idx), self.loc.clone())
-            .write_opcode_and_source_info(CompilerOpcode::BuildFunction(a), self.loc.clone());
+            .write_opcode_and_source_info(CompilerOpcode::BuildFunction, self.loc.clone());
 
         for uplv in params
             .scope

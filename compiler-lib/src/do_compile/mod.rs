@@ -9,7 +9,7 @@ use aria_parser::ast::{
     StringLiteral, StructDecl, StructEntry, ValDeclStatement, prettyprint::PrettyPrintable,
     source_to_ast,
 };
-use haxby_opcodes::{BuiltinTypeId, function_attribs::*};
+use haxby_opcodes::BuiltinTypeId;
 use thiserror::Error;
 
 use crate::{
@@ -338,21 +338,7 @@ fn emit_method_decl_compile(md: &MethodDecl, params: &mut CompileParams) -> Comp
     params
         .writer
         .get_current_block()
-        .write_opcode_and_source_info(
-            CompilerOpcode::BuildFunction(
-                if md.args.vararg {
-                    FUNC_ACCEPTS_VARARG
-                } else {
-                    0
-                } | FUNC_IS_METHOD
-                    | if md.access == MethodAccess::Type {
-                        METHOD_ATTRIBUTE_TYPE
-                    } else {
-                        0
-                    },
-            ),
-            md.loc.clone(),
-        )
+        .write_opcode_and_source_info(CompilerOpcode::BuildFunction, md.loc.clone())
         .write_opcode_and_source_info(CompilerOpcode::WriteAttribute(name_idx), md.loc.clone());
 
     Ok(())

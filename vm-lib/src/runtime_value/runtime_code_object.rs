@@ -12,6 +12,7 @@ use haxby_opcodes::Opcode;
 #[derive(Clone)]
 pub struct CodeObject {
     pub name: String,
+    pub attribute: u8,
     pub body: Rc<[Opcode]>,
     pub required_argc: u8,
     pub default_argc: u8,
@@ -53,6 +54,7 @@ impl TryFrom<&CompiledCodeObject> for CodeObject {
 
         Ok(Self {
             name: value.name.clone(),
+            attribute: value.attribute,
             body,
             required_argc: value.required_argc,
             default_argc: value.default_argc,
