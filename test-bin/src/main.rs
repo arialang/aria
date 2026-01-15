@@ -9,7 +9,7 @@ use std::{
 
 use aria_compiler::compile_from_source;
 use aria_parser::ast::SourceBuffer;
-use clap::{Parser, command};
+use clap::Parser;
 use enum_as_inner::EnumAsInner;
 use glob::Paths;
 use haxby_vm::vm::VirtualMachine;
