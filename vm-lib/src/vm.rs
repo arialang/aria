@@ -27,7 +27,7 @@ use crate::{
         prettyprint::opcode_prettyprint,
         sidecar::{
             EnumCheckIsCaseSidecar, NewEnumValSidecar, OpcodeSidecar, ReadAttributeSidecar,
-            SidecarCell, SidecarSlice, sidecar_prettyprint,
+            SidecarCell, sidecar_prettyprint,
         },
     },
     runtime_module::RuntimeModule,
@@ -43,6 +43,7 @@ use crate::{
         structure::Struct,
     },
     stack::Stack,
+    symbol::{INTERNED_OP_IMPL_CALL, INTERNED_OP_IMPL_READ_INDEX, INTERNED_OP_IMPL_WRITE_INDEX},
 };
 
 pub type ConsoleHandle = Rc<RefCell<dyn Console>>;
@@ -173,6 +174,21 @@ enum OpcodeRunExit {
     Continue,
     Return,
     Exception(VmException),
+    Call(PreparedCall),
+}
+
+struct PreparedCall {
+    func: Function,
+    frame: Frame,
+    discard_result: bool,
+}
+
+struct CallFrame {
+    func: Function,
+    frame: Frame,
+    op_counter: usize,
+    discard_result: bool,
+    callsite_op: Option<usize>,
 }
 
 macro_rules! binop_eval {
@@ -451,15 +467,13 @@ impl VirtualMachine {
 
         let entry_co = r_mod.load_entry_code_object();
         let entry_f = Function::from_code_object(entry_co, &r_mod);
-        let mut entry_frame: Frame = Default::default();
+        let mut entry_args_frame: Frame = Default::default();
+        let entry_frame =
+            entry_f.prepare_execution(0, &mut entry_args_frame, &Default::default())?;
 
-        let entry_result = entry_f.eval(0, &mut entry_frame, self, &Default::default(), true);
-        match entry_result {
-            Ok(ok) => match ok {
-                crate::runtime_value::CallResult::Exception(e) => Ok(RunloopExit::Exception(e)),
-                _ => Ok(RunloopExit::Ok(ModuleLoadInfo { module: r_mod })),
-            },
-            Err(err) => Err(err),
+        match self.execute_prepared_call(entry_f, entry_frame, true)? {
+            RunloopExit::Ok(_) => Ok(RunloopExit::Ok(ModuleLoadInfo { module: r_mod })),
+            RunloopExit::Exception(e) => Ok(RunloopExit::Exception(e)),
         }
     }
 
@@ -524,9 +538,12 @@ impl VirtualMachine {
             return Err(VmErrorReason::InvalidMainSignature.into());
         };
 
-        match main_f.eval(main_argc, &mut main_frame, self, &Default::default(), true)? {
-            crate::runtime_value::CallResult::Ok(_) => Ok(RunloopExit::Ok(())),
-            crate::runtime_value::CallResult::Exception(e) => Ok(RunloopExit::Exception(e)),
+        let main_frame =
+            main_f.prepare_execution(main_argc, &mut main_frame, &Default::default())?;
+
+        match self.execute_prepared_call(main_f, main_frame, true)? {
+            RunloopExit::Ok(_) => Ok(RunloopExit::Ok(())),
+            RunloopExit::Exception(e) => Ok(RunloopExit::Exception(e)),
         }
     }
 
@@ -544,14 +561,46 @@ impl VirtualMachine {
         }
     }
 
-    pub(crate) fn eval_bytecode_in_frame(
+    pub(crate) fn execute_prepared_call(
         &mut self,
-        module: &RuntimeModule,
-        bc: &[Opcode],
-        sidecar: &SidecarSlice,
-        target_frame: &mut Frame,
-    ) -> ExecutionResult<RunloopExit> {
-        self.runloop(bc, sidecar, module, target_frame)
+        func: Function,
+        frame: Frame,
+        discard_result: bool,
+    ) -> ExecutionResult<RunloopExit<RuntimeValue>> {
+        self.runloop(PreparedCall {
+            func,
+            frame,
+            discard_result,
+        })
+    }
+
+    fn prepare_call_value(
+        &mut self,
+        val: RuntimeValue,
+        argc: u8,
+        cur_frame: &mut Frame,
+        discard_result: bool,
+    ) -> ExecutionResult<PreparedCall, VmError> {
+        if let Some(f) = val.as_function() {
+            let frame = f.prepare_execution(argc, cur_frame, &Default::default())?;
+            Ok(PreparedCall {
+                func: f.clone(),
+                frame,
+                discard_result,
+            })
+        } else if let Some(bf) = val.as_bound_function() {
+            let frame = bf.prepare_execution(argc, cur_frame)?;
+            Ok(PreparedCall {
+                func: bf.func().clone(),
+                frame,
+                discard_result,
+            })
+        } else {
+            match val.read_attribute(INTERNED_OP_IMPL_CALL, &self.globals) {
+                Ok(callable) => self.prepare_call_value(callable, argc, cur_frame, discard_result),
+                _ => Err(VmErrorReason::UnexpectedType.into()),
+            }
+        }
     }
 
     fn run_opcode(
@@ -990,19 +1039,31 @@ impl VirtualMachine {
                     indices.insert(0, idx);
                 }
                 let cnt = pop_or_err!(next, frame, op_idx);
-                match cnt.read_index(&indices, frame, self) {
-                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
-                    Ok(crate::runtime_value::CallResult::Exception(e)) => {
-                        return Ok(OpcodeRunExit::Exception(e));
+                let read_index = match cnt
+                    .read_attribute(INTERNED_OP_IMPL_READ_INDEX, &self.globals)
+                {
+                    Ok(read_index) => read_index,
+                    _ => {
+                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
-                    Err(e) => {
-                        return if e.loc.is_none() {
-                            build_vm_error!(e.reason, next, frame, op_idx)
-                        } else {
-                            Err(e)
-                        };
-                    }
+                };
+
+                for idx in indices.iter().rev() {
+                    frame.stack.push(idx.clone());
                 }
+
+                let prepared =
+                    match self.prepare_call_value(read_index, indices.len() as u8, frame, false) {
+                        Ok(prepared) => prepared,
+                        Err(err) => {
+                            if err.loc.is_some() {
+                                return Err(err);
+                            } else {
+                                return build_vm_error!(err.reason, next, frame, op_idx);
+                            }
+                        }
+                    };
+                return Ok(OpcodeRunExit::Call(prepared));
             }
             Opcode::WriteIndex(n) => {
                 let val = pop_or_err!(next, frame, op_idx);
@@ -1012,19 +1073,36 @@ impl VirtualMachine {
                     indices.insert(0, idx);
                 }
                 let cnt = pop_or_err!(next, frame, op_idx);
-                match cnt.write_index(&indices, &val, frame, self) {
-                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
-                    Ok(crate::runtime_value::CallResult::Exception(e)) => {
-                        return Ok(OpcodeRunExit::Exception(e));
+                let write_index = match cnt
+                    .read_attribute(INTERNED_OP_IMPL_WRITE_INDEX, &self.globals)
+                {
+                    Ok(write_index) => write_index,
+                    _ => {
+                        return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                     }
-                    Err(e) => {
-                        return if e.loc.is_none() {
-                            build_vm_error!(e.reason, next, frame, op_idx)
-                        } else {
-                            Err(e)
-                        };
-                    }
+                };
+
+                frame.stack.push(val);
+                for idx in indices.iter().rev() {
+                    frame.stack.push(idx.clone());
                 }
+
+                let prepared = match self.prepare_call_value(
+                    write_index,
+                    1 + indices.len() as u8,
+                    frame,
+                    true,
+                ) {
+                    Ok(prepared) => prepared,
+                    Err(err) => {
+                        if err.loc.is_some() {
+                            return Err(err);
+                        } else {
+                            return build_vm_error!(err.reason, next, frame, op_idx);
+                        }
+                    }
+                };
+                return Ok(OpcodeRunExit::Call(prepared));
             }
             Opcode::ReadAttribute(_) => {
                 return build_vm_error!(
@@ -1248,11 +1326,8 @@ impl VirtualMachine {
             }
             Opcode::Call(argc) => {
                 let x = pop_or_err!(next, frame, op_idx);
-                match x.eval(argc, frame, self, false) {
-                    Ok(crate::runtime_value::CallResult::Ok(_)) => {}
-                    Ok(crate::runtime_value::CallResult::Exception(e)) => {
-                        return Ok(OpcodeRunExit::Exception(e));
-                    }
+                let prepared = match self.prepare_call_value(x, argc, frame, false) {
+                    Ok(prepared) => prepared,
                     Err(err) => {
                         if err.loc.is_some() {
                             return Err(err);
@@ -1260,7 +1335,8 @@ impl VirtualMachine {
                             return build_vm_error!(err.reason, next, frame, op_idx);
                         }
                     }
-                }
+                };
+                return Ok(OpcodeRunExit::Call(prepared));
             }
             Opcode::Return => {
                 return Ok(OpcodeRunExit::Return);
@@ -1959,115 +2035,298 @@ impl VirtualMachine {
 
     fn runloop(
         &mut self,
-        bc: &[Opcode],
-        sidecar: &SidecarSlice,
-        module: &RuntimeModule,
-        frame: &mut Frame,
-    ) -> ExecutionResult<RunloopExit, VmError> {
-        let mut op_counter = 0;
+        initial: PreparedCall,
+    ) -> ExecutionResult<RunloopExit<RuntimeValue>, VmError> {
+        enum FrameStep {
+            Continue,
+            Call(PreparedCall, usize),
+            Return(RuntimeValue),
+            Exception(VmException),
+        }
+
+        let mut call_stack = Vec::new();
+        call_stack.push(CallFrame {
+            func: initial.func,
+            frame: initial.frame,
+            op_counter: 0,
+            discard_result: initial.discard_result,
+            callsite_op: None,
+        });
+
+        let mut last_return_value: Option<RuntimeValue> = None;
+        let mut pending_exception: Option<(VmException, usize)> = None;
+
         loop {
-            if self.options.tracing && self.options.dump_stack {
-                frame.stack.dump();
-            }
-
-            let next = match bc.get(op_counter) {
-                Some(op) => *op,
-                None => {
-                    return Err(VmErrorReason::UnterminatedBytecode.into());
+            if let Some((except, callsite_op)) = pending_exception.take() {
+                if call_stack.is_empty() {
+                    return Ok(RunloopExit::Exception(except));
                 }
-            };
 
-            let next_sidecar = match sidecar.get(op_counter) {
-                Some(sc) => sc,
-                None => {
-                    return Err(VmErrorReason::UnterminatedBytecode.into());
-                }
-            };
-
-            if self.options.tracing {
-                let poa = PrintoutAccumulator::default();
-                let next = {
-                    let ropc = crate::opcodes::prettyprint::RuntimeOpcodePrinter {
-                        globals: Some(&self.globals),
-                        module: Some(module),
-                    };
-                    opcode_prettyprint(next, &ropc, poa).value()
-                };
-                let next_sidecar = {
-                    if let Some(sc) = next_sidecar.get() {
-                        let poa = PrintoutAccumulator::default();
-                        sidecar_prettyprint(sc, poa).value()
-                    } else {
-                        "".to_string()
+                let handled = {
+                    let current = call_stack.last_mut().expect("missing call frame");
+                    except.fill_in_backtrace(&mut self.globals);
+                    match current.frame.drop_to_first_try(self) {
+                        Some(o) => {
+                            current.op_counter = o as usize;
+                            current.frame.stack.push(except.value.clone());
+                            true
+                        }
+                        None => {
+                            let new_except = if let Some(lt) =
+                                current.frame.get_line_entry_at_pos(callsite_op as u16)
+                            {
+                                except.thrown_at(lt)
+                            } else {
+                                except
+                            };
+                            pending_exception = Some((new_except, callsite_op));
+                            false
+                        }
                     }
                 };
-                let wrote_lt = if let Some(lt) = frame.get_line_entry_at_pos(op_counter as u16) {
-                    println!("{op_counter:05}: {next} {next_sidecar} --> {lt}");
-                    true
+
+                if handled {
+                    continue;
+                }
+
+                let finished = call_stack.pop().expect("missing call frame");
+                if call_stack.last_mut().is_some() {
+                    let callsite_op = finished.callsite_op.unwrap_or(0);
+                    if let Some((except, _)) = pending_exception.take() {
+                        pending_exception = Some((except, callsite_op));
+                    }
+                    continue;
+                } else if let Some((except, _)) = pending_exception.take() {
+                    return Ok(RunloopExit::Exception(except));
+                }
+            }
+
+            if call_stack.is_empty() {
+                return Ok(RunloopExit::Ok(
+                    last_return_value.expect("functions must return a value"),
+                ));
+            }
+
+            let step = {
+                let current_idx = call_stack.len() - 1;
+                let callsite_op = call_stack[current_idx].callsite_op;
+                let caller_loc = if let Some(op_idx) = callsite_op
+                    && current_idx > 0
+                {
+                    call_stack[current_idx - 1]
+                        .frame
+                        .get_line_entry_at_pos(op_idx as u16)
                 } else {
-                    false
+                    None
                 };
-                if !wrote_lt {
-                    println!("{op_counter:05}: {next} {next_sidecar}");
-                }
-            }
+                let caller_opcode = if let Some(op_idx) = callsite_op
+                    && current_idx > 0
+                {
+                    call_stack[current_idx - 1]
+                        .func
+                        .imp
+                        .as_bytecode_function()
+                        .and_then(|bcf| bcf.body.get(op_idx).copied())
+                } else {
+                    None
+                };
 
-            // we save the original counter (the current instruction) for two reasons:
-            // - if an exception occurs, we need to figure out where we came from to build the backtrace
-            // - run_opcode does not advance the counter unless it's jumping, so we need to know if it changed
-            //   and if not advance it ourselves
-            let current_op_counter = op_counter;
-
-            // some errors can be converted into exceptions, so reserve the right to postpone exception handling
-            let mut need_handle_exception: Option<VmException> = None;
-
-            match self.run_opcode(next, next_sidecar, &mut op_counter, module, frame) {
-                Ok(OpcodeRunExit::Continue) => {}
-                Ok(OpcodeRunExit::Return) => {
-                    return Ok(RunloopExit::Ok(()));
-                }
-                Ok(OpcodeRunExit::Exception(except)) => {
-                    need_handle_exception = Some(except);
-                }
-                Err(x) => match VmException::from_vmerror(x, &mut self.globals) {
-                    Ok(exception) => {
-                        need_handle_exception = Some(exception);
+                let current = call_stack.last_mut().expect("missing call frame");
+                if let Some(bf) = current.func.imp.as_builtin_function() {
+                    match bf.body.eval(&mut current.frame, self) {
+                        Ok(result) => match result {
+                            RunloopExit::Ok(_) => {
+                                let ret = current
+                                    .frame
+                                    .stack
+                                    .try_pop()
+                                    .expect("functions must return a value");
+                                FrameStep::Return(ret)
+                            }
+                            RunloopExit::Exception(except) => FrameStep::Exception(except),
+                        },
+                        Err(mut err) => {
+                            if err.loc.is_none() {
+                                err.loc = caller_loc.clone();
+                            }
+                            if err.opcode.is_none() {
+                                err.opcode = caller_opcode;
+                            }
+                            match VmException::from_vmerror(err, &mut self.globals) {
+                                Ok(exception) => FrameStep::Exception(exception),
+                                Err(mut err) => {
+                                    if let Some(loc) = caller_loc {
+                                        err.backtrace.push(loc);
+                                    }
+                                    return Err(err);
+                                }
+                            }
+                        }
                     }
-                    Err(err) => {
-                        let err = if let Some(lt) =
-                            frame.get_line_entry_at_pos(current_op_counter as u16)
-                        {
-                            let mut new_err = err.clone();
-                            new_err.backtrace.push(lt);
-                            new_err
-                        } else {
-                            err
+                } else if let Some(bcf) = current.func.imp.as_bytecode_function() {
+                    if self.options.tracing && self.options.dump_stack {
+                        current.frame.stack.dump();
+                    }
+
+                    let next = match bcf.body.get(current.op_counter) {
+                        Some(op) => *op,
+                        None => {
+                            return Err(VmErrorReason::UnterminatedBytecode.into());
+                        }
+                    };
+
+                    let next_sidecar = match bcf.sidecar.get(current.op_counter) {
+                        Some(sc) => sc,
+                        None => {
+                            return Err(VmErrorReason::UnterminatedBytecode.into());
+                        }
+                    };
+
+                    if self.options.tracing {
+                        let poa = PrintoutAccumulator::default();
+                        let next = {
+                            let ropc = crate::opcodes::prettyprint::RuntimeOpcodePrinter {
+                                globals: Some(&self.globals),
+                                module: Some(&bcf.module),
+                            };
+                            opcode_prettyprint(next, &ropc, poa).value()
                         };
-                        return Err(err);
-                    }
-                },
-            }
-
-            if op_counter == current_op_counter {
-                op_counter += 1;
-            }
-
-            if let Some(except) = need_handle_exception {
-                except.fill_in_backtrace(&mut self.globals);
-                match frame.drop_to_first_try(self) {
-                    Some(o) => {
-                        op_counter = o as usize;
-                        frame.stack.push(except.value);
-                    }
-                    None => {
-                        let new_except = if let Some(lt) =
-                            frame.get_line_entry_at_pos(current_op_counter as u16)
-                        {
-                            except.thrown_at(lt)
-                        } else {
-                            except
+                        let next_sidecar = {
+                            if let Some(sc) = next_sidecar.get() {
+                                let poa = PrintoutAccumulator::default();
+                                sidecar_prettyprint(sc, poa).value()
+                            } else {
+                                "".to_string()
+                            }
                         };
-                        return Ok(RunloopExit::Exception(new_except));
+                        let wrote_lt = if let Some(lt) = current
+                            .frame
+                            .get_line_entry_at_pos(current.op_counter as u16)
+                        {
+                            println!("{:05}: {next} {next_sidecar} --> {lt}", current.op_counter);
+                            true
+                        } else {
+                            false
+                        };
+                        if !wrote_lt {
+                            println!("{:05}: {next} {next_sidecar}", current.op_counter);
+                        }
+                    }
+
+                    let current_op_counter = current.op_counter;
+                    let mut need_handle_exception: Option<VmException> = None;
+
+                    let mut immediate_step: Option<FrameStep> = None;
+
+                    match self.run_opcode(
+                        next,
+                        next_sidecar,
+                        &mut current.op_counter,
+                        &bcf.module,
+                        &mut current.frame,
+                    ) {
+                        Ok(OpcodeRunExit::Continue) => {}
+                        Ok(OpcodeRunExit::Return) => {
+                            let ret = current
+                                .frame
+                                .stack
+                                .try_pop()
+                                .expect("functions must return a value");
+                            immediate_step = Some(FrameStep::Return(ret));
+                        }
+                        Ok(OpcodeRunExit::Call(prepared)) => {
+                            if current.op_counter == current_op_counter {
+                                current.op_counter += 1;
+                            }
+                            immediate_step = Some(FrameStep::Call(prepared, current_op_counter));
+                        }
+                        Ok(OpcodeRunExit::Exception(except)) => {
+                            need_handle_exception = Some(except);
+                        }
+                        Err(x) => match VmException::from_vmerror(x, &mut self.globals) {
+                            Ok(exception) => {
+                                need_handle_exception = Some(exception);
+                            }
+                            Err(err) => {
+                                let err = if let Some(lt) = current
+                                    .frame
+                                    .get_line_entry_at_pos(current_op_counter as u16)
+                                {
+                                    let mut new_err = err.clone();
+                                    new_err.backtrace.push(lt);
+                                    new_err
+                                } else {
+                                    err
+                                };
+                                return Err(err);
+                            }
+                        },
+                    }
+
+                    if let Some(step) = immediate_step {
+                        step
+                    } else {
+                        if current.op_counter == current_op_counter {
+                            current.op_counter += 1;
+                        }
+
+                        if let Some(except) = need_handle_exception {
+                            except.fill_in_backtrace(&mut self.globals);
+                            match current.frame.drop_to_first_try(self) {
+                                Some(o) => {
+                                    current.op_counter = o as usize;
+                                    current.frame.stack.push(except.value.clone());
+                                    FrameStep::Continue
+                                }
+                                None => {
+                                    let new_except = if let Some(lt) = current
+                                        .frame
+                                        .get_line_entry_at_pos(current_op_counter as u16)
+                                    {
+                                        except.thrown_at(lt)
+                                    } else {
+                                        except
+                                    };
+                                    FrameStep::Exception(new_except)
+                                }
+                            }
+                        } else {
+                            FrameStep::Continue
+                        }
+                    }
+                } else {
+                    return Err(VmErrorReason::UnexpectedType.into());
+                }
+            };
+
+            match step {
+                FrameStep::Continue => {}
+                FrameStep::Call(prepared, callsite_op) => {
+                    call_stack.push(CallFrame {
+                        func: prepared.func,
+                        frame: prepared.frame,
+                        op_counter: 0,
+                        discard_result: prepared.discard_result,
+                        callsite_op: Some(callsite_op),
+                    });
+                }
+                FrameStep::Return(ret) => {
+                    let finished = call_stack.pop().expect("missing call frame");
+                    if let Some(caller) = call_stack.last_mut() {
+                        if !finished.discard_result {
+                            caller.frame.stack.push(ret);
+                        }
+                    } else {
+                        last_return_value = Some(ret);
+                    }
+                }
+                FrameStep::Exception(except) => {
+                    let finished = call_stack.pop().expect("missing call frame");
+                    if call_stack.last_mut().is_some() {
+                        let callsite_op = finished.callsite_op.unwrap_or(0);
+                        pending_exception = Some((except, callsite_op));
+                    } else {
+                        return Ok(RunloopExit::Exception(except));
                     }
                 }
             }

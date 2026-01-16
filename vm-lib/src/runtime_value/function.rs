@@ -43,6 +43,76 @@ impl BuiltinFunction {
             boxx: Default::default(),
         }
     }
+
+    pub fn prepare_execution(
+        &self,
+        argc: u8,
+        cur_frame: &mut Frame,
+        other_args: &PartialFunctionApplication,
+    ) -> ExecutionResult<Frame> {
+        let mut new_frame = Frame::new_with_n_locals(0);
+
+        let other_argc = other_args.suffix_args.len() as u8;
+        let effective_argc = argc + other_argc;
+        let fixed_arity = self.body.arity().required + self.body.arity().optional;
+        let is_vararg = FunctionAttribute::from(self.body.attrib_byte()).is_vararg();
+
+        if is_vararg {
+            if effective_argc < self.body.arity().required {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        self.body.arity().required as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+
+            let mut popped_args = cur_frame.stack.pop_count(argc as usize);
+            let split_at = (fixed_arity - other_argc) as usize;
+            let varargs = popped_args.split_off(split_at.min(popped_args.len()));
+
+            let l = List::default();
+            for arg in varargs {
+                l.append(arg);
+            }
+
+            new_frame.stack.push(super::RuntimeValue::List(l));
+            for arg in popped_args.into_iter().rev() {
+                new_frame.stack.push(arg);
+            }
+        } else {
+            if effective_argc < self.body.arity().required {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        self.body.arity().required as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+            if effective_argc > fixed_arity {
+                return Err(
+                    crate::error::vm_error::VmErrorReason::MismatchedArgumentCount(
+                        fixed_arity as usize,
+                        effective_argc as usize,
+                    )
+                    .into(),
+                );
+            }
+
+            for item in cur_frame.stack.pop_count(argc as usize).into_iter().rev() {
+                new_frame.stack.push(item);
+            }
+        }
+
+        for arg in &other_args.suffix_args {
+            new_frame.stack.push(arg.clone());
+        }
+
+        new_frame.set_argc(effective_argc);
+        Ok(new_frame)
+    }
 }
 
 pub struct BytecodeFunction {
@@ -298,30 +368,12 @@ impl Function {
         self.imp.list_attributes(builtins)
     }
 
-    // DO NOT CALL unless you are Function or BoundFunction
-    pub(super) fn eval_in_frame(
-        &self,
-        argc: u8,
-        target_frame: &mut Frame,
-        vm: &mut VirtualMachine,
-    ) -> ExecutionResult<RunloopExit> {
-        match self.imp.as_ref() {
-            FunctionImpl::BytecodeFunction(bcf) => {
-                target_frame.set_argc(argc);
-                vm.eval_bytecode_in_frame(&bcf.module, &bcf.body, &bcf.sidecar, target_frame)
-            }
-            FunctionImpl::BuiltinFunction(bnf) => bnf.body.eval(target_frame, vm),
-        }
-    }
-
-    pub fn eval(
+    pub fn prepare_execution(
         &self,
         argc: u8,
         cur_frame: &mut Frame,
-        vm: &mut VirtualMachine,
         other_args: &PartialFunctionApplication,
-        discard_result: bool,
-    ) -> ExecutionResult<CallResult> {
+    ) -> ExecutionResult<Frame> {
         let mut new_frame = Frame::new_with_function(self.clone());
 
         let other_argc = other_args.suffix_args.len() as u8;
@@ -381,16 +433,27 @@ impl Function {
             new_frame.stack.push(arg.clone());
         }
 
-        match self.eval_in_frame(effective_argc, &mut new_frame, vm)? {
-            RunloopExit::Ok(_) => match new_frame.stack.try_pop() {
-                Some(ret) => {
-                    if !discard_result {
-                        cur_frame.stack.push(ret.clone());
-                    }
-                    Ok(CallResult::Ok(ret))
+        new_frame.set_argc(effective_argc);
+        Ok(new_frame)
+    }
+
+    pub fn eval(
+        &self,
+        argc: u8,
+        cur_frame: &mut Frame,
+        vm: &mut VirtualMachine,
+        other_args: &PartialFunctionApplication,
+        discard_result: bool,
+    ) -> ExecutionResult<CallResult> {
+        let new_frame = self.prepare_execution(argc, cur_frame, other_args)?;
+
+        match vm.execute_prepared_call(self.clone(), new_frame, discard_result)? {
+            RunloopExit::Ok(ret) => {
+                if !discard_result {
+                    cur_frame.stack.push(ret.clone());
                 }
-                _ => panic!("functions must return a value"),
-            },
+                Ok(CallResult::Ok(ret))
+            }
             RunloopExit::Exception(e) => Ok(CallResult::Exception(e)),
         }
     }

@@ -46,6 +46,13 @@ impl BoundFunction {
         self.func()
             .eval(argc, cur_frame, vm, &partial_application, discard_result)
     }
+
+    pub fn prepare_execution(&self, argc: u8, cur_frame: &mut Frame) -> ExecutionResult<Frame> {
+        let partial_application =
+            PartialFunctionApplication::default().with_suffix_arg(self.this().clone());
+        self.func()
+            .prepare_execution(argc, cur_frame, &partial_application)
+    }
 }
 
 impl PartialEq for BoundFunction {
