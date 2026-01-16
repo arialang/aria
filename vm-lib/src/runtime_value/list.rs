@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::UnsafeCell, rc::Rc};
 
 use rustc_data_structures::fx::FxHashSet;
 
@@ -16,42 +16,54 @@ use super::RuntimeValue;
 
 #[derive(Default)]
 pub(super) struct ListImpl {
-    values: RefCell<Vec<RuntimeValue>>,
+    values: UnsafeCell<Vec<RuntimeValue>>,
     pub(super) boxx: ObjectBox,
 }
 
 impl ListImpl {
+    #[allow(clippy::mut_from_ref)]
+    #[inline]
+    fn get(&self) -> &Vec<RuntimeValue> {
+        unsafe { &*self.values.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    #[inline]
+    fn get_mut(&self) -> &mut Vec<RuntimeValue> {
+        unsafe { &mut *self.values.get() }
+    }
+
     fn new_with_capacity(cap: usize) -> Self {
         Self {
-            values: RefCell::new(Vec::with_capacity(cap)),
+            values: UnsafeCell::new(Vec::with_capacity(cap)),
             boxx: ObjectBox::default(),
         }
     }
 
     fn len(&self) -> usize {
-        self.values.borrow().len()
+        self.get().len()
     }
 
     fn is_empty(&self) -> bool {
-        self.values.borrow().is_empty()
+        self.get().is_empty()
     }
 
     fn get_at(&self, idx: usize) -> Option<RuntimeValue> {
-        self.values.borrow().get(idx).cloned()
+        self.get().get(idx).cloned()
     }
 
     fn append(&self, val: RuntimeValue) {
-        self.values.borrow_mut().push(val)
+        self.get_mut().push(val)
     }
 
     fn pop(&self) {
-        self.values.borrow_mut().pop();
+        self.get_mut().pop();
     }
 
     fn set_at(&self, idx: usize, val: RuntimeValue) -> Result<(), VmErrorReason> {
         match idx.cmp(&self.len()) {
             std::cmp::Ordering::Less => {
-                self.values.borrow_mut()[idx] = val;
+                self.get_mut()[idx] = val;
                 Ok(())
             }
             std::cmp::Ordering::Equal => {
@@ -73,7 +85,7 @@ impl ListImpl {
 
 impl std::fmt::Debug for ListImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let li = self.values.borrow();
+        let li = self.get();
         write!(
             f,
             "[{}]",

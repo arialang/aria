@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::{
-    cell::{Cell, RefCell},
+    cell::{Cell, UnsafeCell},
     rc::Rc,
 };
 
@@ -13,19 +13,31 @@ use super::{RuntimeValue, structure::Struct};
 
 pub struct ObjectBox {
     shape: Cell<ShapeId>,
-    slots: RefCell<Vec<RuntimeValue>>,
+    slots: UnsafeCell<Vec<RuntimeValue>>,
 }
 
 impl Default for ObjectBox {
     fn default() -> Self {
         Self {
             shape: Cell::new(crate::shape::Shapes::EMPTY_SHAPE_INDEX),
-            slots: RefCell::new(Vec::new()),
+            slots: UnsafeCell::new(Vec::new()),
         }
     }
 }
 
 impl ObjectBox {
+    #[allow(clippy::mut_from_ref)]
+    #[inline]
+    fn get(&self) -> &Vec<RuntimeValue> {
+        unsafe { &*self.slots.get() }
+    }
+
+    #[allow(clippy::mut_from_ref)]
+    #[inline]
+    fn get_mut(&self) -> &mut Vec<RuntimeValue> {
+        unsafe { &mut *self.slots.get() }
+    }
+
     pub fn write(
         &self,
         builtins: &mut crate::builtins::VmGlobals,
@@ -35,11 +47,11 @@ impl ObjectBox {
         let (shape_id, slot_id) = builtins.shapes.transition(self.shape.get(), name);
         self.shape.set(shape_id);
         let slot_id = slot_id.0 as usize;
-        let slot_count = self.slots.borrow().len();
+        let slot_count = self.get().len();
         if slot_id == slot_count {
-            self.slots.borrow_mut().push(val);
+            self.get_mut().push(val);
         } else if slot_id < slot_count {
-            self.slots.borrow_mut()[slot_id] = val;
+            self.get_mut()[slot_id] = val;
         } else {
             panic!("slots should grow sequentially");
         }
@@ -51,14 +63,14 @@ impl ObjectBox {
         name: Symbol,
     ) -> Option<RuntimeValue> {
         let slot_id = builtins.shapes.resolve_slot(self.shape.get(), name)?;
-        self.slots.borrow().get(slot_id.0 as usize).cloned()
+        self.get().get(slot_id.0 as usize).cloned()
     }
 
     pub(super) fn read_slot(&self, slot_id: SlotId, sid: ShapeId) -> Option<RuntimeValue> {
         if self.shape.get() != sid {
             return None;
         }
-        self.slots.borrow().get(slot_id.0 as usize).cloned()
+        self.get().get(slot_id.0 as usize).cloned()
     }
 
     pub(super) fn resolve_to_slot(
@@ -68,7 +80,7 @@ impl ObjectBox {
     ) -> Option<(RuntimeValue, ShapeId, SlotId)> {
         let sid = self.shape.get();
         let slot_id = builtins.shapes.resolve_slot(sid, name)?;
-        let val = self.slots.borrow().get(slot_id.0 as usize)?.clone();
+        let val = self.get().get(slot_id.0 as usize)?.clone();
         Some((val, sid, slot_id))
     }
 
@@ -82,7 +94,7 @@ impl ObjectBox {
             None => return ret,
         };
 
-        assert_eq!(self.slots.borrow().len(), shape.reverse_slots.len());
+        assert_eq!(self.get().len(), shape.reverse_slots.len());
 
         shape.reverse_slots.iter().for_each(|&sym| {
             ret.insert(sym);
@@ -91,7 +103,7 @@ impl ObjectBox {
     }
 
     pub(crate) fn contains(&self, builtins: &crate::builtins::VmGlobals, name: Symbol) -> bool {
-        let slot_count = self.slots.borrow().len();
+        let slot_count = self.get().len();
         if let Some(slot_id) = builtins.shapes.resolve_slot(self.shape.get(), name) {
             (slot_id.0 as usize) < slot_count
         } else {
