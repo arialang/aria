@@ -987,8 +987,9 @@ impl VirtualMachine {
                 let mut indices = Vec::<_>::with_capacity(n as usize);
                 for _ in 0..n {
                     let idx = pop_or_err!(next, frame, op_idx);
-                    indices.insert(0, idx);
+                    indices.push(idx);
                 }
+                indices.reverse();
                 let cnt = pop_or_err!(next, frame, op_idx);
                 match cnt.read_index(&indices, frame, self) {
                     Ok(crate::runtime_value::CallResult::Ok(_)) => {}
@@ -1009,8 +1010,9 @@ impl VirtualMachine {
                 let mut indices = Vec::<_>::with_capacity(n as usize);
                 for _ in 0..n {
                     let idx = pop_or_err!(next, frame, op_idx);
-                    indices.insert(0, idx);
+                    indices.push(idx);
                 }
+                indices.reverse();
                 let cnt = pop_or_err!(next, frame, op_idx);
                 match cnt.write_index(&indices, &val, frame, self) {
                     Ok(crate::runtime_value::CallResult::Ok(_)) => {}
