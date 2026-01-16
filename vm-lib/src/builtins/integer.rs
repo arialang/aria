@@ -48,9 +48,9 @@ impl BuiltinFunctionImpl for Prettyprint {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let this = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
-        let format_style = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
-        let output_string = int_format(this, &format_style);
+        let this = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
+        let format_style = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
+        let output_string = int_format(*this.raw_value(), format_style.raw_value());
         frame.stack.push(RuntimeValue::String(output_string.into()));
         Ok(RunloopExit::Ok(()))
     }

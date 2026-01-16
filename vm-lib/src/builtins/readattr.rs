@@ -13,14 +13,14 @@ impl BuiltinFunctionImpl for ReadAttr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_value = frame.stack.pop();
-        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?.raw_value();
-        if let Some(symbol) = vm.globals.lookup_symbol(&the_string)
+        let the_string = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
+        if let Some(symbol) = vm.globals.lookup_symbol(the_string.raw_value())
             && let Ok(the_attr) = the_value.read_attribute(symbol, &vm.globals)
         {
             frame.stack.push(the_attr);
             Ok(RunloopExit::Ok(()))
         } else {
-            Err(VmErrorReason::NoSuchIdentifier(the_string).into())
+            Err(VmErrorReason::NoSuchIdentifier(the_string.raw_value().to_owned()).into())
         }
     }
 

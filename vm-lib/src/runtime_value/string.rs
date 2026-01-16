@@ -48,7 +48,7 @@ impl PartialOrd<StringValue> for StringValue {
 }
 impl Ord for StringValue {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.raw_value().cmp(&other.raw_value())
+        self.raw_value().cmp(other.raw_value())
     }
 }
 
@@ -73,9 +73,9 @@ impl StringValue {
         _: &mut VirtualMachine,
     ) -> Result<RuntimeValue, VmErrorReason> {
         if let Some(i) = idx.as_integer() {
-            match self.get_at(i.raw_value() as usize) {
+            match self.get_at(*i.raw_value() as usize) {
                 Some(val) => Ok(val),
-                _ => Err(VmErrorReason::IndexOutOfBounds(i.raw_value() as usize)),
+                _ => Err(VmErrorReason::IndexOutOfBounds(*i.raw_value() as usize)),
             }
         } else {
             Err(VmErrorReason::UnexpectedType)

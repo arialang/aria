@@ -677,22 +677,22 @@ impl VirtualMachine {
                 let x = pop_or_err!(next, frame, op_idx);
                 let y = pop_or_err!(next, frame, op_idx);
                 if let (RuntimeValue::Integer(a), RuntimeValue::Integer(b)) = (&x, &y) {
-                    if a.raw_value() == 0 {
+                    if *a.raw_value() == 0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Integer(b / a));
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Float(b)) = (&x, &y) {
-                    if a.raw_value() == 0.0 {
+                    if *a.raw_value() == 0.0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(b / a))
                 } else if let (RuntimeValue::Integer(a), RuntimeValue::Float(b)) = (&x, &y) {
-                    if a.raw_value() == 0 {
+                    if *a.raw_value() == 0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(b / &a.to_fp()));
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Integer(b)) = (&x, &y) {
-                    if a.raw_value() == 0.0 {
+                    if *a.raw_value() == 0.0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(&b.to_fp() / a));
@@ -709,22 +709,22 @@ impl VirtualMachine {
                 let x = pop_or_err!(next, frame, op_idx);
                 let y = pop_or_err!(next, frame, op_idx);
                 if let (RuntimeValue::Integer(a), RuntimeValue::Integer(b)) = (&x, &y) {
-                    if a.raw_value() == 0 {
+                    if *a.raw_value() == 0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Integer(b % a));
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Float(b)) = (&x, &y) {
-                    if a.raw_value() == 0.0 {
+                    if *a.raw_value() == 0.0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(b % a))
                 } else if let (RuntimeValue::Integer(a), RuntimeValue::Float(b)) = (&x, &y) {
-                    if a.raw_value() == 0 {
+                    if *a.raw_value() == 0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(b % &a.to_fp()))
                 } else if let (RuntimeValue::Float(a), RuntimeValue::Integer(b)) = (&x, &y) {
-                    if a.raw_value() == 0.0 {
+                    if *a.raw_value() == 0.0 {
                         return build_vm_error!(VmErrorReason::DivisionByZero, next, frame, op_idx);
                     }
                     frame.stack.push(RuntimeValue::Float(&b.to_fp() % a))
@@ -950,7 +950,7 @@ impl VirtualMachine {
                 {
                     frame
                         .stack
-                        .push(self.read_named_symbol(this_module, &sv.raw_value())?);
+                        .push(self.read_named_symbol(this_module, sv.raw_value())?);
                 }
             }
             Opcode::WriteNamed(n) => {
@@ -958,11 +958,8 @@ impl VirtualMachine {
                 if let Some(ct) = this_module.load_indexed_const(n)
                     && let Some(sv) = ct.as_string()
                 {
-                    let write_result = this_module.store_typechecked_named_value(
-                        &sv.raw_value(),
-                        x,
-                        &self.globals,
-                    );
+                    let write_result =
+                        this_module.store_typechecked_named_value(sv.raw_value(), x, &self.globals);
                     match write_result {
                         Ok(_) => {}
                         Err(e) => {
@@ -977,7 +974,7 @@ impl VirtualMachine {
                     if let Some(ct) = this_module.load_indexed_const(n)
                         && let Some(sv) = ct.as_string()
                     {
-                        this_module.typedef_named_value(&sv.raw_value(), t);
+                        this_module.typedef_named_value(sv.raw_value(), t);
                     }
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1215,7 +1212,7 @@ impl VirtualMachine {
             Opcode::JumpTrue(n) => {
                 let x = pop_or_err!(next, frame, op_idx);
                 if let RuntimeValue::Boolean(v) = x {
-                    if v.raw_value() {
+                    if *v.raw_value() {
                         *op_idx = n as usize;
                     }
                 } else {
@@ -1235,7 +1232,7 @@ impl VirtualMachine {
             Opcode::JumpConditionally(t, f) => {
                 let x = pop_or_err!(next, frame, op_idx);
                 if let Some(b) = x.as_boolean() {
-                    *op_idx = if b.raw_value() { t } else { f } as usize;
+                    *op_idx = if *b.raw_value() { t } else { f } as usize;
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
@@ -1333,7 +1330,7 @@ impl VirtualMachine {
                     frame
                         .stack
                         .push(RuntimeValue::Type(RuntimeValueType::Struct(Struct::new(
-                            &name.raw_value(),
+                            name.raw_value(),
                         ))));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1345,7 +1342,7 @@ impl VirtualMachine {
                     frame
                         .stack
                         .push(RuntimeValue::Type(RuntimeValueType::Enum(Enum::new(
-                            &name.raw_value(),
+                            name.raw_value(),
                         ))));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
@@ -1356,7 +1353,7 @@ impl VirtualMachine {
                 if let Some(name) = name.as_string() {
                     frame
                         .stack
-                        .push(RuntimeValue::Mixin(Mixin::new(&name.raw_value())));
+                        .push(RuntimeValue::Mixin(Mixin::new(name.raw_value())));
                 } else {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 }
@@ -1740,9 +1737,9 @@ impl VirtualMachine {
 
                 let x = pop_or_err!(next, frame, op_idx);
                 if let Some(b) = x.as_boolean() {
-                    if !b.raw_value() {
+                    if !*b.raw_value() {
                         return build_vm_error!(
-                            VmErrorReason::AssertFailed(assert_msg),
+                            VmErrorReason::AssertFailed(assert_msg.to_owned()),
                             next,
                             frame,
                             op_idx
@@ -1750,7 +1747,7 @@ impl VirtualMachine {
                     }
                 } else {
                     return build_vm_error!(
-                        VmErrorReason::AssertFailed(assert_msg),
+                        VmErrorReason::AssertFailed(assert_msg.to_owned()),
                         next,
                         frame,
                         op_idx
@@ -1781,9 +1778,9 @@ impl VirtualMachine {
 
                 // this means that one cannot use the same dylib for multiple modules!
                 #[allow(clippy::map_entry)]
-                if !self.loaded_dylibs.contains_key(&lib_name) {
+                if !self.loaded_dylibs.contains_key(lib_name) {
                     unsafe {
-                        let dylib_path = get_lib_path(&lib_name);
+                        let dylib_path = get_lib_path(lib_name);
                         let dylib = match libloading::Library::new(&dylib_path) {
                             Ok(d) => d,
                             Err(e) => {
@@ -1821,11 +1818,11 @@ impl VirtualMachine {
                         let load_result =
                             symbol(self as *mut VirtualMachine, module as *const RuntimeModule);
                         if load_result.status == LoadStatus::Success {
-                            self.loaded_dylibs.insert(lib_name, dylib);
+                            self.loaded_dylibs.insert(lib_name.to_owned(), dylib);
                         } else {
                             let msg = load_result.into_rust_string();
                             return build_vm_error!(
-                                VmErrorReason::ImportNotAvailable(lib_name, msg),
+                                VmErrorReason::ImportNotAvailable(lib_name.to_owned(), msg),
                                 next,
                                 frame,
                                 op_idx
@@ -1865,11 +1862,11 @@ impl VirtualMachine {
                     return build_vm_error!(VmErrorReason::UnexpectedType, next, frame, op_idx);
                 };
 
-                if let Some(mli) = self.imported_modules.get(&ipath) {
+                if let Some(mli) = self.imported_modules.get(ipath) {
                     if let Err(e) = Self::create_import_model_from_path(
                         this_module,
                         &mut self.globals,
-                        &ipath,
+                        ipath,
                         RuntimeValue::Module(mli.module.clone()),
                     ) {
                         return build_vm_error!(e, next, frame, op_idx);
@@ -1878,7 +1875,7 @@ impl VirtualMachine {
                     frame.stack.push(RuntimeValue::Module(mli.module.clone()));
                 } else {
                     let import_path = match Self::resolve_import_path_to_path(
-                        &ipath,
+                        ipath,
                         this_module.get_compiled_module().widget_root_path.as_ref(),
                     ) {
                         Ok(ipath) => ipath,
@@ -1891,7 +1888,10 @@ impl VirtualMachine {
                         Ok(sb) => sb,
                         Err(_) => {
                             return build_vm_error!(
-                                VmErrorReason::ImportNotAvailable(ipath, "no such file".to_owned()),
+                                VmErrorReason::ImportNotAvailable(
+                                    ipath.to_owned(),
+                                    "no such file".to_owned()
+                                ),
                                 next,
                                 frame,
                                 op_idx
@@ -1899,9 +1899,9 @@ impl VirtualMachine {
                         }
                     };
 
-                    if self.import_stack.contains(&ipath) {
+                    if self.import_stack.contains(ipath) {
                         return build_vm_error!(
-                            VmErrorReason::CircularImport(ipath),
+                            VmErrorReason::CircularImport(ipath.to_owned()),
                             next,
                             frame,
                             op_idx
@@ -1918,10 +1918,10 @@ impl VirtualMachine {
                                 .map(|x| format!("error: {x}"))
                                 .collect::<Vec<_>>()
                                 .join("\n");
-                            assert!(ipath == self.import_stack.pop());
+                            assert!(*ipath == self.import_stack.pop());
                             return build_vm_error!(
                                 VmErrorReason::ImportNotAvailable(
-                                    ipath,
+                                    ipath.to_owned(),
                                     format!("module failed to compile: {err_msg}")
                                 ),
                                 next,
@@ -1933,7 +1933,7 @@ impl VirtualMachine {
                     let mli = match self.load_module(&sb.name, c_module)? {
                         RunloopExit::Ok(mli) => mli,
                         RunloopExit::Exception(e) => {
-                            assert!(ipath == self.import_stack.pop());
+                            assert!(*ipath == self.import_stack.pop());
                             return Ok(OpcodeRunExit::Exception(e));
                         }
                     };
@@ -1941,17 +1941,17 @@ impl VirtualMachine {
                     if let Err(e) = Self::create_import_model_from_path(
                         this_module,
                         &mut self.globals,
-                        &ipath,
+                        ipath,
                         RuntimeValue::Module(mli.module.clone()),
                     ) {
                         return build_vm_error!(e, next, frame, op_idx);
                     }
 
-                    assert!(ipath == self.import_stack.pop());
+                    assert!(*ipath == self.import_stack.pop());
 
                     frame.stack.push(RuntimeValue::Module(mli.module.clone()));
 
-                    self.imported_modules.insert(ipath.clone(), mli);
+                    self.imported_modules.insert(ipath.to_owned(), mli);
                 };
             }
         }

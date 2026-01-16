@@ -139,7 +139,7 @@ impl RuntimeValue {
             Ok(cr) => match cr {
                 CallResult::Ok(rv) => {
                     if let Some(bl) = rv.as_boolean() {
-                        OperatorEvalAttemptOutcome::Ok(bl.raw_value())
+                        OperatorEvalAttemptOutcome::Ok(*bl.raw_value())
                     } else {
                         OperatorEvalAttemptOutcome::NeedTryROperator
                     }

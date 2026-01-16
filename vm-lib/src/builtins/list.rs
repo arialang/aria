@@ -110,7 +110,7 @@ impl BuiltinFunctionImpl for GetAt {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
-        let index = index.raw_value() as usize;
+        let index = *index.raw_value() as usize;
         match this.get_at(index) {
             Some(v) => {
                 frame.stack.push(v);
@@ -142,7 +142,7 @@ impl BuiltinFunctionImpl for OpReadIndex {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
-        let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let index = *VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
         let index = if index < 0 {
             index + this.len() as i64
         } else {
@@ -180,7 +180,7 @@ impl BuiltinFunctionImpl for SetAt {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
         let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
-        let index = index.raw_value() as usize;
+        let index = *index.raw_value() as usize;
         let value = frame.stack.pop();
         match this.set_at(index, value) {
             Ok(_) => {
@@ -213,7 +213,7 @@ impl BuiltinFunctionImpl for OpWriteIndex {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_list().cloned())?;
-        let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let index = *VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
         let index = if index < 0 {
             index + this.len() as i64
         } else {
@@ -251,7 +251,7 @@ impl BuiltinFunctionImpl for NewWithCapacity {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let _ = frame.stack.pop(); // ignore List type, we know who we are
-        let capacity = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
+        let capacity = *VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
         let capacity = if capacity < 0 { 0 } else { capacity } as usize;
         let list = List::new_with_capacity(capacity);
         frame.stack.push(RuntimeValue::List(list));

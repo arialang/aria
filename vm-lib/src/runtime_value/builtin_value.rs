@@ -93,12 +93,14 @@ impl<T> BuiltinValue<T>
 where
     T: Clone,
 {
+    #[inline]
     pub fn builtin_type_id(&self) -> BuiltinTypeId {
         self.imp.id
     }
 
-    pub fn raw_value(&self) -> T {
-        self.imp.val.clone()
+    #[inline]
+    pub fn raw_value(&self) -> &T {
+        &self.imp.val
     }
 
     pub fn list_attributes(&self, builtins: &VmGlobals) -> FxHashSet<Symbol> {

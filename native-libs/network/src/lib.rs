@@ -69,7 +69,9 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestGet {
 
         let mut client = reqwest::blocking::Client::new()
             .get(this_url.raw_value())
-            .timeout(std::time::Duration::from_secs_f64(this_timeout.raw_value()));
+            .timeout(std::time::Duration::from_secs_f64(
+                *this_timeout.raw_value(),
+            ));
         for i in 0..headers.len() {
             let header = headers.get_at(i).unwrap();
             if let Some(list) = header.as_list()
@@ -225,8 +227,10 @@ impl haxby_vm::runtime_value::function::BuiltinFunctionImpl for RequestPost {
 
         let mut client = reqwest::blocking::Client::new()
             .post(this_url.raw_value())
-            .body(payload.raw_value())
-            .timeout(std::time::Duration::from_secs_f64(this_timeout.raw_value()));
+            .body(payload.raw_value().to_owned())
+            .timeout(std::time::Duration::from_secs_f64(
+                *this_timeout.raw_value(),
+            ));
         for i in 0..headers.len() {
             let header = headers.get_at(i).unwrap();
             if let Some(list) = header.as_list()

@@ -22,7 +22,7 @@ impl BuiltinFunctionImpl for FpHash {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
-        let hv = unsafe { std::mem::transmute_copy::<f64, i64>(&this.raw_value()) };
+        let hv = unsafe { std::mem::transmute_copy::<f64, i64>(this.raw_value()) };
         frame.stack.push(RuntimeValue::Integer(hv.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -103,7 +103,7 @@ impl BuiltinFunctionImpl for FpInt {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_float().cloned())?;
-        let iv = this.raw_value() as i64;
+        let iv = *this.raw_value() as i64;
         frame.stack.push(RuntimeValue::Integer(iv.into()));
         Ok(RunloopExit::Ok(()))
     }

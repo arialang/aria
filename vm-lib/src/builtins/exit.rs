@@ -12,8 +12,8 @@ impl BuiltinFunctionImpl for Exit {
         frame: &mut Frame,
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
-        let code = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?.raw_value();
-        std::process::exit(code as i32);
+        let code = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
+        std::process::exit(*code.raw_value() as i32);
     }
 
     fn arity(&self) -> crate::arity::Arity {

@@ -45,7 +45,7 @@ impl BuiltinFunctionImpl for New {
         let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
         let the_pattern = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
-        let rust_regex_obj = match regex::Regex::new(&the_pattern.raw_value()) {
+        let rust_regex_obj = match regex::Regex::new(the_pattern.raw_value()) {
             Ok(s) => s,
             Err(e) => {
                 let err = create_regex_error(&the_struct, e.to_string(), &mut vm.globals);
@@ -115,7 +115,7 @@ impl BuiltinFunctionImpl for AnyMatch {
             None => return Err(VmErrorReason::UnexpectedVmState.into()),
         };
 
-        let matches = rust_regex_obj.is_match(&the_haystack.raw_value());
+        let matches = rust_regex_obj.is_match(the_haystack.raw_value());
 
         frame.stack.push(RuntimeValue::Boolean(matches.into()));
         Ok(RunloopExit::Ok(()))
@@ -140,8 +140,7 @@ impl BuiltinFunctionImpl for Matches {
     fn eval(&self, frame: &mut Frame, vm: &mut VirtualMachine) -> ExecutionResult<RunloopExit> {
         let aria_regex = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
         let aria_struct = aria_regex.get_struct().clone();
-        let the_haystack =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let the_haystack = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
         let match_sym = vm
             .globals
@@ -166,7 +165,7 @@ impl BuiltinFunctionImpl for Matches {
         };
 
         let matches: Vec<_> = rust_regex_obj
-            .find_iter(&the_haystack)
+            .find_iter(the_haystack.raw_value())
             .map(|mh| (mh.start() as i64, mh.len() as i64, mh.as_str()))
             .collect();
 
@@ -226,11 +225,9 @@ impl BuiltinFunctionImpl for Replace {
     fn eval(&self, frame: &mut Frame, vm: &mut VirtualMachine) -> ExecutionResult<RunloopExit> {
         let aria_regex = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
 
-        let the_haystack =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let the_haystack = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
-        let new_value =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let new_value = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
         let pattern_sym = vm
             .globals
@@ -246,7 +243,7 @@ impl BuiltinFunctionImpl for Replace {
         };
 
         let target = rust_regex_obj
-            .replace_all(&the_haystack, new_value)
+            .replace_all(the_haystack.raw_value(), new_value.raw_value())
             .to_string();
 
         frame.stack.push(RuntimeValue::String(target.into()));

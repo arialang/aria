@@ -98,13 +98,12 @@ impl BuiltinFunctionImpl for New {
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
         let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
-        let the_path =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let the_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
         let path_sym = path_symbol(vm);
         frame.stack.push(new_from_path(
             &the_struct,
-            the_path,
+            the_path.raw_value(),
             path_sym,
             &mut vm.globals,
         ));
@@ -156,11 +155,10 @@ impl BuiltinFunctionImpl for Glob {
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
         let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
-        let glob_expr =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let glob_expr = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
         let path_sym = path_symbol(vm);
 
-        let val = match glob::glob(&glob_expr) {
+        let val = match glob::glob(glob_expr.raw_value()) {
             Ok(path) => {
                 let iterator_sym = vm
                     .globals
@@ -284,13 +282,12 @@ impl BuiltinFunctionImpl for Append {
         vm: &mut vm::VirtualMachine,
     ) -> vm::ExecutionResult<RunloopExit> {
         let aria_object = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let the_path =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let the_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
         let rust_obj = mut_path_from_aria(&aria_object, &vm.globals)?;
 
         let mut rfo = rust_obj.content.borrow_mut();
-        rfo.push(the_path);
+        rfo.push(the_path.raw_value());
 
         frame.stack.push(vm.globals.create_unit_object()?);
         Ok(RunloopExit::Ok(()))

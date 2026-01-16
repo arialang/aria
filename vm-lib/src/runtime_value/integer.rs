@@ -5,7 +5,7 @@ pub type IntegerValue = BuiltinValue<i64>;
 
 impl IntegerValue {
     pub fn to_fp(&self) -> FloatValue {
-        (self.raw_value() as f64).into()
+        (*self.raw_value() as f64).into()
     }
 }
 
@@ -20,7 +20,7 @@ impl std::ops::Add<&IntegerValue> for &IntegerValue {
 
     #[inline]
     fn add(self, rhs: &IntegerValue) -> Self::Output {
-        From::from(self.raw_value().wrapping_add(rhs.raw_value()))
+        From::from(self.raw_value().wrapping_add(*rhs.raw_value()))
     }
 }
 
@@ -29,7 +29,7 @@ impl std::ops::Sub<&IntegerValue> for &IntegerValue {
 
     #[inline]
     fn sub(self, rhs: &IntegerValue) -> Self::Output {
-        From::from(self.raw_value().wrapping_sub(rhs.raw_value()))
+        From::from(self.raw_value().wrapping_sub(*rhs.raw_value()))
     }
 }
 
@@ -38,7 +38,7 @@ impl std::ops::Mul<&IntegerValue> for &IntegerValue {
 
     #[inline]
     fn mul(self, rhs: &IntegerValue) -> Self::Output {
-        From::from(self.raw_value().wrapping_mul(rhs.raw_value()))
+        From::from(self.raw_value().wrapping_mul(*rhs.raw_value()))
     }
 }
 
@@ -47,7 +47,7 @@ impl std::ops::Div<&IntegerValue> for &IntegerValue {
 
     #[inline]
     fn div(self, rhs: &IntegerValue) -> Self::Output {
-        From::from(self.raw_value().wrapping_div(rhs.raw_value()))
+        From::from(self.raw_value().wrapping_div(*rhs.raw_value()))
     }
 }
 
@@ -56,7 +56,7 @@ impl std::ops::Rem<&IntegerValue> for &IntegerValue {
 
     #[inline]
     fn rem(self, rhs: &IntegerValue) -> Self::Output {
-        From::from(self.raw_value().wrapping_rem(rhs.raw_value()))
+        From::from(self.raw_value().wrapping_rem(*rhs.raw_value()))
     }
 }
 
@@ -131,13 +131,13 @@ impl PartialOrd<IntegerValue> for IntegerValue {
 impl Ord for IntegerValue {
     #[inline]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.raw_value().cmp(&other.raw_value())
+        self.raw_value().cmp(other.raw_value())
     }
 }
 
 impl PartialEq<i64> for IntegerValue {
     #[inline]
     fn eq(&self, other: &i64) -> bool {
-        self.raw_value() == *other
+        *self.raw_value() == *other
     }
 }

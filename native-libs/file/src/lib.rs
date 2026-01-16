@@ -111,13 +111,11 @@ impl BuiltinFunctionImpl for New {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let the_struct = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_struct().cloned())?;
-        let the_path =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
-        let the_mode =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+        let the_path = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
+        let the_mode = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?;
 
-        let opts = open_options_from_int(the_mode);
-        match opts.open(the_path) {
+        let opts = open_options_from_int(*the_mode.raw_value());
+        match opts.open(the_path.raw_value()) {
             Ok(file) => {
                 let file = MutableFile {
                     file: RefCell::new(file),
@@ -238,12 +236,11 @@ impl BuiltinFunctionImpl for ReadCount {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let count =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+        let count = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?;
 
         let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
-        let mut bytes = vec![0u8; count as usize];
+        let mut bytes = vec![0u8; *count.raw_value() as usize];
         {
             let mut file_ref = rust_file_obj.file.borrow_mut();
             match file_ref.read_exact(&mut bytes) {
@@ -289,13 +286,12 @@ impl BuiltinFunctionImpl for WriteStr {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let text =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?.raw_value();
+        let text = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_string().cloned())?;
 
         let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
-        match rfo.write(text.as_bytes()) {
+        match rfo.write(text.raw_value().as_bytes()) {
             Ok(n) => {
                 frame.stack.push(RuntimeValue::Integer((n as i64).into()));
                 Ok(RunloopExit::Ok(()))
@@ -370,14 +366,13 @@ impl BuiltinFunctionImpl for SetPos {
         vm: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let aria_file = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_object().cloned())?;
-        let offset =
-            VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?.raw_value();
+        let offset = VmGlobals::extract_arg(frame, |x: RuntimeValue| x.as_integer().cloned())?;
 
         let rust_file_obj = mut_file_from_aria(&aria_file, &vm.globals)?;
 
         let mut rfo = rust_file_obj.file.borrow_mut();
 
-        match rfo.seek(std::io::SeekFrom::Start(offset as u64)) {
+        match rfo.seek(std::io::SeekFrom::Start(*offset.raw_value() as u64)) {
             Ok(n) => {
                 frame.stack.push(RuntimeValue::Integer((n as i64).into()));
                 Ok(RunloopExit::Ok(()))

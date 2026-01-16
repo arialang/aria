@@ -64,7 +64,7 @@ impl BuiltinFunctionImpl for StringHasPrefix {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
-        let result = this.raw_value().starts_with(&prefix.raw_value());
+        let result = this.raw_value().starts_with(prefix.raw_value());
         frame.stack.push(RuntimeValue::Boolean(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -96,13 +96,13 @@ impl BuiltinFunctionImpl for StringHasSuffix {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
-        let prefix = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
+        let suffix = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
             Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
-        let result = this.raw_value().ends_with(&prefix.raw_value());
+        let result = this.raw_value().ends_with(suffix.raw_value());
         frame.stack.push(RuntimeValue::Boolean(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -148,7 +148,7 @@ impl BuiltinFunctionImpl for StringReplace {
         };
         let result = this
             .raw_value()
-            .replace(&current.raw_value(), &wanted.raw_value());
+            .replace(current.raw_value(), wanted.raw_value());
         frame.stack.push(RuntimeValue::String(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -188,7 +188,7 @@ impl BuiltinFunctionImpl for StringSplit {
         };
         let result = this
             .raw_value()
-            .split(&marker.raw_value())
+            .split(marker.raw_value())
             .map(|x| RuntimeValue::String(x.to_owned().into()))
             .collect::<Vec<_>>();
         frame.stack.push(RuntimeValue::List(List::from(&result)));
@@ -217,14 +217,15 @@ impl BuiltinFunctionImpl for StringChars {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
         let ret = List::default();
-        this.chars()
+        this.raw_value()
+            .chars()
             .map(|c| RuntimeValue::String(c.to_string().into()))
             .for_each(|rv| ret.append(rv));
 
@@ -254,14 +255,15 @@ impl BuiltinFunctionImpl for StringBytes {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
         let ret = List::default();
-        this.bytes()
+        this.raw_value()
+            .bytes()
             .map(|c| RuntimeValue::Integer((c as i64).into()))
             .for_each(|rv| ret.append(rv));
 
@@ -309,7 +311,7 @@ impl BuiltinFunctionImpl for FromBytes {
         for i in 0..list.len() {
             let item = list.get_at(i).expect("invalid list");
             if let Some(byte) = item.as_integer() {
-                bytes.push(byte.raw_value() as u8);
+                bytes.push(*byte.raw_value() as u8);
             } else {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
@@ -367,13 +369,13 @@ impl BuiltinFunctionImpl for ToNumericEncoding {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
-        if let Some(char) = this.chars().next() {
+        if let Some(char) = this.raw_value().chars().next() {
             let char = char as i64;
             frame.stack.push(RuntimeValue::Integer(char.into()));
             Ok(RunloopExit::Ok(()))
@@ -404,13 +406,13 @@ impl BuiltinFunctionImpl for TrimHead {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
-        let result = this.trim_start().to_string();
+        let result = this.raw_value().trim_start().to_string();
         frame.stack.push(RuntimeValue::String(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -437,13 +439,13 @@ impl BuiltinFunctionImpl for TrimTail {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
-        let result = this.trim_end().to_string();
+        let result = this.raw_value().trim_end().to_string();
         frame.stack.push(RuntimeValue::String(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -470,13 +472,13 @@ impl BuiltinFunctionImpl for Uppercase {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
-        let result = this.to_uppercase();
+        let result = this.raw_value().to_uppercase();
         frame.stack.push(RuntimeValue::String(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -503,13 +505,13 @@ impl BuiltinFunctionImpl for Lowercase {
         _: &mut crate::vm::VirtualMachine,
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = match frame.stack.pop_if(|x| RuntimeValue::as_string(&x).cloned()) {
-            Some(x) => x.raw_value(),
+            Some(x) => x,
             None => {
                 return Err(VmErrorReason::UnexpectedType.into());
             }
         };
 
-        let result = this.to_lowercase();
+        let result = this.raw_value().to_lowercase();
         frame.stack.push(RuntimeValue::String(result.into()));
         Ok(RunloopExit::Ok(()))
     }
@@ -538,7 +540,7 @@ impl BuiltinFunctionImpl for Contains {
         let this = VmGlobals::extract_arg(frame, |a| a.as_string().cloned())?;
         let that = VmGlobals::extract_arg(frame, |a| a.as_string().cloned())?;
 
-        let contains = this.raw_value().contains(&that.raw_value());
+        let contains = this.raw_value().contains(that.raw_value());
 
         frame.stack.push(RuntimeValue::Boolean(contains.into()));
         Ok(RunloopExit::Ok(()))
@@ -567,7 +569,7 @@ impl BuiltinFunctionImpl for GetAt {
     ) -> crate::vm::ExecutionResult<RunloopExit> {
         let this = VmGlobals::extract_arg(frame, |x| x.as_string().cloned())?;
         let index = VmGlobals::extract_arg(frame, |x| x.as_integer().cloned())?;
-        let index = index.raw_value() as usize;
+        let index = *index.raw_value() as usize;
         match this.get_at(index) {
             Some(v) => {
                 frame.stack.push(v);

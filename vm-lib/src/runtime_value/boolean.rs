@@ -30,7 +30,7 @@ impl std::ops::BitAnd for &BooleanValue {
     type Output = BooleanValue;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        (self.raw_value() && rhs.raw_value()).into()
+        (*self.raw_value() && *rhs.raw_value()).into()
     }
 }
 
@@ -38,6 +38,6 @@ impl std::ops::BitOr for &BooleanValue {
     type Output = BooleanValue;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        (self.raw_value() || rhs.raw_value()).into()
+        (*self.raw_value() || *rhs.raw_value()).into()
     }
 }

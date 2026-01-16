@@ -166,7 +166,7 @@ func main() {
         crate::vm::RunloopExit::Exception(e) => {
             assert_eq!(
                 1,
-                e.value
+                *e.value
                     .as_integer()
                     .expect("integer value thrown")
                     .raw_value()

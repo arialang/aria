@@ -72,7 +72,7 @@ impl PartialOrd<FloatValue> for FloatValue {
 impl Ord for FloatValue {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.raw_value()
-            .partial_cmp(&other.raw_value())
+            .partial_cmp(other.raw_value())
             .unwrap_or(std::cmp::Ordering::Equal)
     }
 }
