@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+import aria.range.int_extension;
+import Microbenchmark from infra;
+
+struct Foo {
+    func answer() = 42;
+}
+
+struct MethodCall : Microbenchmark {
+    func prepare() {
+        this.foo = alloc(Foo);
+    }
+
+    func test() {
+        for i in 0.to(100_000) {
+            assert this.foo.answer() == 42;
+        }
+    }
+}
+
+MethodCall.new("Method Call").run();

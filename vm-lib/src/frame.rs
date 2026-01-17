@@ -95,6 +95,27 @@ impl Frame {
             None
         }
     }
+
+    pub(crate) fn reset_for_function(&mut self, f: &Function) {
+        self.stack.clear();
+        self.ctrl_blocks.clear();
+        self.func = Some(f.clone());
+        self.argc = 0;
+        self.set_line_table(f.line_table());
+        let locals = f.frame_size() as usize;
+        self.locals.clear();
+        self.locals.resize_with(locals, LocalVariable::default);
+    }
+
+    pub(crate) fn reset_for_pool(mut self) -> Self {
+        self.stack.clear();
+        self.ctrl_blocks.clear();
+        self.locals.clear();
+        self.func = None;
+        self.argc = 0;
+        self.line_table = None;
+        self
+    }
 }
 
 impl Default for Frame {

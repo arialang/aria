@@ -322,8 +322,6 @@ impl Function {
         other_args: &PartialFunctionApplication,
         discard_result: bool,
     ) -> ExecutionResult<CallResult> {
-        let mut new_frame = Frame::new_with_function(self.clone());
-
         let other_argc = other_args.suffix_args.len() as u8;
         let effective_argc = argc + other_argc;
         let fixed_arity = self.arity().required + self.arity().optional;
@@ -337,20 +335,6 @@ impl Function {
                     )
                     .into(),
                 );
-            }
-
-            let mut popped_args = cur_frame.stack.pop_count(argc as usize);
-            let split_at = (fixed_arity - other_argc) as usize;
-            let varargs = popped_args.split_off(split_at.min(popped_args.len()));
-
-            let l = List::default();
-            for arg in varargs {
-                l.append(arg);
-            }
-
-            new_frame.stack.push(super::RuntimeValue::List(l));
-            for arg in popped_args.into_iter().rev() {
-                new_frame.stack.push(arg);
             }
         } else {
             if effective_argc < self.arity().required {
@@ -371,7 +355,25 @@ impl Function {
                     .into(),
                 );
             }
+        }
 
+        let mut new_frame = vm.acquire_frame(self);
+
+        if self.attribute().is_vararg() {
+            let mut popped_args = cur_frame.stack.pop_count(argc as usize);
+            let split_at = (fixed_arity - other_argc) as usize;
+            let varargs = popped_args.split_off(split_at.min(popped_args.len()));
+
+            let l = List::default();
+            for arg in varargs {
+                l.append(arg);
+            }
+
+            new_frame.stack.push(super::RuntimeValue::List(l));
+            for arg in popped_args.into_iter().rev() {
+                new_frame.stack.push(arg);
+            }
+        } else {
             for item in cur_frame.stack.pop_count(argc as usize).into_iter().rev() {
                 new_frame.stack.push(item);
             }
@@ -381,8 +383,9 @@ impl Function {
             new_frame.stack.push(arg.clone());
         }
 
-        match self.eval_in_frame(effective_argc, &mut new_frame, vm)? {
-            RunloopExit::Ok(_) => match new_frame.stack.try_pop() {
+        let eval_result = self.eval_in_frame(effective_argc, &mut new_frame, vm);
+        let result = match eval_result {
+            Ok(RunloopExit::Ok(_)) => match new_frame.stack.try_pop() {
                 Some(ret) => {
                     if !discard_result {
                         cur_frame.stack.push(ret.clone());
@@ -391,8 +394,12 @@ impl Function {
                 }
                 _ => panic!("functions must return a value"),
             },
-            RunloopExit::Exception(e) => Ok(CallResult::Exception(e)),
-        }
+            Ok(RunloopExit::Exception(e)) => Ok(CallResult::Exception(e)),
+            Err(err) => Err(err),
+        };
+
+        vm.release_frame(new_frame);
+        result
     }
 }
 

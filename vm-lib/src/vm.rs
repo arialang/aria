@@ -73,11 +73,22 @@ pub struct VirtualMachine {
     pub import_stack: Stack<String>,
     pub imported_modules: HashMap<String, ModuleLoadInfo>,
     pub loaded_dylibs: HashMap<String, libloading::Library>,
+    frame_pool: Vec<Frame>,
 }
 
 impl VirtualMachine {
     pub fn console(&self) -> &ConsoleHandle {
         &self.options.console
+    }
+
+    pub(crate) fn acquire_frame(&mut self, f: &Function) -> Frame {
+        let mut frame = self.frame_pool.pop().unwrap_or_default();
+        frame.reset_for_function(f);
+        frame
+    }
+
+    pub(crate) fn release_frame(&mut self, frame: Frame) {
+        self.frame_pool.push(frame.reset_for_pool());
     }
 
     fn load_version_into_globals(mut self) -> Self {
@@ -105,6 +116,7 @@ impl VirtualMachine {
             import_stack: Default::default(),
             imported_modules: Default::default(),
             loaded_dylibs: Default::default(),
+            frame_pool: Default::default(),
         }
         .load_version_into_globals()
     }

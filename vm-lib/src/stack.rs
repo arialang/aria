@@ -75,6 +75,10 @@ where
         self.values.is_empty()
     }
 
+    pub fn clear(&mut self) {
+        self.values.clear();
+    }
+
     pub fn peek_at_offset(&mut self, i: usize) -> Option<&T> {
         let idx = self.len() - 1 - i;
         self.values.get(idx)
