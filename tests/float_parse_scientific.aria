@@ -1,7 +1,36 @@
 # SPDX-License-Identifier: Apache-2.0
 
-### TAGS: XFAIL
+val x1 = 1.0E3;
+val y1 = Float.parse("1.0E3")!;
+assert x1 == y1;
+assert y1 == 1000.0f;
 
-val x = 1.0E3;
-val y = Float.parse("1.0E3")!;
-assert x == y;
+val x2 = 1.0e3;
+val y2 = Float.parse("1.0e3")!;
+assert x2 == y2;
+assert y2 == 1000.0f;
+
+val x3 = 1.0e-3;
+val y3 = Float.parse("1.0e-3")!;
+assert x3 == y3;
+assert y3 == 0.001f;
+
+val x4 = 1.0e+3;
+val y4 = Float.parse("1.0e+3")!;
+assert x4 == y4;
+assert y4 == 1000.0f;
+
+val x5 = 2.0e2;
+val y5 = Float.parse("2.0e2")!;
+assert x5 == y5;
+assert y5 == 200.0f;
+
+val x6 = 0.0e10;
+val y6 = Float.parse("0.0e10")!;
+assert x6 == y6;
+assert y6 == 0.0f;
+
+val x7 = -1.5e2;
+val y7 = Float.parse("-1.5e2")!;
+assert x7 == y7;
+assert y7 == -150.0f;

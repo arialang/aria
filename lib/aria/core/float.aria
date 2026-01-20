@@ -87,6 +87,9 @@ extension Float {
 
         while i < s.len() {
             val chr = s[i];
+            if chr == "e" || chr == "E" {
+                break;
+            }
             if chr == "." {
                 if decimal_found {
                     return Result::Err("duplicate decimal point");
@@ -106,7 +109,49 @@ extension Float {
             }
             i += 1;
         }
+
+        ret = sign * ret;
+
+        if i < s.len() {
+            i += 1;
+            if i >= s.len() {
+                return Result::Err("missing exponent");
+            }
+
+            val exp_sign = 1;
+            if s[i] == "-" {
+                exp_sign = -1;
+                i += 1;
+            } elsif s[i] == "+" {
+                i += 1;
+            }
+
+            if i >= s.len() {
+                return Result::Err("missing exponent digits");
+            }
+
+            val exp_value = 0;
+            while i < s.len() {
+                val digit = char_to_int(s[i]);
+                if digit == Maybe::None {
+                    return Result::Err("invalid float exponent digit: " + s[i]);
+                }
+                exp_value = exp_value * 10 + digit;
+                i += 1;
+            }
+
+            val exp = exp_sign * exp_value;
+            val factor = 1.0f;
+            val j = 0;
+            val limit = exp < 0 ? -exp : exp;
+            while j < limit {
+                factor = factor * 10;
+                j += 1;
+            }
+
+            ret = exp < 0 ? ret / factor : ret * factor;
+        }
         
-        return Result::Ok(sign * ret);
+        return Result::Ok(ret);
     }
 }
