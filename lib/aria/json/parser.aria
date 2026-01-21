@@ -81,7 +81,7 @@ func parse_value(stream) {
     } elsif c == 'n' {
         return parse_null(stream)?;
     } elsif c.is_digit() || c == '-' {
-        return JsonValue::Number(parse_number(stream))?;
+        return JsonValue::Number(parse_number(stream)?);
     } else {
         return json_err("Not a valid JSON value: " + c);
     }
@@ -138,6 +138,27 @@ func parse_number(stream) {
         while true {
             val c = stream.peek();
             if c.is_digit() {
+                text += stream.next();
+            } else {
+                break;
+            }
+        }
+    }
+
+    # Handle scientific notation
+    if stream.peek() == 'e' || stream.peek() == 'E' {
+        text += stream.next();
+        
+        if stream.peek() == '+' || stream.peek() == '-' {
+            text += stream.next();
+        }
+        
+        # Check for Maybe::None first!
+        while true {
+            val c = stream.peek();
+            if c == Maybe::None {
+                break;
+            } elsif c.is_digit() {
                 text += stream.next();
             } else {
                 break;
