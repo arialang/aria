@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 ariadne = { git = "https://github.com/zesterer/ariadne.git", rev="b60b500" }
-clap = { version = "4.5.54", features = ["derive"] }
+clap = { version = "4.5.56", features = ["derive"] }
 glob = "0.3.3"
 rayon = "1.11.0"
 parser-lib = { path = "../parser-lib" }
