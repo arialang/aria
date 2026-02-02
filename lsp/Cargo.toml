@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-logos = "0.16.0"
+logos = "0.16.1"
 rowan = "0.16.1"
 line-index = "0.1.2"
 tower-lsp = "0.20.0"
