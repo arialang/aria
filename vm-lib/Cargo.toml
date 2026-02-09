@@ -20,7 +20,7 @@ libc = "0.2.180"
 rustc_data_structures = "0.1.2"
 
 [dev-dependencies]
-criterion = { version = "0.8.1" }
+criterion = { version = "0.8.2" }
 
 [[bench]]
 name = "control_flow"
