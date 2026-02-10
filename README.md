@@ -5,6 +5,8 @@
 [![Docs](https://img.shields.io/badge/Docs-Available-blue.svg)](https://arialang.github.io/)
 [![Contributors](https://img.shields.io/github/contributors/arialang/aria)](https://github.com/arialang/aria/graphs/contributors)
 
+Please read [this post](https://arialang.github.io/blog/2026_02/post.html) for the latest update on Aria.
+
 Welcome to Aria. Aria is a modern, dynamic scripting language. It is meant to be a "sweet spot" language, easy to pick-up and with a good balance between ease of use, safety, and flexibility. Aria's design choices help you build great programs quickly.
 
 Aria has modern, safer error handling: Aria replaces unreliable `None` pointer checks with a modern, multi-tiered approach to error handling. By emphasizing algebraic data types (e.g. `Maybe`), Aria makes errors explicit, safer, and easier to manage, with fewer runtime surprises.
