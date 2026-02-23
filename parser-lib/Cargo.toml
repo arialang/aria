@@ -8,5 +8,5 @@ name = "aria_parser"
 path = "src/lib.rs"
 
 [dependencies]
-pest = "2.8.5"
+pest = "2.8.6"
 pest_derive = "2.8.5"
