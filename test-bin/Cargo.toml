@@ -11,7 +11,7 @@ rayon = "1.11.0"
 parser-lib = { path = "../parser-lib" }
 compiler-lib = { path = "../compiler-lib" }
 vm-lib = { path = "../vm-lib" }
-regex = "1.12.2"
+regex = "1.12.3"
 once_cell = "1.21.3"
 enum-as-inner = "0.7.0"
 
